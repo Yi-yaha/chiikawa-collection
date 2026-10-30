@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F7F5F1">
+  <meta name="description" content="依角色、種類與系列瀏覽吉伊卡哇商品，整理我的娃。">
+  <title>吉伊卡哇圖鑑</title>
+  <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="./favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <nav class="character-nav" aria-label="選擇角色或我的娃"><div id="character-tabs" class="character-tabs"><span class="loading-label">載入角色…</span></div></nav>
+      <div class="header-actions">
+        <div class="menu-anchor">
+          <button class="icon-button" id="more-button" aria-label="更多選項" aria-expanded="false" aria-controls="more-menu"><span data-icon="more"></span></button>
+          <div class="more-menu" id="more-menu" hidden><button id="open-data"><span data-icon="box"></span>資料管理</button></div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="page-shell">
+    <section id="catalog" class="catalog" aria-labelledby="catalog-title">
+      <div class="catalog-heading">
+        <div><h1 id="catalog-title">我的娃</h1></div>
+        <button class="secondary-button" id="open-order" hidden><span data-icon="sort"></span>調整角色順序</button>
+      </div>
+      <div class="filters">
+        <div class="filter-controls">
+          <label class="search-control"><span data-icon="search"></span><input id="catalog-search" type="search" placeholder="搜尋娃娃名稱" aria-label="搜尋商品名稱或角色" autocomplete="off"></label>
+          <label class="select-control"><select id="type-filter" aria-label="篩選種類"><option value="">全部種類</option></select><span data-icon="chevron"></span></label>
+          <div class="series-anchor">
+            <button id="series-toggle" class="select-control series-toggle" aria-label="篩選系列：全部系列" aria-haspopup="dialog" aria-expanded="false" aria-controls="series-popover"><span id="series-label">全部系列</span><span data-icon="chevron"></span></button>
+            <div id="series-popover" class="series-popover" role="dialog" aria-label="選擇系列" hidden>
+              <div class="series-search-wrap"><span data-icon="search"></span><input id="series-search" type="search" placeholder="搜尋系列名稱" aria-label="搜尋系列名稱" autocomplete="off"></div>
+              <div id="series-options" class="series-options"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="result-bar"><p id="result-count" role="status" aria-live="polite">正在整理圖鑑…</p><div class="segmented" role="group" aria-label="排列方式"><button data-group="character" class="active" aria-pressed="true"><span data-icon="person"></span>依角色</button><button data-group="series" aria-pressed="false"><span data-icon="grid"></span>依系列</button></div></div>
+      <div class="filter-summary"><div id="active-filters" class="active-filters"></div><button id="reset-filters" class="text-button" hidden><span data-icon="reset"></span>重設篩選</button></div>
+      <div id="catalog-content" aria-busy="true"><div class="product-grid skeleton-grid" aria-hidden="true"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+    </section>
+
+  </main>
+
+  <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+  <dialog id="order-dialog" class="panel-dialog" aria-labelledby="order-title">
+    <div class="dialog-heading"><div><h2 id="order-title">調整角色順序</h2></div><button class="icon-button" data-close="order-dialog" aria-label="關閉角色排序"><span data-icon="close"></span></button></div>
+    <p class="dialog-description">拖曳角色，或使用上下箭頭調整。「我的娃」會記住這個順序。</p>
+    <ol id="order-list" class="order-list"></ol>
+    <div class="dialog-footer"><button class="text-button" id="reset-order">恢復預設順序</button><button class="primary-button" id="save-order">完成</button></div>
+  </dialog>
+  <dialog id="data-dialog" class="panel-dialog" aria-labelledby="data-title">
+    <div class="dialog-heading"><div><h2 id="data-title">資料管理</h2></div><button class="icon-button" data-close="data-dialog" aria-label="關閉資料管理"><span data-icon="close"></span></button></div>
+    <p class="dialog-description">收藏、角色順序與排列偏好儲存在目前的瀏覽器。換裝置前，可以先匯出一份備份。</p>
+    <div class="data-summary"><span data-icon="heart"></span><div><strong id="data-count">0 隻收藏</strong></div></div>
+    <button id="export-data" class="data-action"><span data-icon="download"></span><span><strong>匯出收藏備份</strong><small>保存收藏紀錄與角色順序</small></span><span data-icon="arrow-right"></span></button>
+    <button id="import-data" class="data-action"><span data-icon="upload"></span><span><strong>匯入收藏備份</strong><small>合併收藏，套用備份中的排列設定</small></span><span data-icon="arrow-right"></span></button>
+    <input id="import-file" type="file" accept="application/json,.json" hidden>
+    <p id="data-message" class="data-message" role="status"></p>
+    <div class="danger-zone"><div><strong>清除收藏紀錄</strong><p>清空「我的娃」，商品圖鑑與角色順序會保留。</p></div><button id="ask-clear" class="danger-button">清除紀錄</button></div>
+  </dialog>
+  <dialog id="clear-dialog" class="panel-dialog compact-dialog" aria-labelledby="clear-title"><div class="warning-icon" data-icon="heart"></div><h2 id="clear-title">清除所有收藏紀錄？</h2><p id="clear-description">「我的娃」將會清空，商品圖鑑與角色順序會保留。建議先匯出備份。</p><div class="confirm-actions"><button class="secondary-button" data-close="clear-dialog">先保留</button><button class="danger-button" id="confirm-clear">確認清除收藏</button></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden><span data-icon="check"></span><span id="toast-message"></span><button id="toast-undo" hidden>復原</button></div>
+  <noscript><p class="noscript">請開啟瀏覽器的 JavaScript，才能瀏覽圖鑑和儲存收藏。</p></noscript>
+</body>
+</html>
