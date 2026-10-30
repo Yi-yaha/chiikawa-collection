@@ -11,8 +11,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=image-collect-info-1">
-  <script type="module" src="./app.mjs?v=image-collect-info-1"></script>
+  <link rel="stylesheet" href="./styles.css?v=collection-controls-2">
+  <script type="module" src="./app.mjs?v=collection-controls-2"></script>
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -54,6 +54,7 @@
   </main>
 
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+  <dialog id="remove-dialog" class="panel-dialog compact-dialog" aria-labelledby="remove-title" aria-describedby="remove-description"><div class="warning-icon" data-icon="heart"></div><h2 id="remove-title">移出我的娃？</h2><p id="remove-description"></p><div class="confirm-actions"><button class="secondary-button" data-close="remove-dialog" autofocus>先保留</button><button class="danger-button" id="confirm-remove">確認移除</button></div></dialog>
   <dialog id="order-dialog" class="panel-dialog" aria-labelledby="order-title">
     <div class="dialog-heading"><div><h2 id="order-title">調整角色順序</h2></div><button class="icon-button" data-close="order-dialog" aria-label="關閉角色排序"><span data-icon="close"></span></button></div>
     <p class="dialog-description">拖曳角色，或使用上下箭頭調整。「我的娃」會記住這個順序。</p>

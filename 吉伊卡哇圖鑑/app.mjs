@@ -59,7 +59,7 @@ let itemMap = new Map();
 let characterTotals = new Map();
 let avatars = new Map();
 let orderDraft = [];
-let toastTimer, undoAction, activeDetail;
+let toastTimer, undoAction, activeDetail, pendingRemoval;
 let storageOK = true;
 const lastClearKey = STORAGE_KEY + '-last-clear';
 let sizingSample;
@@ -94,11 +94,14 @@ function toast(message, undo = null) {
   $('toast').hidden = false;
   toastTimer = setTimeout(() => { $('toast').hidden = true; undoAction = null; }, undo ? 9000 : 4500);
 }
+function dismissToast() {
+  clearTimeout(toastTimer);
+  $('toast').hidden = true;
+  undoAction = null;
+}
 $('toast-undo').addEventListener('click', () => {
   const action = undoAction;
-  $('toast').hidden = true;
-  clearTimeout(toastTimer);
-  undoAction = null;
+  dismissToast();
   action?.();
 });
 function baseItems() { return scopeItems(state.items, state.scope, state.owned); }
@@ -109,7 +112,7 @@ function collectionRing() {
 }
 function renderTabs() {
   const tabs = [
-    '<button class="character-tab mine-tab ' + (state.scope === 'mine' ? 'active' : '') + '" data-scope="mine" aria-pressed="' + (state.scope === 'mine') + '"><span class="avatar">' + icon('heart') + collectionRing() + '</span><span>我的娃</span></button>',
+    '<button class="character-tab mine-tab ' + (state.scope === 'mine' ? 'active' : '') + '" data-scope="mine" aria-pressed="' + (state.scope === 'mine') + '"><span class="avatar">' + icon('heart') + '</span><span>我的娃</span></button>',
     ...state.characters.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + collectionRing() + '</span><span>' + escapeHTML(character) + '</span></button>')
   ];
   $('character-tabs').innerHTML = tabs.join('');
@@ -122,7 +125,11 @@ function updateCollectionTabs() {
     const scope = tab.dataset.scope;
     const mine = scope === 'mine';
     const owned = mine ? state.owned.size : counts.get(scope) || 0;
-    const total = mine ? state.items.length : characterTotals.get(scope) || 0;
+    if (mine) {
+      tab.setAttribute('aria-label', '我的娃：' + number(owned) + ' 件收藏');
+      return;
+    }
+    const total = characterTotals.get(scope) || 0;
     const progress = total ? Math.min(owned / total, 1) * 100 : 0;
     const label = (mine ? '我的娃' : scope) + '：已收藏 ' + number(owned) + '／' + number(total) + ' 件（' + number(Math.round(progress * 10) / 10) + '%）';
     tab.setAttribute('aria-label', label);
@@ -173,9 +180,14 @@ function renderFilters() {
 }
 function productCard(item) {
   const owned = state.owned.has(item.id);
+  const mine = state.scope === 'mine';
+  const name = escapeHTML(item.character + '・' + item.name);
+  const detailAction = ' data-detail="' + item.id + '" aria-label="查看' + name + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog"';
+  const imageAction = mine ? detailAction : ' data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"';
   return '<article class="product-card ' + (owned ? 'owned' : '') + '" data-item="' + item.id + '">' +
-    '<button class="product-image-button" data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + escapeHTML(item.character + '・' + item.name) + '" aria-pressed="' + owned + '"><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + '</div></div></button>' +
-    '<button class="product-info-button" data-detail="' + item.id + '" aria-label="查看' + escapeHTML(item.character + '・' + item.name) + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog">' + icon('info') + '</button></article>';
+    '<button class="product-image-button"' + imageAction + '><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + '</div></div></button>' +
+    '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (mine ? '移出我的娃' : owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"' + (mine ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '') + '>' + icon('heart') + '</button>' +
+    '<button class="product-info-button"' + detailAction + '>' + icon('info') + '</button></article>';
 }
 function emptyState() {
   const untouchedMine = state.scope === 'mine' && state.owned.size === 0;
@@ -215,9 +227,11 @@ function updateCollectionCard(id) {
   const item = itemMap.get(id);
   const owned = state.owned.has(id);
   card.classList.toggle('owned', owned);
-  const button = card.querySelector('[data-collect]');
-  button.setAttribute('aria-pressed', String(owned));
-  button.setAttribute('aria-label', (owned ? '取消收藏' : '收藏') + item.character + '・' + item.name);
+  card.querySelectorAll('[data-collect]').forEach(button => {
+    button.classList.toggle('owned', owned);
+    button.setAttribute('aria-pressed', String(owned));
+    button.setAttribute('aria-label', (state.scope === 'mine' ? '移出我的娃' : owned ? '取消收藏' : '收藏') + item.character + '・' + item.name);
+  });
 }
 function updateCollectionCatalog(id) {
   if (state.scope !== 'mine') { updateCollectionCard(id); return; }
@@ -257,6 +271,7 @@ function updateCollectionCatalog(id) {
 function setScope(scope) {
   if (state.scope === scope || (scope !== 'mine' && !state.characters.includes(scope))) return;
   const enteringMine = scope === 'mine';
+  if (!enteringMine) dismissToast();
   state.scope = scope;
   if (enteringMine) {
     clearTimeout(searchTimer);
@@ -279,20 +294,32 @@ function refreshCollection(changedId) {
   if (changedId) { updateCollectionCatalog(changedId); observeCatalogSize(); } else renderCatalog();
   if (activeDetail && $('detail-dialog').open) updateDetailCollection();
 }
-function toggleOwned(id) {
+function requestCollectionChange(id) {
+  const item = itemMap.get(id);
+  if (!item) return;
+  if (state.scope === 'mine' && state.owned.has(id)) {
+    pendingRemoval = {id, origin:document.activeElement};
+    $('remove-description').textContent = '要將' + item.character + '的「' + item.name + '」移出我的娃嗎？';
+    openDialog('remove-dialog');
+    return;
+  }
+  toggleOwned(id);
+}
+function toggleOwned(id, {showUndo = state.scope === 'mine', origin = document.activeElement} = {}) {
   const item = itemMap.get(id);
   if (!item) return;
   const wasOwned = state.owned.has(id);
   if (wasOwned) state.owned.delete(id); else state.owned.add(id);
-  const focused = document.activeElement?.matches('[data-collect]') ? document.activeElement : null;
+  const focused = origin?.matches('[data-collect]') ? origin : null;
   const card = focused?.closest('.product-card');
-  const neighbor = card?.nextElementSibling?.querySelector('[data-collect]') || card?.previousElementSibling?.querySelector('[data-collect]');
+  const neighbor = card?.nextElementSibling?.querySelector('.product-image-button') || card?.previousElementSibling?.querySelector('.product-image-button');
   refreshCollection(id);
   if (focused && !focused.isConnected) {
     const target = neighbor?.isConnected ? neighbor : $('catalog-title');
     if (target.tagName === 'H1') target.tabIndex = -1;
     target.focus({preventScroll:true});
   }
+  if (!showUndo) return;
   toast(wasOwned ? '已將' + item.character + '的「' + item.name + '」移出我的娃' : '已將' + item.character + '的「' + item.name + '」加入我的娃', () => {
     if(wasOwned) state.owned.add(id); else state.owned.delete(id);
     refreshCollection(id);
@@ -308,7 +335,7 @@ function updateDetailCollection() {
   const button = $('detail-collect');
   button.classList.toggle('is-owned', owned);
   button.setAttribute('aria-pressed', String(owned));
-  button.innerHTML = icon('heart') + (owned ? '已收藏 · 點一下移除' : '加入我的娃');
+  button.innerHTML = icon('heart') + (owned ? '移出我的娃' : '加入我的娃');
 }
 function renderDetail(id) {
   const item = itemMap.get(id);
@@ -316,7 +343,7 @@ function renderDetail(id) {
   activeDetail = id;
   const owned = state.owned.has(id);
   const url = safeURL(item.url);
-  $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2><dl><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>系列</dt><dd>' + escapeHTML(item.name) + '</dd>' + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl><button class="primary-button ' + (owned ? 'is-owned' : '') + '" id="detail-collect" data-collect="' + id + '" aria-pressed="' + owned + '">' + icon('heart') + (owned ? '已收藏 · 點一下移除' : '加入我的娃') + '</button>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
+  $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2><dl><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>系列</dt><dd>' + escapeHTML(item.name) + '</dd>' + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl><button class="primary-button ' + (owned ? 'is-owned' : '') + '" id="detail-collect" data-collect="' + id + '" aria-pressed="' + owned + '">' + icon('heart') + (owned ? '移出我的娃' : '加入我的娃') + '</button>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
   openDialog('detail-dialog');
 }
 function closeSeries() {
@@ -396,11 +423,18 @@ $('catalog-content').addEventListener('click', event => {
   const collect = event.target.closest('[data-collect]');
   const detail = event.target.closest('[data-detail]');
   const empty = event.target.closest('[data-empty-action]');
-  if(collect) toggleOwned(collect.dataset.collect);
+  if(collect) requestCollectionChange(collect.dataset.collect);
   else if(detail) renderDetail(detail.dataset.detail);
   else if(empty) resetFilters();
 });
-$('detail-content').addEventListener('click', event => { const collect = event.target.closest('[data-collect]'); if(collect) toggleOwned(collect.dataset.collect); });
+$('detail-content').addEventListener('click', event => { const collect = event.target.closest('[data-collect]'); if(collect) requestCollectionChange(collect.dataset.collect); });
+$('remove-dialog').addEventListener('close', () => { pendingRemoval = null; });
+$('confirm-remove').addEventListener('click', () => {
+  const removal = pendingRemoval;
+  if (!removal) return;
+  $('remove-dialog').close();
+  if (state.owned.has(removal.id)) toggleOwned(removal.id, {showUndo:true, origin:removal.origin});
+});
 $('more-button').addEventListener('click', () => {
   $('more-menu').hidden = !$('more-menu').hidden;
   $('more-button').setAttribute('aria-expanded',String(!$('more-menu').hidden));
