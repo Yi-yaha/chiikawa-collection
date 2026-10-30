@@ -37,6 +37,20 @@ const colors = {
   '綜合角色':['#eae4dc','#b5a08b'], '人魚島':['#e0ebeb','#8eafad']
 };
 const avatarNames = {'小甲蟲':'基礎','那孩子':'基礎','哥布林':'樂園迷你','奧德':'樂園迷你','鎧甲人':'樂園迷你拉麵','流星':'黃色流星娃','綜合角色':'大強','人魚島':'賽蓮'};
+// 以原圖的臉部中心與放大倍率統一角色縮圖，避免吊繩、身體及留白佔滿圓框。
+const avatarCrops = {
+  '吉伊':[50,59,1.7], '小八':[50,59,1.65], '兔兔':[50,59,1.7],
+  '小桃':[50,58,1.7], '師傅':[50,56,1.85], '栗子':[50,58,1.65],
+  '獅薩':[50,58,1.75], '古本':[50,58,1.7], '小甲蟲':[51,60,2.1],
+  '那孩子':[50,52,1.6], '哥布林':[50,56,1.75], '奧德':[50,45,2.5],
+  '鎧甲人':[50,48,2.6], '流星':[50,54,1.1], '綜合角色':[50,51,2.25],
+  '人魚島':[50,49,1.65]
+};
+function avatarPortrait(character) {
+  const [x,y,zoom] = avatarCrops[character] || [50,50,1];
+  const crop = '--portrait-size:' + (zoom*100) + '%;--portrait-x:' + (50-x*zoom) + '%;--portrait-y:' + (50-y*zoom) + '%';
+  return '<span class="avatar-portrait" style="' + crop + '"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="300" height="300"></span>';
+}
 const typeLabels = {'娃':'娃娃','台':'台灣限定','韓':'韓國限定','港':'香港限定','中':'中國限定'};
 const typeLabel = type => typeLabels[type] || type;
 const state = { items:[], characters:[], owned:new Set(), characterOrder:[], groupBy:'character', scope:'mine', type:'', series:'', query:'', ready:false };
@@ -76,7 +90,7 @@ function renderTabs() {
   state.items.forEach(item => { if (state.owned.has(item.id)) counts.set(item.character, (counts.get(item.character) || 0) + 1); });
   const tabs = [
     '<button class="character-tab mine-tab ' + (state.scope === 'mine' ? 'active' : '') + '" data-scope="mine" aria-pressed="' + (state.scope === 'mine') + '"><span class="avatar">' + icon('heart') + (state.owned.size ? '<span class="tab-count">' + state.owned.size + '</span>' : '') + '</span><span>我的娃</span></button>',
-    ...state.characters.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="48" height="48">' + (state.scope === 'mine' && counts.has(character) ? '<span class="tab-count">' + counts.get(character) + '</span>' : '') + '</span><span>' + escapeHTML(character) + '</span></button>')
+    ...state.characters.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + (state.scope === 'mine' && counts.has(character) ? '<span class="tab-count">' + counts.get(character) + '</span>' : '') + '</span><span>' + escapeHTML(character) + '</span></button>')
   ];
   $('character-tabs').innerHTML = tabs.join('');
 }
