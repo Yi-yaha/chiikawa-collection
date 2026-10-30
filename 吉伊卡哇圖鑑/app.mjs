@@ -217,9 +217,9 @@ function emptyState() {
   return '<div class="empty-state"><div class="empty-icon">' + icon(untouchedMine ? 'heart' : 'search') + '</div><h3>' + (untouchedMine ? '尚未收藏' : '沒有符合條件的商品') + '</h3><p>' + (untouchedMine ? '點選上方角色，再點娃娃圖片加入收藏。' : '請調整種類、系列或搜尋條件。') + '</p>' + (untouchedMine ? '' : '<button class="primary-button" data-empty-action="reset">重設篩選</button>') + '</div>';
 }
 function renderResultCount(items) {
-  const total = baseItems().length;
-  const hasFilter = Boolean(state.type || state.series || state.query);
-  $('result-count').innerHTML = (hasFilter ? '顯示 <strong>' + number(items.length) + '</strong>／共 ' + number(total) + ' 件' : '共 <strong>' + number(items.length) + '</strong> ' + (state.scope === 'mine' ? '件收藏' : '件商品'));
+  const matchingItems = state.scope === 'mine' ? filterItems(state.items, state) : items;
+  const owned = matchingItems.filter(item => state.owned.has(item.id)).length;
+  $('result-count').innerHTML = '已收藏 <strong>' + number(owned) + '</strong>／' + number(matchingItems.length) + ' 件';
 }
 function catalogGroup(group) {
   const titleId = 'group-title-' + state.groupBy + '-' + group.items[0].id;
@@ -259,7 +259,7 @@ function updateCollectionCard(id) {
   });
 }
 function updateCollectionCatalog(id) {
-  if (state.scope !== 'mine') { updateCollectionCard(id); return; }
+  if (state.scope !== 'mine') { updateCollectionCard(id); renderResultCount(currentItems()); return; }
   renderTypeOptions();
   if (!$('series-popover').hidden) renderSeriesOptions();
   const items = currentItems();
