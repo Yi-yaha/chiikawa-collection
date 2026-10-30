@@ -1,4 +1,5 @@
-import { STORAGE_KEY, normalizeSaved, scopeItems, filterItems, groupItems, moveCharacter } from './model.mjs';
+import { STORAGE_KEY, normalizeSaved, progressTotals, scopeItems, filterItems, groupItems, moveCharacter } from './model.mjs?v=metal-tag-progress-1';
+import { createCatalogImageLoader } from './image-loader.mjs';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -17,6 +18,7 @@ const paths = {
   reset:'<path d="M3 10a9 9 0 1 1 2.5 8M3 4v6h6"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
   box:'<path d="m3 7 9-4 9 4v11l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v11M7.5 5 16 9"/>',
+  tag:'<path d="M3 4h8l10 10-7 7L3 10V4Z"/><circle cx="7.5" cy="8" r="1"/>',
   download:'<path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/>',
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 16v5h16v-5"/>',
   'arrow-right':'<path d="M4 12h15m-6-6 6 6-6 6"/>',
@@ -54,7 +56,7 @@ function avatarPortrait(character) {
 }
 const typeLabels = {'娃':'娃娃','台':'台灣限定','韓':'韓國限定','港':'香港限定','中':'中國限定'};
 const typeLabel = type => typeLabels[type] || type;
-const state = { items:[], characters:[], owned:new Set(), characterOrder:[], groupBy:'character', scope:'mine', type:'', series:'', query:'', ready:false };
+const state = { items:[], characters:[], owned:new Set(), characterOrder:[], groupBy:'character', includeMetalTags:true, scope:'mine', type:'', series:'', query:'', ready:false };
 let itemMap = new Map();
 let characterTotals = new Map();
 let avatars = new Map();
@@ -62,6 +64,7 @@ let orderDraft = [];
 let toastTimer, undoAction, activeDetail, pendingRemoval;
 let storageOK = true;
 const lastClearKey = STORAGE_KEY + '-last-clear';
+const catalogImages = createCatalogImageLoader($('catalog-content'));
 let sizingSample;
 const catalogSizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(([entry]) => {
   if (!entry || entry.contentRect.height <= 0) return;
@@ -80,7 +83,7 @@ function observeCatalogSize() {
   if (sample) catalogSizeObserver.observe(sample);
 }
 
-function savedValue() { return {version:1, owned:[...state.owned], characterOrder:state.characterOrder, groupBy:state.groupBy}; }
+function savedValue() { return {version:1, owned:[...state.owned], characterOrder:state.characterOrder, groupBy:state.groupBy, includeMetalTags:state.includeMetalTags}; }
 function persist() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedValue())); storageOK = true; }
   catch { storageOK = false; toast('目前無法儲存，請到資料管理匯出備份'); }
@@ -106,6 +109,12 @@ $('toast-undo').addEventListener('click', () => {
 });
 function baseItems() { return scopeItems(state.items, state.scope, state.owned); }
 function currentItems() { return filterItems(baseItems(), state); }
+
+function updateProgressSetting() {
+  $('toggle-metal-tags').disabled = !state.ready;
+  $('toggle-metal-tags').setAttribute('aria-checked', String(state.includeMetalTags));
+  $('metal-tags-status').textContent = state.includeMetalTags ? '已納入角色進度總數' : '未納入角色進度總數';
+}
 
 function collectionRing() {
   return '<svg class="collection-ring" viewBox="0 0 60 60" aria-hidden="true"><circle class="collection-ring-track" cx="30" cy="30" r="28"/><circle class="collection-ring-fill" cx="30" cy="30" r="28" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 30 30)"/></svg>';
@@ -185,7 +194,7 @@ function productCard(item) {
   const detailAction = ' data-detail="' + item.id + '" aria-label="查看' + name + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog"';
   const imageAction = mine ? detailAction : ' data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"';
   return '<article class="product-card ' + (owned ? 'owned' : '') + '" data-item="' + item.id + '">' +
-    '<button class="product-image-button"' + imageAction + '><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + '</div></div></button>' +
+    '<button class="product-image-button"' + imageAction + '><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img data-src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + '</div></div></button>' +
     '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (mine ? '移出我的娃' : owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"' + (mine ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '') + '>' + icon('heart') + '</button>' +
     '<button class="product-info-button"' + detailAction + '>' + icon('info') + '</button></article>';
 }
@@ -214,12 +223,14 @@ function renderCatalog() {
   if (!items.length) {
     $('catalog-content').innerHTML = emptyState();
     observeCatalogSize();
+    catalogImages.refresh();
     return;
   }
   const order = state.scope === 'mine' ? state.characterOrder : state.characters;
   const groups = groupItems(items,state.groupBy,order);
   $('catalog-content').innerHTML = groups.map(catalogGroup).join('');
   observeCatalogSize();
+  catalogImages.refresh();
 }
 function updateCollectionCard(id) {
   const card = document.querySelector('.product-card[data-item="' + id + '"]');
@@ -291,7 +302,7 @@ function resetFilters() {
 function refreshCollection(changedId) {
   persist();
   updateCollectionTabs();
-  if (changedId) { updateCollectionCatalog(changedId); observeCatalogSize(); } else renderCatalog();
+  if (changedId) { updateCollectionCatalog(changedId); observeCatalogSize(); catalogImages.update(); } else renderCatalog();
   if (activeDetail && $('detail-dialog').open) updateDetailCollection();
 }
 function requestCollectionChange(id) {
@@ -439,6 +450,14 @@ $('more-button').addEventListener('click', () => {
   $('more-menu').hidden = !$('more-menu').hidden;
   $('more-button').setAttribute('aria-expanded',String(!$('more-menu').hidden));
 });
+$('toggle-metal-tags').addEventListener('click', () => {
+  if (!state.ready) return;
+  state.includeMetalTags = !state.includeMetalTags;
+  characterTotals = progressTotals(state.items, state.includeMetalTags);
+  updateProgressSetting();
+  updateCollectionTabs();
+  persist();
+});
 $('open-data').addEventListener('click', () => { $('more-menu').hidden = true; $('more-button').setAttribute('aria-expanded','false'); showData(); });
 document.addEventListener('click', event => {
   const close = event.target.closest('[data-close]');
@@ -449,6 +468,7 @@ document.addEventListener('click', event => {
 document.addEventListener('keydown', event => {
   if(event.key === 'Escape') {
     if(!$('series-popover').hidden) { closeSeries(); $('series-toggle').focus(); }
+    if(!$('more-menu').hidden) $('more-button').focus();
     $('more-menu').hidden = true; $('more-button').setAttribute('aria-expanded','false');
   }
 });
@@ -521,6 +541,9 @@ $('import-file').addEventListener('change', async event => {
     state.owned = new Set([...state.owned,...normalized.owned]);
     state.characterOrder = normalized.characterOrder;
     state.groupBy = normalized.groupBy;
+    if (typeof data.includeMetalTags === 'boolean') state.includeMetalTags = normalized.includeMetalTags;
+    characterTotals = progressTotals(state.items, state.includeMetalTags);
+    updateProgressSetting();
     refreshCollection();
     $('data-message').classList.remove('error');
     $('data-message').textContent = '匯入完成，新增 ' + (state.owned.size-previousSize) + ' 件收藏。原本的收藏已保留。';
@@ -559,8 +582,6 @@ async function init() {
     state.items = catalog.items;
     state.characters = catalog.characters;
     itemMap = new Map(state.items.map(item => [item.id,item]));
-    characterTotals = new Map();
-    state.items.forEach(item => characterTotals.set(item.character, (characterTotals.get(item.character) || 0) + 1));
     avatars = new Map(state.characters.map(character => [character,(state.items.find(item => item.character===character && item.name===(avatarNames[character] || '基礎小腳')) || state.items.find(item => item.character===character))?.image]));
     let stored;
     try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); } catch { storageOK=false; }
@@ -568,7 +589,10 @@ async function init() {
     state.owned = new Set(saved.owned);
     state.characterOrder = saved.characterOrder;
     state.groupBy = saved.groupBy;
+    state.includeMetalTags = saved.includeMetalTags;
+    characterTotals = progressTotals(state.items, state.includeMetalTags);
     state.ready = true;
+    updateProgressSetting();
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
   } catch {

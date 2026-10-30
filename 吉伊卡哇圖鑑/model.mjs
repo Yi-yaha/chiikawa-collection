@@ -8,7 +8,16 @@ export function normalizeSaved(value, characters, validIds) {
     ? input.characterOrder.flatMap(c => c === '其他角色' ? splitOtherCharacters : [c]).filter(c => characters.includes(c))
     : [];
   const characterOrder = [...new Set([...givenOrder, ...characters])];
-  return { version: 1, owned, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character' };
+  return { version: 1, owned, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character', includeMetalTags: input.includeMetalTags !== false };
+}
+
+export function progressTotals(items, includeMetalTags = true) {
+  const totals = new Map();
+  for (const item of items) {
+    if (!includeMetalTags && item.type === '鐵牌') continue;
+    totals.set(item.character, (totals.get(item.character) || 0) + 1);
+  }
+  return totals;
 }
 
 export function scopeItems(items, scope, owned) {

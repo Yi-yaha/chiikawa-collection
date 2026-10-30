@@ -11,8 +11,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=collection-controls-2">
-  <script type="module" src="./app.mjs?v=collection-controls-2"></script>
+  <link rel="stylesheet" href="./styles.css?v=metal-tag-progress-1">
+  <script type="module" src="./app.mjs?v=metal-tag-progress-1"></script>
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -22,7 +22,17 @@
       <div class="header-actions">
         <div class="menu-anchor">
           <button class="icon-button" id="more-button" aria-label="更多選項" aria-expanded="false" aria-controls="more-menu"><span data-icon="more"></span></button>
-          <div class="more-menu" id="more-menu" hidden><button id="open-data"><span data-icon="box"></span>資料管理</button></div>
+          <div class="more-menu" id="more-menu" hidden>
+            <p class="menu-section-label">收藏設定</p>
+            <button id="toggle-metal-tags" class="collection-setting" role="switch" aria-checked="true" aria-labelledby="metal-tags-label" aria-describedby="metal-tags-description" disabled>
+              <span class="setting-icon" data-icon="tag"></span>
+              <span class="setting-copy"><strong id="metal-tags-label">金屬吊牌納入收藏計算</strong><small id="metal-tags-status">已納入角色進度總數</small></span>
+              <span class="setting-switch" aria-hidden="true"></span>
+            </button>
+            <p id="metal-tags-description" class="setting-description">關閉後，金屬吊牌不計入角色進度總數。<br>已收藏件數與商品列表不受影響。</p>
+            <div class="menu-divider"></div>
+            <button id="open-data"><span data-icon="box"></span>資料管理</button>
+          </div>
         </div>
       </div>
     </div>
