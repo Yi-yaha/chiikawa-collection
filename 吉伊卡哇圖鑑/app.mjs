@@ -5,6 +5,7 @@ const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'
 const number = value => value.toLocaleString('zh-TW');
 const paths = {
   heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".8" fill="currentColor" stroke="none"/>',
   more:'<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',
   sparkle:'<path d="m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3Z"/><path d="m20 2 .7 1.8L23 4.5l-2.3.7L20 7l-.7-1.8-2.3-.7 2.3-.7L20 2Z"/>',
   search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/>',
@@ -173,12 +174,12 @@ function renderFilters() {
 function productCard(item) {
   const owned = state.owned.has(item.id);
   return '<article class="product-card ' + (owned ? 'owned' : '') + '" data-item="' + item.id + '">' +
-    '<button class="product-image-button" data-detail="' + item.id + '" aria-label="查看' + escapeHTML(item.character + '・' + item.name) + '"><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + '<span class="owned-label"' + (owned ? '' : ' hidden') + '>已收藏</span></div></div></button>' +
-    '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + escapeHTML(item.character + '・' + item.name) + '" aria-pressed="' + owned + '">' + icon('heart') + '</button></article>';
+    '<button class="product-image-button" data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + escapeHTML(item.character + '・' + item.name) + '" aria-pressed="' + owned + '"><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + '</div></div></button>' +
+    '<button class="product-info-button" data-detail="' + item.id + '" aria-label="查看' + escapeHTML(item.character + '・' + item.name) + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog">' + icon('info') + '</button></article>';
 }
 function emptyState() {
   const untouchedMine = state.scope === 'mine' && state.owned.size === 0;
-  return '<div class="empty-state"><div class="empty-icon">' + icon(untouchedMine ? 'heart' : 'search') + '</div><h3>' + (untouchedMine ? '尚未收藏' : '沒有符合條件的商品') + '</h3><p>' + (untouchedMine ? '點選上方角色，再點商品愛心加入收藏。' : '請調整種類、系列或搜尋條件。') + '</p>' + (untouchedMine ? '' : '<button class="primary-button" data-empty-action="reset">重設篩選</button>') + '</div>';
+  return '<div class="empty-state"><div class="empty-icon">' + icon(untouchedMine ? 'heart' : 'search') + '</div><h3>' + (untouchedMine ? '尚未收藏' : '沒有符合條件的商品') + '</h3><p>' + (untouchedMine ? '點選上方角色，再點娃娃圖片加入收藏。' : '請調整種類、系列或搜尋條件。') + '</p>' + (untouchedMine ? '' : '<button class="primary-button" data-empty-action="reset">重設篩選</button>') + '</div>';
 }
 function renderResultCount(items) {
   const total = baseItems().length;
@@ -215,10 +216,8 @@ function updateCollectionCard(id) {
   const owned = state.owned.has(id);
   card.classList.toggle('owned', owned);
   const button = card.querySelector('[data-collect]');
-  button.classList.toggle('owned', owned);
   button.setAttribute('aria-pressed', String(owned));
   button.setAttribute('aria-label', (owned ? '取消收藏' : '收藏') + item.character + '・' + item.name);
-  card.querySelector('.owned-label').hidden = !owned;
 }
 function updateCollectionCatalog(id) {
   if (state.scope !== 'mine') { updateCollectionCard(id); return; }
