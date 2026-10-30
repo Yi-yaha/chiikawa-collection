@@ -55,11 +55,29 @@ const typeLabels = {'娃':'娃娃','台':'台灣限定','韓':'韓國限定','�
 const typeLabel = type => typeLabels[type] || type;
 const state = { items:[], characters:[], owned:new Set(), characterOrder:[], groupBy:'character', scope:'mine', type:'', series:'', query:'', ready:false };
 let itemMap = new Map();
+let characterTotals = new Map();
 let avatars = new Map();
 let orderDraft = [];
 let toastTimer, undoAction, activeDetail;
 let storageOK = true;
 const lastClearKey = STORAGE_KEY + '-last-clear';
+let sizingSample;
+const catalogSizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(([entry]) => {
+  if (!entry || entry.contentRect.height <= 0) return;
+  // All cards share the same image ratio and single-line metadata. Measure one
+  // card when its size changes so skipped cards keep their exact scroll space.
+  const content = $('catalog-content');
+  const height = entry.contentRect.height + 'px';
+  if (content.style.getPropertyValue('--card-height') !== height) content.style.setProperty('--card-height', height);
+  content.classList.add('has-card-size');
+});
+function observeCatalogSize() {
+  const sample = $('catalog-content').querySelector('.product-card');
+  if (!catalogSizeObserver || sample === sizingSample) return;
+  catalogSizeObserver.disconnect();
+  sizingSample = sample;
+  if (sample) catalogSizeObserver.observe(sample);
+}
 
 function savedValue() { return {version:1, owned:[...state.owned], characterOrder:state.characterOrder, groupBy:state.groupBy}; }
 function persist() {
@@ -85,14 +103,32 @@ $('toast-undo').addEventListener('click', () => {
 function baseItems() { return scopeItems(state.items, state.scope, state.owned); }
 function currentItems() { return filterItems(baseItems(), state); }
 
+function collectionRing() {
+  return '<svg class="collection-ring" viewBox="0 0 60 60" aria-hidden="true"><circle class="collection-ring-track" cx="30" cy="30" r="28"/><circle class="collection-ring-fill" cx="30" cy="30" r="28" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 30 30)"/></svg>';
+}
 function renderTabs() {
-  const counts = new Map();
-  state.items.forEach(item => { if (state.owned.has(item.id)) counts.set(item.character, (counts.get(item.character) || 0) + 1); });
   const tabs = [
-    '<button class="character-tab mine-tab ' + (state.scope === 'mine' ? 'active' : '') + '" data-scope="mine" aria-pressed="' + (state.scope === 'mine') + '"><span class="avatar">' + icon('heart') + (state.owned.size ? '<span class="tab-count">' + state.owned.size + '</span>' : '') + '</span><span>我的娃</span></button>',
-    ...state.characters.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + (state.scope === 'mine' && counts.has(character) ? '<span class="tab-count">' + counts.get(character) + '</span>' : '') + '</span><span>' + escapeHTML(character) + '</span></button>')
+    '<button class="character-tab mine-tab ' + (state.scope === 'mine' ? 'active' : '') + '" data-scope="mine" aria-pressed="' + (state.scope === 'mine') + '"><span class="avatar">' + icon('heart') + collectionRing() + '</span><span>我的娃</span></button>',
+    ...state.characters.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + collectionRing() + '</span><span>' + escapeHTML(character) + '</span></button>')
   ];
   $('character-tabs').innerHTML = tabs.join('');
+  updateCollectionTabs();
+}
+function updateCollectionTabs() {
+  const counts = new Map();
+  state.owned.forEach(id => { const item = itemMap.get(id); if (item) counts.set(item.character, (counts.get(item.character) || 0) + 1); });
+  $('character-tabs').querySelectorAll('[data-scope]').forEach(tab => {
+    const scope = tab.dataset.scope;
+    const mine = scope === 'mine';
+    const owned = mine ? state.owned.size : counts.get(scope) || 0;
+    const total = mine ? state.items.length : characterTotals.get(scope) || 0;
+    const progress = total ? Math.min(owned / total, 1) * 100 : 0;
+    const label = (mine ? '我的娃' : scope) + '：已收藏 ' + number(owned) + '／' + number(total) + ' 件（' + number(Math.round(progress * 10) / 10) + '%）';
+    tab.setAttribute('aria-label', label);
+    const ring = tab.querySelector('.collection-ring-fill');
+    ring.setAttribute('stroke-dashoffset', String(100 - progress));
+    ring.style.opacity = owned ? '1' : '0';
+  });
 }
 function renderHeading() {
   const mine = state.scope === 'mine';
@@ -137,33 +173,87 @@ function renderFilters() {
 function productCard(item) {
   const owned = state.owned.has(item.id);
   return '<article class="product-card ' + (owned ? 'owned' : '') + '" data-item="' + item.id + '">' +
-    '<button class="product-image-button" data-detail="' + item.id + '" aria-label="查看' + escapeHTML(item.character + '・' + item.name) + '"><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + (owned ? '<span class="owned-label">已收藏</span>' : '') + '</div></div></button>' +
+    '<button class="product-image-button" data-detail="' + item.id + '" aria-label="查看' + escapeHTML(item.character + '・' + item.name) + '"><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + '<span class="owned-label"' + (owned ? '' : ' hidden') + '>已收藏</span></div></div></button>' +
     '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + escapeHTML(item.character + '・' + item.name) + '" aria-pressed="' + owned + '">' + icon('heart') + '</button></article>';
 }
 function emptyState() {
   const untouchedMine = state.scope === 'mine' && state.owned.size === 0;
   return '<div class="empty-state"><div class="empty-icon">' + icon(untouchedMine ? 'heart' : 'search') + '</div><h3>' + (untouchedMine ? '尚未收藏' : '沒有符合條件的商品') + '</h3><p>' + (untouchedMine ? '點選上方角色，再點商品愛心加入收藏。' : '請調整種類、系列或搜尋條件。') + '</p>' + (untouchedMine ? '' : '<button class="primary-button" data-empty-action="reset">重設篩選</button>') + '</div>';
 }
+function renderResultCount(items) {
+  const total = baseItems().length;
+  const hasFilter = Boolean(state.type || state.series || state.query);
+  $('result-count').innerHTML = (hasFilter ? '顯示 <strong>' + number(items.length) + '</strong>／共 ' + number(total) + ' 件' : '共 <strong>' + number(items.length) + '</strong> ' + (state.scope === 'mine' ? '件收藏' : '件商品'));
+}
+function catalogGroup(group) {
+  const titleId = 'group-title-' + state.groupBy + '-' + group.items[0].id;
+  const groupAvatar = state.groupBy === 'character' ? '<img class="group-avatar" src="' + escapeHTML(avatars.get(group.name)) + '" alt="" width="30" height="30">' : '';
+  const roleCount = state.groupBy === 'series' ? '<span class="group-caption">' + new Set(group.items.map(item => item.character)).size + ' 個角色</span>' : '';
+  return '<section class="catalog-group" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(group.name) + '</h3><span class="group-number">' + number(group.items.length) + '</span>' + roleCount + '<span class="group-line"></span></div><div class="product-grid">' + group.items.map(productCard).join('') + '</div></section>';
+}
 function renderCatalog() {
   if (!state.ready) return;
   renderHeading();
   renderFilters();
   const items = currentItems();
-  const total = baseItems().length;
-  const hasFilter = Boolean(state.type || state.series || state.query);
-  $('result-count').innerHTML = (hasFilter ? '顯示 <strong>' + number(items.length) + '</strong>／共 ' + number(total) + ' 件' : '共 <strong>' + number(items.length) + '</strong> ' + (state.scope === 'mine' ? '件收藏' : '件商品'));
+  renderResultCount(items);
   $('catalog-content').setAttribute('aria-busy','false');
   if (!items.length) {
     $('catalog-content').innerHTML = emptyState();
+    observeCatalogSize();
     return;
   }
   const order = state.scope === 'mine' ? state.characterOrder : state.characters;
   const groups = groupItems(items,state.groupBy,order);
-  $('catalog-content').innerHTML = groups.map((group,index) => {
-    const groupAvatar = state.groupBy === 'character' ? '<img class="group-avatar" src="' + escapeHTML(avatars.get(group.name)) + '" alt="" width="30" height="30">' : '';
-    const roleCount = state.groupBy === 'series' ? '<span class="group-caption">' + new Set(group.items.map(item => item.character)).size + ' 個角色</span>' : '';
-    return '<section class="catalog-group" aria-labelledby="group-title-' + index + '"><div class="group-heading">' + groupAvatar + '<h3 id="group-title-' + index + '">' + escapeHTML(group.name) + '</h3><span class="group-number">' + number(group.items.length) + '</span>' + roleCount + '<span class="group-line"></span></div><div class="product-grid">' + group.items.map(productCard).join('') + '</div></section>';
-  }).join('');
+  $('catalog-content').innerHTML = groups.map(catalogGroup).join('');
+  observeCatalogSize();
+}
+function updateCollectionCard(id) {
+  const card = document.querySelector('.product-card[data-item="' + id + '"]');
+  if (!card) return;
+  const item = itemMap.get(id);
+  const owned = state.owned.has(id);
+  card.classList.toggle('owned', owned);
+  const button = card.querySelector('[data-collect]');
+  button.classList.toggle('owned', owned);
+  button.setAttribute('aria-pressed', String(owned));
+  button.setAttribute('aria-label', (owned ? '取消收藏' : '收藏') + item.character + '・' + item.name);
+  card.querySelector('.owned-label').hidden = !owned;
+}
+function updateCollectionCatalog(id) {
+  if (state.scope !== 'mine') { updateCollectionCard(id); return; }
+  renderTypeOptions();
+  if (!$('series-popover').hidden) renderSeriesOptions();
+  const items = currentItems();
+  renderResultCount(items);
+  const content = $('catalog-content');
+  if (!items.length) { content.innerHTML = emptyState(); return; }
+  const item = itemMap.get(id);
+  const key = state.groupBy === 'character' ? item.character : item.name;
+  const sections = new Map([...content.querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
+  const section = sections.get(key);
+  const groups = groupItems(items, state.groupBy, state.characterOrder);
+  const index = groups.findIndex(group => group.name === key);
+  if (index === -1) { section?.remove(); return; }
+  const group = groups[index];
+  if (!section) {
+    content.querySelector('.empty-state')?.remove();
+    const nextSection = groups.slice(index + 1).map(group => sections.get(group.name)).find(Boolean);
+    if (nextSection) nextSection.insertAdjacentHTML('beforebegin', catalogGroup(group));
+    else content.insertAdjacentHTML('beforeend', catalogGroup(group));
+    return;
+  }
+  section.querySelector('.group-number').textContent = number(group.items.length);
+  const caption = section.querySelector('.group-caption');
+  if (caption) caption.textContent = new Set(group.items.map(item => item.character)).size + ' 個角色';
+  const card = section.querySelector('[data-item="' + id + '"]');
+  const itemIndex = group.items.findIndex(item => item.id === id);
+  if (itemIndex === -1) { card?.remove(); return; }
+  if (card) { updateCollectionCard(id); return; }
+  const nextItem = group.items[itemIndex + 1];
+  const nextCard = nextItem && section.querySelector('[data-item="' + nextItem.id + '"]');
+  if (nextCard) nextCard.insertAdjacentHTML('beforebegin', productCard(item));
+  else section.querySelector('.product-grid').insertAdjacentHTML('beforeend', productCard(item));
 }
 function setScope(scope) {
   if (state.scope === scope || (scope !== 'mine' && !state.characters.includes(scope))) return;
@@ -184,27 +274,29 @@ function resetFilters() {
   $('catalog-search').value = '';
   renderCatalog();
 }
-function refreshCollection() {
+function refreshCollection(changedId) {
   persist();
-  renderTabs();
-  renderCatalog();
-  if (activeDetail && $('detail-dialog').open) renderDetail(activeDetail, false);
+  updateCollectionTabs();
+  if (changedId) { updateCollectionCatalog(changedId); observeCatalogSize(); } else renderCatalog();
+  if (activeDetail && $('detail-dialog').open) updateDetailCollection();
 }
 function toggleOwned(id) {
   const item = itemMap.get(id);
   if (!item) return;
   const wasOwned = state.owned.has(id);
   if (wasOwned) state.owned.delete(id); else state.owned.add(id);
-  const focused = document.activeElement?.matches('[data-collect]') ? id : null;
-  refreshCollection();
-  if (focused) {
-    const target = document.querySelector('[data-collect="' + id + '"]') || document.querySelector('[data-collect]') || $('catalog-title');
-    if (!target.hasAttribute('tabindex') && target.tagName === 'H1') target.tabIndex = -1;
+  const focused = document.activeElement?.matches('[data-collect]') ? document.activeElement : null;
+  const card = focused?.closest('.product-card');
+  const neighbor = card?.nextElementSibling?.querySelector('[data-collect]') || card?.previousElementSibling?.querySelector('[data-collect]');
+  refreshCollection(id);
+  if (focused && !focused.isConnected) {
+    const target = neighbor?.isConnected ? neighbor : $('catalog-title');
+    if (target.tagName === 'H1') target.tabIndex = -1;
     target.focus({preventScroll:true});
   }
   toast(wasOwned ? '已將' + item.character + '的「' + item.name + '」移出我的娃' : '已將' + item.character + '的「' + item.name + '」加入我的娃', () => {
     if(wasOwned) state.owned.add(id); else state.owned.delete(id);
-    refreshCollection();
+    refreshCollection(id);
     toast('已復原收藏變更');
   });
 }
@@ -212,14 +304,21 @@ function safeURL(value) {
   try { const url = new URL(value); return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : ''; } catch { return ''; }
 }
 function openDialog(id) { const dialog = $(id); if(!dialog.open) dialog.showModal(); }
-function renderDetail(id, open = true) {
+function updateDetailCollection() {
+  const owned = state.owned.has(activeDetail);
+  const button = $('detail-collect');
+  button.classList.toggle('is-owned', owned);
+  button.setAttribute('aria-pressed', String(owned));
+  button.innerHTML = icon('heart') + (owned ? '已收藏 · 點一下移除' : '加入我的娃');
+}
+function renderDetail(id) {
   const item = itemMap.get(id);
   if (!item) return;
   activeDetail = id;
   const owned = state.owned.has(id);
   const url = safeURL(item.url);
   $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2><dl><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>系列</dt><dd>' + escapeHTML(item.name) + '</dd>' + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl><button class="primary-button ' + (owned ? 'is-owned' : '') + '" id="detail-collect" data-collect="' + id + '" aria-pressed="' + owned + '">' + icon('heart') + (owned ? '已收藏 · 點一下移除' : '加入我的娃') + '</button>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
-  if (open) openDialog('detail-dialog'); else $('detail-collect').focus({preventScroll:true});
+  openDialog('detail-dialog');
 }
 function closeSeries() {
   $('series-popover').hidden = true;
@@ -427,6 +526,8 @@ async function init() {
     state.items = catalog.items;
     state.characters = catalog.characters;
     itemMap = new Map(state.items.map(item => [item.id,item]));
+    characterTotals = new Map();
+    state.items.forEach(item => characterTotals.set(item.character, (characterTotals.get(item.character) || 0) + 1));
     avatars = new Map(state.characters.map(character => [character,(state.items.find(item => item.character===character && item.name===(avatarNames[character] || '基礎小腳')) || state.items.find(item => item.character===character))?.image]));
     let stored;
     try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); } catch { storageOK=false; }
