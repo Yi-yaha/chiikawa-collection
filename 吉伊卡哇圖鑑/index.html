@@ -11,8 +11,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=metal-tag-progress-1">
-  <script type="module" src="./app.mjs?v=metal-tag-progress-1"></script>
+  <link rel="stylesheet" href="./styles.css?v=compact-filters-1">
+  <script type="module" src="./app.mjs?v=compact-filters-1"></script>
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -41,17 +41,22 @@
     <section id="catalog" class="catalog" aria-labelledby="catalog-title">
       <div class="catalog-heading">
         <div><h1 id="catalog-title">我的娃</h1></div>
-        <button class="secondary-button" id="open-order" hidden><span data-icon="sort"></span>調整角色順序</button>
+        <div class="catalog-heading-actions">
+          <button class="secondary-button" id="open-order" hidden><span data-icon="sort"></span>調整角色順序</button>
+          <button class="filter-toggle" id="filter-toggle" aria-label="展開種類與系列篩選" aria-expanded="false" aria-controls="filter-options"><span data-icon="sliders"></span><span id="filter-toggle-label">篩選</span><span class="filter-count" id="filter-count" hidden>0</span><span class="filter-toggle-chevron" data-icon="chevron"></span></button>
+        </div>
       </div>
       <div class="filters">
         <div class="filter-controls">
           <label class="search-control"><span data-icon="search"></span><input id="catalog-search" type="search" placeholder="搜尋娃娃名稱" aria-label="搜尋商品名稱或角色" autocomplete="off"></label>
-          <label class="select-control"><select id="type-filter" aria-label="篩選種類"><option value="">全部種類</option></select><span data-icon="chevron"></span></label>
-          <div class="series-anchor">
-            <button id="series-toggle" class="select-control series-toggle" aria-label="篩選系列：全部系列" aria-haspopup="dialog" aria-expanded="false" aria-controls="series-popover"><span id="series-label">全部系列</span><span data-icon="chevron"></span></button>
-            <div id="series-popover" class="series-popover" role="dialog" aria-label="選擇系列" hidden>
-              <div class="series-search-wrap"><span data-icon="search"></span><input id="series-search" type="search" placeholder="搜尋系列名稱" aria-label="搜尋系列名稱" autocomplete="off"></div>
-              <div id="series-options" class="series-options"></div>
+          <div id="filter-options" class="filter-options" hidden>
+            <label class="select-control"><select id="type-filter" aria-label="篩選種類"><option value="">全部種類</option></select><span data-icon="chevron"></span></label>
+            <div class="series-anchor">
+              <button id="series-toggle" class="select-control series-toggle" aria-label="篩選系列：全部系列" aria-haspopup="dialog" aria-expanded="false" aria-controls="series-popover"><span id="series-label">全部系列</span><span data-icon="chevron"></span></button>
+              <div id="series-popover" class="series-popover" role="dialog" aria-label="選擇系列" hidden>
+                <div class="series-search-wrap"><span data-icon="search"></span><input id="series-search" type="search" placeholder="搜尋系列名稱" aria-label="搜尋系列名稱" autocomplete="off"></div>
+                <div id="series-options" class="series-options"></div>
+              </div>
             </div>
           </div>
         </div>

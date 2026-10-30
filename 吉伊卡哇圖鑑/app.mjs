@@ -11,6 +11,7 @@ const paths = {
   sparkle:'<path d="m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3Z"/><path d="m20 2 .7 1.8L23 4.5l-2.3.7L20 7l-.7-1.8-2.3-.7 2.3-.7L20 2Z"/>',
   search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/>',
   chevron:'<path d="m7 9 5 5 5-5"/>',
+  sliders:'<path d="M3 6h6m4 0h8M3 12h12m4 0h2M3 18h2m4 0h12M9 3v6m6 0v6M5 15v6"/>',
   close:'<path d="m6 6 12 12M6 18 18 6"/>',
   grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   person:'<circle cx="12" cy="7" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>',
@@ -64,6 +65,9 @@ let orderDraft = [];
 let toastTimer, undoAction, activeDetail, pendingRemoval;
 let storageOK = true;
 const lastClearKey = STORAGE_KEY + '-last-clear';
+const filterExpansionKey = STORAGE_KEY + '-filters-expanded';
+let filtersExpanded = false;
+try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
 const catalogImages = createCatalogImageLoader($('catalog-content'));
 let sizingSample;
 const catalogSizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(([entry]) => {
@@ -157,6 +161,15 @@ function renderHeading() {
     button.setAttribute('aria-pressed', String(active));
   });
 }
+function renderFilterDisclosure() {
+  const count = Number(Boolean(state.type)) + Number(Boolean(state.series));
+  $('filter-options').hidden = !filtersExpanded;
+  $('filter-toggle').setAttribute('aria-expanded', String(filtersExpanded));
+  $('filter-toggle').setAttribute('aria-label', (filtersExpanded ? '收合' : '展開') + '種類與系列篩選' + (count ? '，已套用 ' + count + ' 個條件' : ''));
+  $('filter-toggle-label').textContent = filtersExpanded ? '收合' : '篩選';
+  $('filter-count').hidden = !count;
+  $('filter-count').textContent = String(count);
+}
 function renderTypeOptions() {
   const counts = new Map();
   filterItems(baseItems(), {series:state.series,query:state.query}).forEach(item => counts.set(item.type, (counts.get(item.type) || 0) + 1));
@@ -175,6 +188,7 @@ function renderSeriesOptions() {
   $('series-options').innerHTML = html;
 }
 function renderFilters() {
+  renderFilterDisclosure();
   renderTypeOptions();
   $('series-label').textContent = state.series || '全部系列';
   $('series-toggle').setAttribute('aria-label', '篩選系列：' + (state.series || '全部系列'));
@@ -194,7 +208,7 @@ function productCard(item) {
   const detailAction = ' data-detail="' + item.id + '" aria-label="查看' + name + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog"';
   const imageAction = mine ? detailAction : ' data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"';
   return '<article class="product-card ' + (owned ? 'owned' : '') + '" data-item="' + item.id + '">' +
-    '<button class="product-image-button"' + imageAction + '><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img data-src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><div class="product-character"><span class="character-dot" style="--dot:' + (colors[item.character]?.[1] || '#bba98e') + '"></span>' + escapeHTML(item.character) + '</div></div></button>' +
+    '<button class="product-image-button"' + imageAction + '><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img data-src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div><div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4></div></button>' +
     '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (mine ? '移出我的娃' : owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"' + (mine ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '') + '>' + icon('heart') + '</button>' +
     '<button class="product-info-button"' + detailAction + '>' + icon('info') + '</button></article>';
 }
@@ -392,6 +406,13 @@ function restoreCleared() {
 }
 
 $('character-tabs').addEventListener('click', event => { const target = event.target.closest('[data-scope]'); if(target) setScope(target.dataset.scope); });
+$('filter-toggle').addEventListener('click', () => {
+  filtersExpanded = !filtersExpanded;
+  if (!filtersExpanded) closeSeries();
+  renderFilterDisclosure();
+  try { localStorage.setItem(filterExpansionKey, String(filtersExpanded)); } catch {}
+});
+renderFilterDisclosure();
 $('type-filter').addEventListener('change', event => { state.type = event.target.value; renderCatalog(); });
 $('series-toggle').addEventListener('click', () => {
   const opening = $('series-popover').hidden;
