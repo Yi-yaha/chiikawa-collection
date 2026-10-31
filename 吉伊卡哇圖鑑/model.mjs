@@ -1,33 +1,85 @@
 export const STORAGE_KEY = 'chiikawa-collection-v1';
+export const MAX_QUANTITY = 9999;
 const splitOtherCharacters = ['小甲蟲','那孩子','哥布林','奧德','鎧甲人','流星','綜合角色','人魚島'];
+export const independentCharacters = ['大強','奇美拉','惡夢大象','灰孩子','睡衣派對','乳酸菌超人','巫婆','大腳怪','馴鹿','小惡魔','粉蟲','黃綠蟲','河豚','中止蟲','大鳥','擬態怪獸','大樹'];
 
-export function normalizeSaved(value, characters, validIds) {
+export function normalizeSaved(value, characters, validIds, itemAliases = {}) {
   const input = value && typeof value === 'object' ? value : {};
-  const owned = Array.isArray(input.owned) ? [...new Set(input.owned.filter(id => typeof id === 'string' && validIds.has(id)))] : [];
+  const resolveId = id => {
+    const visited = new Set();
+    while (!validIds.has(id) && typeof itemAliases[id] === 'string' && !visited.has(id)) {
+      visited.add(id);
+      id = itemAliases[id];
+    }
+    return id;
+  };
+  const legacyOwned = Array.isArray(input.owned)
+    ? [...new Set(input.owned.filter(id => typeof id === 'string').map(resolveId).filter(id => validIds.has(id)))]
+    : [];
+  const quantities = new Map(legacyOwned.map(id => [id, 1]));
+  const explicitQuantities = new Map();
+  if (input.quantities && typeof input.quantities === 'object' && !Array.isArray(input.quantities)) {
+    for (const [rawId, quantity] of Object.entries(input.quantities)) {
+      const id = resolveId(rawId);
+      if (!validIds.has(id) || !Number.isInteger(quantity) || quantity < 0 || quantity > MAX_QUANTITY) continue;
+      explicitQuantities.set(id, Math.max(explicitQuantities.get(id) || 0, quantity));
+    }
+  }
+  for (const [id, quantity] of explicitQuantities) {
+    if (quantity > 0) quantities.set(id, quantity);
+    else quantities.delete(id);
+  }
+  const owned = [...quantities.keys()];
+  const wishlist = Array.isArray(input.wishlist)
+    ? [...new Set(input.wishlist.filter(id => typeof id === 'string').map(resolveId).filter(id => validIds.has(id) && !quantities.has(id)))]
+    : [];
+  const hasIndependentOrder = Array.isArray(input.characterOrder) && input.characterOrder.some(c => independentCharacters.includes(c));
   const givenOrder = Array.isArray(input.characterOrder)
-    ? input.characterOrder.flatMap(c => c === '其他角色' ? splitOtherCharacters : [c]).filter(c => characters.includes(c))
+    ? input.characterOrder
+      .flatMap(c => c === '其他角色' ? splitOtherCharacters : [c])
+      .flatMap(c => c === '綜合角色' && !hasIndependentOrder ? [...independentCharacters, c] : [c])
+      .filter(c => characters.includes(c))
     : [];
   const characterOrder = [...new Set([...givenOrder, ...characters])];
-  return { version: 1, owned, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character', includeMetalTags: input.includeMetalTags !== false };
+  return { version: 2, owned, quantities: Object.fromEntries(quantities), wishlist, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character', includeMetalTags: input.includeMetalTags !== false };
+}
+
+// A backup is a snapshot: repeated imports keep the larger quantity instead of
+// adding it again. An owned item always takes priority over a wish.
+export function mergeSaved(current, incoming, characters, validIds, itemAliases = {}) {
+  const before = normalizeSaved(current, characters, validIds, itemAliases);
+  const added = normalizeSaved(incoming, characters, validIds, itemAliases);
+  const quantities = new Map(Object.entries(before.quantities));
+  for (const [id, quantity] of Object.entries(added.quantities)) {
+    quantities.set(id, Math.max(quantities.get(id) || 0, quantity));
+  }
+  return normalizeSaved({
+    ...added,
+    owned: [...quantities.keys()],
+    quantities: Object.fromEntries(quantities),
+    wishlist: [...before.wishlist, ...added.wishlist],
+    includeMetalTags: typeof incoming?.includeMetalTags === 'boolean' ? added.includeMetalTags : before.includeMetalTags
+  }, characters, validIds, itemAliases);
 }
 
 export function progressTotals(items, includeMetalTags = true) {
   const totals = new Map();
   for (const item of items) {
-    if (!includeMetalTags && item.type === '鐵牌') continue;
+    if (!includeMetalTags && ['地方限定吊牌', '鐵牌'].includes(item.type)) continue;
     totals.set(item.character, (totals.get(item.character) || 0) + 1);
   }
   return totals;
 }
 
-export function scopeItems(items, scope, owned) {
+export function scopeItems(items, scope, owned, wishlist = new Set()) {
   if (scope === 'mine') return items.filter(item => owned.has(item.id));
+  if (scope === 'wishlist') return items.filter(item => wishlist.has(item.id) && !owned.has(item.id));
   return items.filter(item => item.character === scope);
 }
 
-export function filterItems(items, { type = '', series = '', query = '' } = {}) {
+export function filterItems(items, { type = '', region = '', series = '', query = '' } = {}) {
   const needle = query.trim().toLocaleLowerCase('zh-TW');
-  return items.filter(item => (!type || item.type === type) && (!series || item.name === series) && (!needle || `${item.name} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`.toLocaleLowerCase('zh-TW').includes(needle)));
+  return items.filter(item => (!type || item.type === type) && (!region || (item.region || '日本') === region) && (!series || item.name === series) && (!needle || `${item.name} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`.toLocaleLowerCase('zh-TW').includes(needle)));
 }
 
 export function groupItems(items, groupBy, characterOrder) {

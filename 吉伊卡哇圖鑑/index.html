@@ -11,14 +11,18 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=compact-filters-1">
-  <script type="module" src="./app.mjs?v=collection-count-1"></script>
+  <link rel="stylesheet" href="./styles.css?v=place-kind-2">
+  <script type="module" src="./app.mjs?v=chiikawa-series-7"></script>
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
   <header class="site-header">
     <div class="header-inner">
-      <nav class="character-nav" aria-label="選擇角色或我的娃"><div id="character-tabs" class="character-tabs"><span class="loading-label">載入角色…</span></div></nav>
+      <nav class="character-nav" id="character-nav" aria-label="選擇我的娃、願望清單或角色">
+        <span class="character-picker-title" id="character-picker-title" hidden>所有角色</span>
+        <div id="character-tabs" class="character-tabs"><span class="loading-label">載入角色…</span></div>
+        <button class="icon-button character-toggle" id="character-toggle" type="button" aria-label="展開所有角色" aria-expanded="false" aria-controls="character-tabs" disabled><span data-icon="chevron"></span></button>
+      </nav>
       <div class="header-actions">
         <div class="menu-anchor">
           <button class="icon-button" id="more-button" aria-label="更多選項" aria-expanded="false" aria-controls="more-menu"><span data-icon="more"></span></button>
@@ -26,10 +30,10 @@
             <p class="menu-section-label">收藏設定</p>
             <button id="toggle-metal-tags" class="collection-setting" role="switch" aria-checked="true" aria-labelledby="metal-tags-label" aria-describedby="metal-tags-description" disabled>
               <span class="setting-icon" data-icon="tag"></span>
-              <span class="setting-copy"><strong id="metal-tags-label">金屬吊牌納入收藏計算</strong><small id="metal-tags-status">已納入角色進度總數</small></span>
+              <span class="setting-copy"><strong id="metal-tags-label">地方限定吊牌納入收藏計算</strong><small id="metal-tags-status">已納入角色進度總數</small></span>
               <span class="setting-switch" aria-hidden="true"></span>
             </button>
-            <p id="metal-tags-description" class="setting-description">關閉後，金屬吊牌不計入角色進度總數。<br>已收藏件數與商品列表不受影響。</p>
+            <p id="metal-tags-description" class="setting-description">關閉後，地方限定吊牌不計入角色進度總數。<br>已收藏件數與商品列表不受影響。</p>
             <div class="menu-divider"></div>
             <button id="open-data"><span data-icon="box"></span>資料管理</button>
           </div>
@@ -43,13 +47,14 @@
         <div><h1 id="catalog-title">我的娃</h1></div>
         <div class="catalog-heading-actions">
           <button class="secondary-button" id="open-order" hidden><span data-icon="sort"></span>調整角色順序</button>
-          <button class="filter-toggle" id="filter-toggle" aria-label="展開種類與系列篩選" aria-expanded="false" aria-controls="filter-options"><span data-icon="sliders"></span><span id="filter-toggle-label">篩選</span><span class="filter-count" id="filter-count" hidden>0</span><span class="filter-toggle-chevron" data-icon="chevron"></span></button>
+          <button class="filter-toggle" id="filter-toggle" aria-label="展開地區、種類與系列篩選" aria-expanded="false" aria-controls="filter-options"><span data-icon="sliders"></span><span id="filter-toggle-label">篩選</span><span class="filter-count" id="filter-count" hidden>0</span><span class="filter-toggle-chevron" data-icon="chevron"></span></button>
         </div>
       </div>
       <div class="filters">
         <div class="filter-controls">
           <label class="search-control"><span data-icon="search"></span><input id="catalog-search" type="search" placeholder="搜尋娃娃名稱" aria-label="搜尋商品名稱或角色" autocomplete="off"></label>
           <div id="filter-options" class="filter-options" hidden>
+            <label class="select-control"><select id="region-filter" aria-label="篩選地區"><option value="">全部地區</option></select><span data-icon="chevron"></span></label>
             <label class="select-control"><select id="type-filter" aria-label="篩選種類"><option value="">全部種類</option></select><span data-icon="chevron"></span></label>
             <div class="series-anchor">
               <button id="series-toggle" class="select-control series-toggle" aria-label="篩選系列：全部系列" aria-haspopup="dialog" aria-expanded="false" aria-controls="series-popover"><span id="series-label">全部系列</span><span data-icon="chevron"></span></button>
@@ -78,13 +83,13 @@
   </dialog>
   <dialog id="data-dialog" class="panel-dialog" aria-labelledby="data-title">
     <div class="dialog-heading"><div><h2 id="data-title">資料管理</h2></div><button class="icon-button" data-close="data-dialog" aria-label="關閉資料管理"><span data-icon="close"></span></button></div>
-    <p class="dialog-description">收藏、角色順序與排列偏好儲存在目前的瀏覽器。換裝置前，可以先匯出一份備份。</p>
-    <div class="data-summary"><span data-icon="heart"></span><div><strong id="data-count">0 隻收藏</strong></div></div>
-    <button id="export-data" class="data-action"><span data-icon="download"></span><span><strong>匯出收藏備份</strong><small>保存收藏紀錄與角色順序</small></span><span data-icon="arrow-right"></span></button>
-    <button id="import-data" class="data-action"><span data-icon="upload"></span><span><strong>匯入收藏備份</strong><small>合併收藏，套用備份中的排列設定</small></span><span data-icon="arrow-right"></span></button>
+    <p class="dialog-description">收藏數量、願望清單、角色順序與排列偏好儲存在目前的瀏覽器。換裝置前，可以先匯出一份備份。</p>
+    <div class="data-summary"><span data-icon="heart"></span><div><strong id="data-count">0 款收藏，共 0 個</strong><span id="data-wish-count">願望清單 0 款</span></div></div>
+    <button id="export-data" class="data-action"><span data-icon="download"></span><span><strong>匯出收藏備份</strong><small>保存收藏數量、願望清單與角色順序</small></span><span data-icon="arrow-right"></span></button>
+    <button id="import-data" class="data-action"><span data-icon="upload"></span><span><strong>匯入收藏備份</strong><small>合併收藏與願望清單，套用備份中的排列設定</small></span><span data-icon="arrow-right"></span></button>
     <input id="import-file" type="file" accept="application/json,.json" hidden>
     <p id="data-message" class="data-message" role="status"></p>
-    <div class="danger-zone"><div><strong>清除收藏紀錄</strong><p>清空「我的娃」，商品圖鑑與角色順序會保留。</p></div><button id="ask-clear" class="danger-button">清除紀錄</button></div>
+    <div class="danger-zone"><div><strong>清除收藏紀錄</strong><p>清空「我的娃」，願望清單與角色順序會保留。</p></div><button id="ask-clear" class="danger-button">清除紀錄</button></div>
   </dialog>
   <dialog id="clear-dialog" class="panel-dialog compact-dialog" aria-labelledby="clear-title"><div class="warning-icon" data-icon="heart"></div><h2 id="clear-title">清除所有收藏紀錄？</h2><p id="clear-description">「我的娃」將會清空，商品圖鑑與角色順序會保留。建議先匯出備份。</p><div class="confirm-actions"><button class="secondary-button" data-close="clear-dialog">先保留</button><button class="danger-button" id="confirm-clear">確認清除收藏</button></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden><span data-icon="check"></span><span id="toast-message"></span><button id="toast-undo" hidden>復原</button></div>
