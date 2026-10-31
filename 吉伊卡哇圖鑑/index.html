@@ -11,15 +11,17 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=place-kind-2">
-  <script type="module" src="./app.mjs?v=chiikawa-series-7"></script>
+  <link rel="stylesheet" href="./styles.css?v=character-order-1">
+  <script type="module" src="./app.mjs?v=character-order-1"></script>
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
   <header class="site-header">
     <div class="header-inner">
       <nav class="character-nav" id="character-nav" aria-label="選擇我的娃、願望清單或角色">
-        <span class="character-picker-title" id="character-picker-title" hidden>所有角色</span>
+        <div class="character-picker-heading" id="character-picker-heading" hidden><span class="character-picker-title">所有角色</span><span class="character-sort-hint">長按拖曳頭貼，調整順序</span></div>
+        <span id="character-sort-help" class="visually-hidden">展開後可長按拖曳角色頭貼調整順序，或按住 Alt 搭配方向鍵移動。我的娃與願望清單固定在最前面。</span>
+        <span id="character-sort-status" class="visually-hidden" role="status" aria-live="polite"></span>
         <div id="character-tabs" class="character-tabs"><span class="loading-label">載入角色…</span></div>
         <button class="icon-button character-toggle" id="character-toggle" type="button" aria-label="展開所有角色" aria-expanded="false" aria-controls="character-tabs" disabled><span data-icon="chevron"></span></button>
       </nav>

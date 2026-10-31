@@ -1,5 +1,6 @@
 import { STORAGE_KEY, MAX_QUANTITY, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems, moveCharacter } from './model.mjs?v=place-kind-2-collection-wishes-1';
 import { createCatalogImageLoader } from './image-loader.mjs';
+import { createCharacterSorter } from './character-sorter.mjs';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -153,9 +154,10 @@ function revealActiveCharacter() {
   tabs.scrollLeft += selected.left - bounds.left - (tabs.clientWidth - selected.width) / 2;
 }
 function setCharactersExpanded(expanded, { focusToggle = false } = {}) {
+  if (!expanded) characterSorter.cancel();
   charactersExpanded = Boolean(expanded);
   $('character-nav').classList.toggle('is-expanded', charactersExpanded);
-  $('character-picker-title').hidden = !charactersExpanded;
+  $('character-picker-heading').hidden = !charactersExpanded;
   $('character-toggle').setAttribute('aria-expanded', String(charactersExpanded));
   $('character-toggle').setAttribute('aria-label', charactersExpanded ? '收合所有角色' : '展開所有角色');
   if (!charactersExpanded) {
@@ -168,7 +170,7 @@ function renderTabs() {
   const tabs = [
     '<button class="character-tab mine-tab ' + (state.scope === 'mine' ? 'active' : '') + '" data-scope="mine" aria-pressed="' + (state.scope === 'mine') + '"><span class="avatar">' + icon('heart') + '</span><span>我的娃</span></button>',
     '<button class="character-tab wish-tab ' + (state.scope === 'wishlist' ? 'active' : '') + '" data-scope="wishlist" aria-pressed="' + (state.scope === 'wishlist') + '"><span class="avatar">' + icon('star') + '</span><span>願望清單</span></button>',
-    ...state.characters.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + collectionRing() + '</span><span>' + escapeHTML(character) + '</span></button>')
+    ...state.characterOrder.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-describedby="character-sort-help" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + collectionRing() + '</span><span>' + escapeHTML(character) + '</span></button>')
   ];
   $('character-tabs').innerHTML = tabs.join('');
   $('character-toggle').disabled = !state.ready;
@@ -549,6 +551,16 @@ function restoreCleared() {
   } catch { toast('找不到可復原的紀錄，請匯入收藏備份'); }
 }
 
+const characterSorter = createCharacterSorter($('character-tabs'), {
+  enabled: () => charactersExpanded,
+  getOrder: () => state.characterOrder,
+  onCommit: (order, character) => {
+    state.characterOrder = order;
+    const stored = persist();
+    if (state.scope === 'mine' || state.scope === 'wishlist') renderCatalog();
+    $('character-sort-status').textContent = character + '已移到第 ' + (order.indexOf(character) + 1) + ' 位' + (stored ? '，順序已儲存' : '，目前無法儲存');
+  }
+});
 $('character-tabs').addEventListener('click', event => {
   const target = event.target.closest('[data-scope]');
   if (!target) return;
@@ -705,7 +717,7 @@ window.addEventListener('pointerup',finishDrag);
 window.addEventListener('pointercancel',() => { drag=null; if($('order-dialog').open) renderOrder(); });
 $('reset-order').addEventListener('click', () => { orderDraft = [...state.characters]; renderOrder(); });
 $('save-order').addEventListener('click', () => {
-  state.characterOrder = [...orderDraft]; persist(); renderCatalog(); $('order-dialog').close(); toast('已記住你喜歡的角色順序');
+  state.characterOrder = [...orderDraft]; const stored = persist(); renderTabs(); renderCatalog(); $('order-dialog').close(); if (stored) toast('已記住你喜歡的角色順序');
 });
 
 $('export-data').addEventListener('click', () => {
