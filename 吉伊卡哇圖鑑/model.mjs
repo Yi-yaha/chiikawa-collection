@@ -1,5 +1,22 @@
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
+export const ITEM_TYPES = ['吊娃', '娃', '扭蛋', '徽章', '立牌', '公仔', '景品', '地方限定吊娃', '地方限定吊牌', '其他', '待分類'];
+export const PROGRESS_TYPES = ITEM_TYPES.filter(type => !['吊娃', '娃'].includes(type));
+export const typeLabel = type => ({娃:'玩偶', 吊娃:'吊飾娃', 地方限定吊娃:'地方限定吊飾娃', 鐵牌:'地方限定吊牌', 其他:'其他小物'}[type] || type);
+
+function normalizeIncludedTypes(value, includeMetalTags = true) {
+  const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return Object.fromEntries(PROGRESS_TYPES.map(type => [type,
+    typeof input[type] === 'boolean' ? input[type] : type === '地方限定吊牌' ? includeMetalTags !== false : true
+  ]));
+}
+
+export function isProgressIncluded(item, includedTypes = {}) {
+  const type = item.type === '鐵牌' ? '地方限定吊牌' : item.type;
+  // Keep the former boolean argument usable by older callers and backups.
+  if (typeof includedTypes === 'boolean') return includedTypes || type !== '地方限定吊牌';
+  return !PROGRESS_TYPES.includes(type) || includedTypes?.[type] !== false;
+}
 const splitOtherCharacters = ['小甲蟲','那孩子','哥布林','奧德','鎧甲人','流星','綜合角色','人魚島'];
 export const independentCharacters = ['大強','奇美拉','惡夢大象','灰孩子','睡衣派對','乳酸菌超人','巫婆','大腳怪','馴鹿','小惡魔','粉蟲','黃綠蟲','河豚','中止蟲','大鳥','擬態怪獸','大樹'];
 
@@ -41,7 +58,8 @@ export function normalizeSaved(value, characters, validIds, itemAliases = {}) {
       .filter(c => characters.includes(c))
     : [];
   const characterOrder = [...new Set([...givenOrder, ...characters])];
-  return { version: 2, owned, quantities: Object.fromEntries(quantities), wishlist, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character', includeMetalTags: input.includeMetalTags !== false };
+  const includedTypes = normalizeIncludedTypes(input.includedTypes, input.includeMetalTags);
+  return { version: 2, owned, quantities: Object.fromEntries(quantities), wishlist, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character', includedTypes, includeMetalTags: includedTypes['地方限定吊牌'] };
 }
 
 // A backup is a snapshot: repeated imports keep the larger quantity instead of
@@ -53,19 +71,24 @@ export function mergeSaved(current, incoming, characters, validIds, itemAliases 
   for (const [id, quantity] of Object.entries(added.quantities)) {
     quantities.set(id, Math.max(quantities.get(id) || 0, quantity));
   }
+  const includedTypes = { ...before.includedTypes };
+  if (typeof incoming?.includeMetalTags === 'boolean') includedTypes['地方限定吊牌'] = incoming.includeMetalTags;
+  for (const type of PROGRESS_TYPES) {
+    if (typeof incoming?.includedTypes?.[type] === 'boolean') includedTypes[type] = incoming.includedTypes[type];
+  }
   return normalizeSaved({
     ...added,
     owned: [...quantities.keys()],
     quantities: Object.fromEntries(quantities),
     wishlist: [...before.wishlist, ...added.wishlist],
-    includeMetalTags: typeof incoming?.includeMetalTags === 'boolean' ? added.includeMetalTags : before.includeMetalTags
+    includedTypes
   }, characters, validIds, itemAliases);
 }
 
-export function progressTotals(items, includeMetalTags = true) {
+export function progressTotals(items, includedTypes = {}) {
   const totals = new Map();
   for (const item of items) {
-    if (!includeMetalTags && ['地方限定吊牌', '鐵牌'].includes(item.type)) continue;
+    if (!isProgressIncluded(item, includedTypes)) continue;
     totals.set(item.character, (totals.get(item.character) || 0) + 1);
   }
   return totals;

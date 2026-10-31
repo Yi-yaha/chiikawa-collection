@@ -11,8 +11,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=character-order-2">
-  <script type="module" src="./app.mjs?v=character-order-2"></script>
+  <link rel="stylesheet" href="./styles.css?v=collection-settings-4">
+  <script type="module" src="./app.mjs?v=collection-settings-4"></script>
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -29,13 +29,7 @@
         <div class="menu-anchor">
           <button class="icon-button" id="more-button" aria-label="更多選項" aria-expanded="false" aria-controls="more-menu"><span data-icon="more"></span></button>
           <div class="more-menu" id="more-menu" hidden>
-            <p class="menu-section-label">收藏設定</p>
-            <button id="toggle-metal-tags" class="collection-setting" role="switch" aria-checked="true" aria-labelledby="metal-tags-label" aria-describedby="metal-tags-description" disabled>
-              <span class="setting-icon" data-icon="tag"></span>
-              <span class="setting-copy"><strong id="metal-tags-label">地方限定吊牌納入收藏計算</strong><small id="metal-tags-status">已納入角色進度總數</small></span>
-              <span class="setting-switch" aria-hidden="true"></span>
-            </button>
-            <p id="metal-tags-description" class="setting-description">關閉後，地方限定吊牌不計入角色進度總數。<br>已收藏件數與商品列表不受影響。</p>
+            <button id="open-settings" aria-haspopup="dialog" aria-controls="settings-dialog" disabled><span data-icon="sliders"></span>收藏設定</button>
             <div class="menu-divider"></div>
             <button id="open-data"><span data-icon="box"></span>資料管理</button>
           </div>
@@ -48,7 +42,6 @@
       <div class="catalog-heading">
         <div><h1 id="catalog-title">我的娃</h1></div>
         <div class="catalog-heading-actions">
-          <button class="secondary-button" id="open-order" hidden><span data-icon="sort"></span>調整角色順序</button>
           <button class="filter-toggle" id="filter-toggle" aria-label="展開地區、種類與系列篩選" aria-expanded="false" aria-controls="filter-options"><span data-icon="sliders"></span><span id="filter-toggle-label">篩選</span><span class="filter-count" id="filter-count" hidden>0</span><span class="filter-toggle-chevron" data-icon="chevron"></span></button>
         </div>
       </div>
@@ -77,11 +70,13 @@
 
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="remove-dialog" class="panel-dialog compact-dialog" aria-labelledby="remove-title" aria-describedby="remove-description"><div class="warning-icon" data-icon="heart"></div><h2 id="remove-title">移出我的娃？</h2><p id="remove-description"></p><div class="confirm-actions"><button class="secondary-button" data-close="remove-dialog" autofocus>先保留</button><button class="danger-button" id="confirm-remove">確認移除</button></div></dialog>
-  <dialog id="order-dialog" class="panel-dialog" aria-labelledby="order-title">
-    <div class="dialog-heading"><div><h2 id="order-title">調整角色順序</h2></div><button class="icon-button" data-close="order-dialog" aria-label="關閉角色排序"><span data-icon="close"></span></button></div>
-    <p class="dialog-description">拖曳角色，或使用上下箭頭調整。上方頭貼與「我的娃」會一起套用這個順序。</p>
-    <ol id="order-list" class="order-list"></ol>
-    <div class="dialog-footer"><button class="text-button" id="reset-order">恢復預設順序</button><button class="primary-button" id="save-order">完成</button></div>
+  <dialog id="settings-dialog" class="panel-dialog settings-dialog" aria-labelledby="settings-title" aria-describedby="settings-description">
+    <div class="dialog-heading"><h2 id="settings-title">收藏設定</h2><button class="icon-button" data-close="settings-dialog" aria-label="關閉收藏設定" autofocus><span data-icon="close"></span></button></div>
+    <p id="settings-description" class="dialog-description">勾選要納入收藏進度的種類。<br>未勾選的商品仍可瀏覽及收藏。</p>
+    <div class="settings-fixed"><span data-icon="check"></span><span>吊飾娃、玩偶<span>固定納入收藏進度</span></span></div>
+    <fieldset class="progress-types"><legend>納入收藏進度</legend><div id="progress-type-options" class="progress-type-options"></div></fieldset>
+    <p class="settings-note">設定會自動儲存，並隨收藏備份保留。</p>
+    <div class="settings-footer"><button class="primary-button" data-close="settings-dialog">完成</button></div>
   </dialog>
   <dialog id="data-dialog" class="panel-dialog" aria-labelledby="data-title">
     <div class="dialog-heading"><div><h2 id="data-title">資料管理</h2></div><button class="icon-button" data-close="data-dialog" aria-label="關閉資料管理"><span data-icon="close"></span></button></div>

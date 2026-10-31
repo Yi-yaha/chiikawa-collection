@@ -1,4 +1,4 @@
-import { STORAGE_KEY, MAX_QUANTITY, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems, moveCharacter } from './model.mjs?v=place-kind-2-collection-wishes-1';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems } from './model.mjs?v=collection-settings-4';
 import { createCatalogImageLoader } from './image-loader.mjs';
 import { createCharacterSorter } from './character-sorter.mjs?v=character-order-2';
 
@@ -19,7 +19,6 @@ const paths = {
   close:'<path d="m6 6 12 12M6 18 18 6"/>',
   grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   person:'<circle cx="12" cy="7" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>',
-  sort:'<path d="M8 4v16m-3-3 3 3 3-3M16 20V4m-3 3 3-3 3 3"/>',
   reset:'<path d="M3 10a9 9 0 1 1 2.5 8M3 4v6h6"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
   box:'<path d="m3 7 9-4 9 4v11l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v11M7.5 5 16 9"/>',
@@ -27,9 +26,6 @@ const paths = {
   download:'<path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/>',
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 16v5h16v-5"/>',
   'arrow-right':'<path d="M4 12h15m-6-6 6 6-6 6"/>',
-  up:'<path d="m6 15 6-6 6 6"/>',
-  down:'<path d="m6 9 6 6 6-6"/>',
-  grip:'<circle cx="8" cy="5" r="1"/><circle cx="16" cy="5" r="1"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="8" cy="19" r="1"/><circle cx="16" cy="19" r="1"/>',
   external:'<path d="M14 3h7v7m0-7L10 14M10 3H4a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-6"/>'
 };
 const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + (paths[name] || paths.sparkle) + '</svg>';
@@ -64,14 +60,11 @@ function avatarPortrait(character) {
   const crop = '--portrait-size:' + (zoom*100) + '%;--portrait-x:' + (50-x*zoom) + '%;--portrait-y:' + (50-y*zoom) + '%';
   return '<span class="avatar-portrait" style="' + crop + '"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="300" height="300"></span>';
 }
-const typeLabels = {'娃':'玩偶','吊娃':'一般吊娃','鐵牌':'地方限定吊牌'};
-const typeLabel = type => typeLabels[type] || type;
-const state = { items:[], characters:[], owned:new Set(), quantities:{}, wishlist:new Set(), characterOrder:[], groupBy:'character', includeMetalTags:true, scope:'mine', type:'', region:'', series:'', query:'', ready:false };
+const state = { items:[], characters:[], owned:new Set(), quantities:{}, wishlist:new Set(), characterOrder:[], groupBy:'character', includedTypes:{}, scope:'mine', type:'', region:'', series:'', query:'', ready:false };
 let itemMap = new Map();
 let itemAliases = {};
 let characterTotals = new Map();
 let avatars = new Map();
-let orderDraft = [];
 let toastTimer, undoAction, activeDetail, pendingRemoval;
 let storageOK = true;
 const lastClearKey = STORAGE_KEY + '-last-clear';
@@ -98,14 +91,14 @@ function observeCatalogSize() {
   if (sample) catalogSizeObserver.observe(sample);
 }
 
-function savedValue() { return {version:2, owned:[...state.owned], quantities:{...state.quantities}, wishlist:[...state.wishlist], characterOrder:state.characterOrder, groupBy:state.groupBy, includeMetalTags:state.includeMetalTags}; }
+function savedValue() { return {version:2, owned:[...state.owned], quantities:{...state.quantities}, wishlist:[...state.wishlist], characterOrder:state.characterOrder, groupBy:state.groupBy, includedTypes:{...state.includedTypes}, includeMetalTags:state.includedTypes['地方限定吊牌'] !== false}; }
 function applySaved(saved) {
   state.owned = new Set(saved.owned);
   state.quantities = saved.quantities;
   state.wishlist = new Set(saved.wishlist);
   state.characterOrder = saved.characterOrder;
   state.groupBy = saved.groupBy;
-  state.includeMetalTags = saved.includeMetalTags;
+  state.includedTypes = saved.includedTypes;
 }
 function quantityOf(id) { return state.quantities[id] || 0; }
 function totalQuantity(items = state.items) { return items.reduce((sum, item) => sum + quantityOf(item.id), 0); }
@@ -136,9 +129,15 @@ function baseItems() { return scopeItems(state.items, state.scope, state.owned, 
 function currentItems() { return filterItems(baseItems(), state); }
 
 function updateProgressSetting() {
-  $('toggle-metal-tags').disabled = !state.ready;
-  $('toggle-metal-tags').setAttribute('aria-checked', String(state.includeMetalTags));
-  $('metal-tags-status').textContent = state.includeMetalTags ? '已納入角色進度總數' : '未納入角色進度總數';
+  $('open-settings').disabled = !state.ready;
+  const options = $('progress-type-options');
+  if (!options.children.length) {
+    const types = PROGRESS_TYPES.filter(type => type !== '待分類' || state.items.some(item => item.type === type));
+    options.innerHTML = types.map(type => '<label class="progress-type-option"><span>' + escapeHTML(typeLabel(type)) + '</span><input type="checkbox" data-progress-type="' + escapeHTML(type) + '"></label>').join('');
+  }
+  options.querySelectorAll('[data-progress-type]').forEach(input => {
+    input.checked = state.includedTypes[input.dataset.progressType] !== false;
+  });
 }
 
 function collectionRing() {
@@ -179,7 +178,7 @@ function renderTabs() {
 }
 function updateCollectionTabs() {
   const counts = new Map();
-  state.owned.forEach(id => { const item = itemMap.get(id); if (item) counts.set(item.character, (counts.get(item.character) || 0) + 1); });
+  state.owned.forEach(id => { const item = itemMap.get(id); if (item && isProgressIncluded(item, state.includedTypes)) counts.set(item.character, (counts.get(item.character) || 0) + 1); });
   $('character-tabs').querySelectorAll('[data-scope]').forEach(tab => {
     const scope = tab.dataset.scope;
     if (scope === 'wishlist') {
@@ -204,7 +203,6 @@ function updateCollectionTabs() {
 function renderHeading() {
   const mine = state.scope === 'mine';
   $('catalog-title').textContent = mine ? '我的娃' : state.scope === 'wishlist' ? '願望清單' : state.scope + '的圖鑑';
-  $('open-order').hidden = !mine;
   document.querySelectorAll('[data-group]').forEach(button => {
     const active = button.dataset.group === state.groupBy;
     button.classList.toggle('active', active);
@@ -223,7 +221,7 @@ function renderFilterDisclosure() {
 function renderTypeOptions() {
   const counts = new Map();
   filterItems(baseItems(), {region:state.region,series:state.series,query:state.query}).forEach(item => counts.set(item.type, (counts.get(item.type) || 0) + 1));
-  const allTypes = [...new Set(state.items.map(item => item.type))];
+  const allTypes = [...new Set([...ITEM_TYPES, ...state.items.map(item => item.type)])];
   $('type-filter').innerHTML = '<option value="">全部種類</option>' + allTypes.filter(type => counts.has(type) || state.type === type).map(type => '<option value="' + escapeHTML(type) + '"' + (state.type === type ? ' selected' : '') + '>' + escapeHTML(typeLabel(type)) + '（' + number(counts.get(type) || 0) + '）</option>').join('');
 }
 function renderRegionOptions() {
@@ -288,7 +286,7 @@ function renderResultCount(items) {
     $('result-count').innerHTML = '想收 <strong>' + number(items.length) + '</strong> 款';
     return;
   }
-  const matchingItems = state.scope === 'mine' ? filterItems(state.items, state) : items;
+  const matchingItems = (state.scope === 'mine' ? filterItems(state.items, state) : items).filter(item => isProgressIncluded(item, state.includedTypes));
   const owned = matchingItems.filter(item => state.owned.has(item.id)).length;
   $('result-count').innerHTML = '已收藏 <strong>' + number(owned) + '</strong>／' + number(matchingItems.length) + ' 款' + (state.scope === 'mine' ? '<span class="quantity-summary">共 ' + number(totalQuantity(items)) + ' 個</span>' : '');
 }
@@ -541,7 +539,7 @@ function updateDataSummary() {
 function restoreCleared() {
   try {
     const previous = normalizeSaved(JSON.parse(localStorage.getItem(lastClearKey)),state.characters,new Set(itemMap.keys()),itemAliases);
-    const restored = mergeSaved(savedValue(), {...previous, wishlist:[], characterOrder:state.characterOrder, groupBy:state.groupBy, includeMetalTags:state.includeMetalTags}, state.characters, new Set(itemMap.keys()), itemAliases);
+    const restored = mergeSaved(savedValue(), {...previous, wishlist:[], characterOrder:state.characterOrder, groupBy:state.groupBy, includedTypes:{...state.includedTypes}, includeMetalTags:state.includedTypes['地方限定吊牌'] !== false}, state.characters, new Set(itemMap.keys()), itemAliases);
     applySaved(restored);
     refreshCollection();
     localStorage.removeItem(lastClearKey);
@@ -652,12 +650,20 @@ $('more-button').addEventListener('click', () => {
   $('more-menu').hidden = !$('more-menu').hidden;
   $('more-button').setAttribute('aria-expanded',String(!$('more-menu').hidden));
 });
-$('toggle-metal-tags').addEventListener('click', () => {
+$('open-settings').addEventListener('click', () => {
+  $('more-menu').hidden = true;
+  $('more-button').setAttribute('aria-expanded', 'false');
+  openDialog('settings-dialog');
+});
+$('settings-dialog').addEventListener('close', () => $('more-button').focus({preventScroll:true}));
+$('progress-type-options').addEventListener('change', event => {
+  const input = event.target.closest('[data-progress-type]');
+  if (!input || !PROGRESS_TYPES.includes(input.dataset.progressType)) return;
   if (!state.ready) return;
-  state.includeMetalTags = !state.includeMetalTags;
-  characterTotals = progressTotals(state.items, state.includeMetalTags);
-  updateProgressSetting();
+  state.includedTypes[input.dataset.progressType] = input.checked;
+  characterTotals = progressTotals(state.items, state.includedTypes);
   updateCollectionTabs();
+  renderResultCount(currentItems());
   persist();
 });
 $('open-data').addEventListener('click', () => { $('more-menu').hidden = true; $('more-button').setAttribute('aria-expanded','false'); showData(); });
@@ -684,42 +690,6 @@ document.querySelectorAll('dialog').forEach(dialog => {
   });
 });
 
-function renderOrder() {
-  $('order-list').innerHTML = orderDraft.map((character,index) => '<li class="order-row" data-index="' + index + '"><span class="order-handle" title="拖曳調整' + escapeHTML(character) + '的位置" aria-hidden="true">' + icon('grip') + '</span><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="36" height="36"><strong>' + escapeHTML(character) + '</strong><button class="icon-button" data-move="-1" data-index="' + index + '" aria-label="將' + escapeHTML(character) + '向上移動"' + (index === 0 ? ' disabled' : '') + '>' + icon('up') + '</button><button class="icon-button" data-move="1" data-index="' + index + '" aria-label="將' + escapeHTML(character) + '向下移動"' + (index === orderDraft.length-1 ? ' disabled' : '') + '>' + icon('down') + '</button></li>').join('');
-}
-$('open-order').addEventListener('click', () => { orderDraft = [...state.characterOrder]; renderOrder(); openDialog('order-dialog'); });
-$('order-list').addEventListener('click', event => {
-  const button = event.target.closest('[data-move]');
-  if(!button) return;
-  const from = Number(button.dataset.index), delta = Number(button.dataset.move);
-  orderDraft = moveCharacter(orderDraft,from,from+delta);
-  renderOrder();
-  document.querySelector('#order-list [data-index="' + (from+delta) + '"] button[data-move="' + delta + '"]:not(:disabled)')?.focus({preventScroll:true});
-});
-let drag = null;
-$('order-list').addEventListener('pointerdown', event => {
-  if(!event.target.closest('.order-handle')) return;
-  event.preventDefault();
-  const row = event.target.closest('.order-row');
-  drag = {from:Number(row.dataset.index),to:Number(row.dataset.index)};
-  row.classList.add('dragging');
-});
-window.addEventListener('pointermove', event => {
-  if(!drag) return;
-  const row = document.elementFromPoint(event.clientX,event.clientY)?.closest('.order-row');
-  if(row) {
-    drag.to = Number(row.dataset.index);
-    document.querySelectorAll('.order-row').forEach(r => r.style.borderColor = Number(r.dataset.index) === drag.to ? 'var(--coral)' : '');
-  }
-});
-function finishDrag() { if(!drag) return; orderDraft = moveCharacter(orderDraft,drag.from,drag.to); drag=null; renderOrder(); }
-window.addEventListener('pointerup',finishDrag);
-window.addEventListener('pointercancel',() => { drag=null; if($('order-dialog').open) renderOrder(); });
-$('reset-order').addEventListener('click', () => { orderDraft = [...state.characters]; renderOrder(); });
-$('save-order').addEventListener('click', () => {
-  state.characterOrder = [...orderDraft]; const stored = persist(); renderTabs(); renderCatalog(); $('order-dialog').close(); if (stored) toast('已記住你喜歡的角色順序');
-});
-
 $('export-data').addEventListener('click', () => {
   const content = {...savedValue(),app:'chiikawa-collection',exportedAt:new Date().toISOString()};
   const blob = new Blob([JSON.stringify(content,null,2)],{type:'application/json'});
@@ -743,7 +713,7 @@ $('import-file').addEventListener('change', async event => {
     if((data.owned.length || Object.keys(data.quantities || {}).length || data.wishlist?.length) && !normalized.owned.length && !normalized.wishlist.length) throw new Error('備份中的商品與目前圖鑑不相符，原本紀錄已保留。');
     const previousSize = state.owned.size;
     applySaved(mergeSaved(savedValue(), data, state.characters, new Set(itemMap.keys()), itemAliases));
-    characterTotals = progressTotals(state.items, state.includeMetalTags);
+    characterTotals = progressTotals(state.items, state.includedTypes);
     updateProgressSetting();
     refreshCollection();
     $('data-message').classList.remove('error');
@@ -768,7 +738,7 @@ $('confirm-clear').addEventListener('click', () => {
 document.addEventListener('error', event => {
   if(!(event.target instanceof HTMLImageElement)) return;
   const img = event.target;
-  if(img.closest('.avatar,.hero-art,.group-heading,.order-row')) { img.style.visibility='hidden'; return; }
+  if(img.closest('.avatar,.hero-art,.group-heading')) { img.style.visibility='hidden'; return; }
   const fallback = document.createElement('span');
   fallback.className='image-fallback';
   fallback.innerHTML=icon('box')+'<span>圖片無法載入</span>';
@@ -789,7 +759,7 @@ async function init() {
     try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); } catch { storageOK=false; }
     const saved = normalizeSaved(stored,state.characters,new Set(itemMap.keys()),itemAliases);
     applySaved(saved);
-    characterTotals = progressTotals(state.items, state.includeMetalTags);
+    characterTotals = progressTotals(state.items, state.includedTypes);
     state.ready = true;
     updateProgressSetting();
     renderTabs(); renderCatalog();
