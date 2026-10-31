@@ -12,7 +12,8 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="stylesheet" href="./styles.css?v=collection-settings-4">
-  <script type="module" src="./app.mjs?v=collection-settings-4"></script>
+  <link rel="stylesheet" href="./account.css?v=accounts-2">
+  <script type="module" src="./app.mjs?v=accounts-2"></script>
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -27,8 +28,11 @@
       </nav>
       <div class="header-actions">
         <div class="menu-anchor">
-          <button class="icon-button" id="more-button" aria-label="更多選項" aria-expanded="false" aria-controls="more-menu"><span data-icon="more"></span></button>
+          <button class="icon-button" id="more-button" aria-label="更多選項" aria-expanded="false" aria-controls="more-menu"><span data-icon="more"></span><span id="more-notification-dot" class="notification-dot" aria-hidden="true" hidden></span></button>
           <div class="more-menu" id="more-menu" hidden>
+            <button id="open-account" aria-haspopup="dialog" aria-controls="account-dialog"><span data-icon="person"></span><span class="account-menu-copy"><span id="account-menu-name">個人資料</span><small id="account-menu-status">登入，讓收藏跟著你</small></span></button>
+            <button id="open-friends" aria-haspopup="dialog" aria-controls="friends-dialog"><span data-icon="friends"></span>好友<span id="friends-menu-badge" class="friends-menu-badge" hidden></span></button>
+            <div class="menu-divider"></div>
             <button id="open-settings" aria-haspopup="dialog" aria-controls="settings-dialog" disabled><span data-icon="sliders"></span>收藏設定</button>
             <div class="menu-divider"></div>
             <button id="open-data"><span data-icon="box"></span>資料管理</button>
@@ -67,6 +71,7 @@
     </section>
 
   </main>
+  <footer class="privacy-footer"><a href="./privacy.html">隱私權與資料說明</a></footer>
 
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="remove-dialog" class="panel-dialog compact-dialog" aria-labelledby="remove-title" aria-describedby="remove-description"><div class="warning-icon" data-icon="heart"></div><h2 id="remove-title">移出我的娃？</h2><p id="remove-description"></p><div class="confirm-actions"><button class="secondary-button" data-close="remove-dialog" autofocus>先保留</button><button class="danger-button" id="confirm-remove">確認移除</button></div></dialog>
@@ -80,7 +85,9 @@
   </dialog>
   <dialog id="data-dialog" class="panel-dialog" aria-labelledby="data-title">
     <div class="dialog-heading"><div><h2 id="data-title">資料管理</h2></div><button class="icon-button" data-close="data-dialog" aria-label="關閉資料管理"><span data-icon="close"></span></button></div>
-    <p class="dialog-description">收藏數量、願望清單、角色順序與排列偏好儲存在目前的瀏覽器。換裝置前，可以先匯出一份備份。</p>
+    <p id="data-description" class="dialog-description">目前收藏儲存在這台裝置。登入帳號後，可以在手機與電腦接續使用，也能繼續匯出備份。</p>
+    <div id="cloud-sync-status" class="cloud-sync-status" role="status"><span id="cloud-sync-label">收藏儲存在這台裝置</span><button id="sync-now" class="text-button" hidden>立即同步</button><button id="resolve-sync" class="text-button" hidden>處理同步差異</button></div>
+    <button id="import-guest-collection" class="text-button guest-import-button" hidden>帶入這台裝置原有的收藏</button>
     <div class="data-summary"><span data-icon="heart"></span><div><strong id="data-count">0 款收藏，共 0 個</strong><span id="data-wish-count">願望清單 0 款</span></div></div>
     <button id="export-data" class="data-action"><span data-icon="download"></span><span><strong>匯出收藏備份</strong><small>保存收藏數量、願望清單與角色順序</small></span><span data-icon="arrow-right"></span></button>
     <button id="import-data" class="data-action"><span data-icon="upload"></span><span><strong>匯入收藏備份</strong><small>合併收藏與願望清單，套用備份中的排列設定</small></span><span data-icon="arrow-right"></span></button>

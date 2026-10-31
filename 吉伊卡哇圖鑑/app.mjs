@@ -19,6 +19,7 @@ const paths = {
   close:'<path d="m6 6 12 12M6 18 18 6"/>',
   grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   person:'<circle cx="12" cy="7" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>',
+  friends:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M16 4a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5v2"/>',
   reset:'<path d="M3 10a9 9 0 1 1 2.5 8M3 4v6h6"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
   box:'<path d="m3 7 9-4 9 4v11l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v11M7.5 5 16 9"/>',
@@ -67,7 +68,9 @@ let characterTotals = new Map();
 let avatars = new Map();
 let toastTimer, undoAction, activeDetail, pendingRemoval;
 let storageOK = true;
-const lastClearKey = STORAGE_KEY + '-last-clear';
+let accountHub = null;
+let collectionStorageKey = STORAGE_KEY;
+let lastClearKey = STORAGE_KEY + '-last-clear';
 const filterExpansionKey = STORAGE_KEY + '-filters-expanded';
 let filtersExpanded = false;
 let charactersExpanded = false;
@@ -103,7 +106,7 @@ function applySaved(saved) {
 function quantityOf(id) { return state.quantities[id] || 0; }
 function totalQuantity(items = state.items) { return items.reduce((sum, item) => sum + quantityOf(item.id), 0); }
 function persist() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedValue())); storageOK = true; }
+  try { localStorage.setItem(collectionStorageKey, JSON.stringify(savedValue())); accountHub?.capture(savedValue()); storageOK = true; }
   catch { storageOK = false; toast('目前無法儲存，請到資料管理匯出備份'); }
   return storageOK;
 }
@@ -764,6 +767,34 @@ async function init() {
     updateProgressSetting();
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
+    if (!accountHub) {
+      import('./account-hub.mjs?v=accounts-2').then(({ createAccountHub }) => {
+        if (accountHub) return;
+        const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
+        accountHub = createAccountHub({
+          items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
+          getSaved:savedValue, normalize,
+          merge:(current,incoming) => mergeSaved(current,incoming,state.characters,new Set(itemMap.keys()),itemAliases),
+          applySaved:saved => {
+            applySaved(saved);
+            characterTotals = progressTotals(state.items,state.includedTypes);
+            updateProgressSetting(); renderTabs(); renderCatalog(); updateDataSummary();
+          },
+          onScope:userId => {
+            collectionStorageKey = userId ? STORAGE_KEY + '-account-' + userId : STORAGE_KEY;
+            lastClearKey = collectionStorageKey + '-last-clear';
+            dismissToast(); pendingRemoval = null; activeDetail = null;
+            ['detail-dialog','remove-dialog','clear-dialog','data-dialog'].forEach(id => { if ($(id).open) $(id).close(); });
+          },
+          toast,
+        });
+      }).catch(() => {
+        $('account-menu-name').textContent = '帳號暫時無法載入';
+        $('account-menu-status').textContent = '重新整理頁面後再試';
+        $('open-account').addEventListener('click',() => toast('帳號暫時無法載入，請重新整理頁面後再試'));
+        $('open-friends').addEventListener('click',() => toast('好友暫時無法載入，請重新整理頁面後再試'));
+      });
+    }
   } catch {
     $('catalog-content').setAttribute('aria-busy','false');
     $('catalog-content').innerHTML='<div class="empty-state"><div class="empty-icon">'+icon('box')+'</div><h3>圖鑑載入失敗</h3><p>暫時無法載入圖鑑，請確認網路連線後重試。</p><button class="primary-button" id="retry-load">重新載入</button></div>';
