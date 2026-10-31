@@ -1,4 +1,4 @@
-import { STORAGE_KEY } from './model.mjs?v=d185d6a9e76d92f6';
+import { STORAGE_KEY } from './model.mjs?v=6f3f61e3bdeb1610';
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const valueOf = row => ({ quantity:row?.quantity || 0, wished:row?.quantity > 0 ? false : Boolean(row?.wished) });
@@ -38,9 +38,10 @@ export function createCloudStore({ client, storage, normalize, onApply = () => {
     const changed = !same(data.view, next);
     data.view = next;
     save();
-    if (changed) onApply(next);
+    // Keep the comparison snapshot private when the interface edits its copy.
+    if (changed) onApply(normalize(next));
   }
-  function schedule(delay = 700) {
+  function schedule(delay = 0) {
     clearTimeout(timer);
     if (uid) timer = setTimeout(() => { void sync(); }, delay);
   }
@@ -115,7 +116,7 @@ export function createCloudStore({ client, storage, normalize, onApply = () => {
         }
         data.syncedAt = new Date().toISOString();
         failures = 0; save(); status();
-        if (canWrite && pendingCount() && (!Object.keys(data.conflicts.items).length && !data.conflicts.settings)) schedule(1000);
+        if (canWrite && pendingCount() && (!Object.keys(data.conflicts.items).length && !data.conflicts.settings)) schedule();
       } catch (error) {
         if (generation !== activeGeneration) return;
         inFlightItems.clear(); inFlightSettings = false;
@@ -129,7 +130,7 @@ export function createCloudStore({ client, storage, normalize, onApply = () => {
   }
   return {
     get userId() { return uid; },
-    get saved() { return data?.view; },
+    get saved() { return data ? normalize(data.view) : undefined; },
     get ready() { return hydrated; },
     get pending() { return pendingCount(); },
     async open(userId, writable = true) {
@@ -142,7 +143,7 @@ export function createCloudStore({ client, storage, normalize, onApply = () => {
           editId = Math.max(editId, ...Object.values(data.pending).map(row => row.editId || 0), data.pendingSettings?.editId || 0);
         } else data.view = normalize(JSON.parse(storage.getItem(accountStorageKey(uid)) || 'null'));
       } catch { storageOK = false; }
-      onScope(uid); onApply(data.view); status('loading');
+      onScope(uid); onApply(normalize(data.view)); status('loading');
       await sync();
     },
     close() {

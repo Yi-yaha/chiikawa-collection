@@ -1,9 +1,9 @@
-import { createClient } from './supabase-client.mjs?v=d185d6a9e76d92f6';
-import { cloudConfig } from './cloud-config.mjs?v=d185d6a9e76d92f6';
-import { createCloudStore } from './cloud-store.mjs?v=d185d6a9e76d92f6';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=d185d6a9e76d92f6';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, filterItems } from './model.mjs?v=d185d6a9e76d92f6';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=d185d6a9e76d92f6';
+import { createClient } from './supabase-client.mjs?v=6f3f61e3bdeb1610';
+import { cloudConfig } from './cloud-config.mjs?v=6f3f61e3bdeb1610';
+import { createCloudStore } from './cloud-store.mjs?v=6f3f61e3bdeb1610';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=6f3f61e3bdeb1610';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, filterItems } from './model.mjs?v=6f3f61e3bdeb1610';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=6f3f61e3bdeb1610';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -30,6 +30,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   let friends = [], notifications = [], blocks = [], friendsLoaded = false, friendsError = '', refreshingFriends = false;
   let selectedFriend = null, friendSnapshot = null, lookup = null, friendTab = 'collection', compareTab = 'both', friendConfirmation = null;
   let syncStatus = { state:'guest', pending:0, conflicts:[] };
+  let syncWarningShown = false;
   let pendingHub = false, activeAction = false, migrationGuest = null;
   let avatarDraft, avatarPreview = '', avatarBusy = false, avatarGeneration = 0;
   const photos = createAvatarStore(client);
@@ -73,6 +74,11 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     online:() => navigator.onLine,
     onStatus:status => {
       syncStatus = status; renderSync();
+      if (status.state === 'saved' || status.state === 'guest') syncWarningShown = false;
+      if (status.pending && (!status.storageOK || status.state === 'error') && !syncWarningShown) {
+        syncWarningShown = true;
+        toast(status.storageOK ? '暫時無法同步，收藏已保留，連線恢復後會自動重試' : '目前無法保留待同步紀錄，請到資料管理匯出備份');
+      }
       if ($('sync-conflict-dialog').open) renderConflicts();
       if (status.state === 'saved' || status.state === 'conflict') maybeOfferMigration();
     },

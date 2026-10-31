@@ -283,18 +283,16 @@ html{scroll-padding-top:118px}
 .detail-info h2{overflow-wrap:anywhere}
 .detail-collection{width:100%;margin-top:22px}
 .detail-info .detail-collection .primary-button{margin-top:0}
-.quantity-panel{padding:14px 16px;background:var(--pink);border-radius:var(--control-radius);margin-bottom:10px;width:100%}
+.quantity-panel{width:100%}
 .quantity-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.quantity-row label{font-size:13px;font-weight:600;white-space:nowrap}
-.quantity-stepper{display:flex;align-items:center;min-width:0;border-radius:11px;background:var(--paper)}
-.quantity-stepper button{width:44px;height:44px;display:grid;place-items:center;flex-shrink:0;color:var(--coral);border-radius:11px}
-.quantity-stepper button:hover{background:#FDF7F5}
-.quantity-stepper svg{width:17px;height:17px}
-.quantity-stepper input{appearance:textfield;-moz-appearance:textfield;width:56px;min-width:0;height:44px;padding:0 2px;border:0;background:transparent;color:var(--ink);text-align:center;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;border-radius:4px}
+.quantity-row label{font-size:13px;font-weight:500;white-space:nowrap;color:var(--muted)}
+.quantity-stepper{display:flex;align-items:center;min-width:0;flex-shrink:0;border:1px solid var(--line);border-radius:10px;background:transparent}
+.quantity-stepper button{width:44px;height:44px;display:grid;place-items:center;flex-shrink:0;color:var(--muted);border-radius:9px}
+@media(hover:hover) and (pointer:fine){.quantity-stepper button:hover{background:var(--bg);color:var(--coral)}}
+.quantity-stepper button:active{background:var(--bg)}
+.quantity-stepper svg{width:15px;height:15px}
+.quantity-stepper input{appearance:textfield;-moz-appearance:textfield;width:48px;min-width:0;height:44px;padding:0 2px;border:0;background:transparent;color:var(--ink);text-align:center;font-size:16px;font-weight:500;font-variant-numeric:tabular-nums;border-radius:4px}
 .quantity-stepper input::-webkit-inner-spin-button,.quantity-stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.quantity-panel p{font-size:11px;color:var(--coral-dark);margin-top:7px}
-.detail-info .primary-button.is-owned{background:transparent;color:var(--muted);min-height:36px;font-size:12px}
-.detail-info .primary-button.is-owned svg{width:14px;height:14px}
 .detail-wish-button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;margin-top:10px;padding:10px 12px;border:1px solid #E8D9B9;background:var(--paper);color:var(--wish);border-radius:var(--control-radius);font-size:13px;font-weight:600}
 .detail-wish-button:hover,.detail-wish-button.wished{background:var(--wish-bg)}
 .detail-wish-button.wished svg{fill:currentColor}
@@ -312,8 +310,7 @@ html{scroll-padding-top:118px}
   .detail-collection{margin-top:18px}
 }
 @media(max-width:360px){
-  .quantity-panel{padding:12px 10px}
-  .quantity-row{gap:6px;flex-wrap:wrap}
+  .quantity-row{gap:6px}
   .product-quantity{padding:0 3px;font-size:10px}
 }
 

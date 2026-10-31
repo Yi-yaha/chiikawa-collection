@@ -1,7 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems } from './model.mjs?v=d185d6a9e76d92f6';
-import { createCatalogImageLoader } from './image-loader.mjs?v=d185d6a9e76d92f6';
-import { createCharacterSorter } from './character-sorter.mjs?v=d185d6a9e76d92f6';
-import { watchForSiteUpdates } from './site-updates.mjs?v=d185d6a9e76d92f6';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems } from './model.mjs?v=6f3f61e3bdeb1610';
+import { createCatalogImageLoader } from './image-loader.mjs?v=6f3f61e3bdeb1610';
+import { createCharacterSorter } from './character-sorter.mjs?v=6f3f61e3bdeb1610';
+import { watchForSiteUpdates } from './site-updates.mjs?v=6f3f61e3bdeb1610';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -98,11 +98,11 @@ function observeCatalogSize() {
 function savedValue() { return {version:2, owned:[...state.owned], quantities:{...state.quantities}, wishlist:[...state.wishlist], characterOrder:state.characterOrder, groupBy:state.groupBy, includedTypes:{...state.includedTypes}, includeMetalTags:state.includedTypes['地方限定吊牌'] !== false}; }
 function applySaved(saved) {
   state.owned = new Set(saved.owned);
-  state.quantities = saved.quantities;
+  state.quantities = {...saved.quantities};
   state.wishlist = new Set(saved.wishlist);
-  state.characterOrder = saved.characterOrder;
+  state.characterOrder = [...saved.characterOrder];
   state.groupBy = saved.groupBy;
-  state.includedTypes = saved.includedTypes;
+  state.includedTypes = {...saved.includedTypes};
 }
 function quantityOf(id) { return state.quantities[id] || 0; }
 function totalQuantity(items = state.items) { return items.reduce((sum, item) => sum + quantityOf(item.id), 0); }
@@ -114,6 +114,8 @@ function persist() {
 function toast(message, undo = null) {
   clearTimeout(toastTimer);
   undoAction = undo;
+  const host = [...document.querySelectorAll('dialog[open]')].at(-1) || document.body;
+  if ($('toast').parentElement !== host) host.appendChild($('toast'));
   $('toast-message').textContent = message;
   $('toast-undo').hidden = !undo;
   $('toast').hidden = false;
@@ -129,6 +131,12 @@ $('toast-undo').addEventListener('click', () => {
   dismissToast();
   action?.();
 });
+document.addEventListener('close', event => {
+  if (event.target === $('toast').parentElement) {
+    const host = [...document.querySelectorAll('dialog[open]')].at(-1) || document.body;
+    host.appendChild($('toast'));
+  }
+}, true);
 function baseItems() { return scopeItems(state.items, state.scope, state.owned, state.wishlist); }
 function currentItems() { return filterItems(baseItems(), state); }
 
@@ -475,12 +483,7 @@ function changeDetailQuantity(quantity) {
     toast('請輸入 0～' + number(MAX_QUANTITY) + ' 的整數');
     return;
   }
-  if (quantity === 0 && state.owned.has(activeDetail)) {
-    updateDetailCollection();
-    requestCollectionChange(activeDetail);
-    return;
-  }
-  setQuantity(activeDetail, quantity);
+  setQuantity(activeDetail, quantity, {showUndo:quantity === 0});
 }
 function safeURL(value) {
   try { const url = new URL(value); return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : ''; } catch { return ''; }
@@ -493,8 +496,10 @@ function updateDetailCollection() {
   button.classList.toggle('is-owned', owned);
   button.setAttribute('aria-pressed', String(owned));
   button.innerHTML = icon('heart') + (owned ? '取消收藏' : '加入收藏');
+  button.hidden = owned;
   $('detail-quantity-panel').hidden = !owned;
-  $('detail-quantity').value = String(quantityOf(activeDetail));
+  const input = $('detail-quantity');
+  if (input.value === '' || Number(input.value) !== quantityOf(activeDetail)) input.value = String(quantityOf(activeDetail));
   $('quantity-plus').disabled = quantityOf(activeDetail) >= MAX_QUANTITY;
   const wish = $('detail-wish');
   wish.hidden = owned;
@@ -508,7 +513,7 @@ function renderDetail(id) {
   activeDetail = id;
   const url = safeURL(item.url);
   $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2>' +
-    '<div class="detail-collection"><div id="detail-quantity-panel" class="quantity-panel" hidden><div class="quantity-row"><label for="detail-quantity">收藏數量</label><div class="quantity-stepper"><button id="quantity-minus" data-quantity-step="-1" aria-label="減少收藏數量">' + icon('minus') + '</button><input id="detail-quantity" type="number" inputmode="numeric" min="0" max="' + MAX_QUANTITY + '" step="1" aria-describedby="quantity-help"><button id="quantity-plus" data-quantity-step="1" aria-label="增加收藏數量">' + icon('plus') + '</button></div></div><p id="quantity-help">調整為 0 個會取消收藏</p></div>' +
+    '<div class="detail-collection"><div id="detail-quantity-panel" class="quantity-panel" hidden><div class="quantity-row"><label for="detail-quantity">收藏數量</label><div class="quantity-stepper"><button id="quantity-minus" data-quantity-step="-1" aria-label="減少收藏數量">' + icon('minus') + '</button><input id="detail-quantity" type="number" inputmode="numeric" min="0" max="' + MAX_QUANTITY + '" step="1" aria-describedby="quantity-help"><button id="quantity-plus" data-quantity-step="1" aria-label="增加收藏數量">' + icon('plus') + '</button></div></div><span id="quantity-help" class="visually-hidden">數量變更會自動儲存，設為 0 會取消收藏</span></div>' +
     '<button class="primary-button" id="detail-collect" data-collect="' + id + '"></button><button class="detail-wish-button" id="detail-wish" data-wish="' + id + '"></button></div>' +
     '<dl><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>地區</dt><dd>' + escapeHTML(item.region || '日本') + '</dd>' + (item.limitedLocation ? '<dt>限定地點</dt><dd>' + escapeHTML(item.limitedLocation) + '</dd>' : '') + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
   updateDetailCollection();
@@ -636,6 +641,10 @@ $('detail-content').addEventListener('click', event => {
   if (collect) requestCollectionChange(collect.dataset.collect);
   else if (wish) toggleWish(wish.dataset.wish, wish);
   else if (step) changeDetailQuantity(quantityOf(activeDetail) + Number(step.dataset.quantityStep));
+});
+$('detail-content').addEventListener('input', event => {
+  const input = event.target;
+  if (input.id === 'detail-quantity' && input.value.trim() !== '' && input.validity.valid) changeDetailQuantity(Number(input.value));
 });
 $('detail-content').addEventListener('change', event => {
   if (event.target.id === 'detail-quantity') changeDetailQuantity(event.target.value.trim() === '' ? NaN : Number(event.target.value));
@@ -782,7 +791,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=d185d6a9e76d92f6').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=6f3f61e3bdeb1610').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
@@ -793,6 +802,7 @@ async function init() {
             applySaved(saved);
             characterTotals = progressTotals(state.items,state.includedTypes);
             updateProgressSetting(); renderTabs(); renderCatalog(); updateDataSummary();
+            if (activeDetail && $('detail-dialog').open && document.activeElement?.id !== 'detail-quantity') updateDetailCollection();
           },
           onScope:userId => {
             collectionStorageKey = userId ? STORAGE_KEY + '-account-' + userId : STORAGE_KEY;
