@@ -1,6 +1,6 @@
 import { STORAGE_KEY, MAX_QUANTITY, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems, moveCharacter } from './model.mjs?v=place-kind-2-collection-wishes-1';
 import { createCatalogImageLoader } from './image-loader.mjs';
-import { createCharacterSorter } from './character-sorter.mjs';
+import { createCharacterSorter } from './character-sorter.mjs?v=character-order-2';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
