@@ -112,7 +112,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (!user) {
       $('account-content').innerHTML = '<div class="dialog-heading"><h2 id="account-title">讓收藏跟著你</h2>' + closeButton('account-dialog','關閉登入') + '</div><p class="dialog-description">登入後，自動保存收藏與願望清單。換一台裝置，也能接著收集喜歡的娃。</p>' +
         '<button class="google-signin" id="google-signin"' + (!cloudConfig.googleEnabled ? ' disabled' : '') + '><span class="google-letter" aria-hidden="true">G</span>使用 Google 登入</button>' + (!cloudConfig.googleEnabled ? '<p class="social-note centered">Google 登入準備中</p>' : '') +
-        '<p class="social-note centered">使用 Google 帳號接續收藏，免收驗證信。</p><p id="account-message" class="form-message" role="status"></p><p class="account-footnote">第一次登入後，會請你設定暱稱，並選擇是否帶入這台裝置的收藏。<br><a href="./privacy.html" target="_blank" rel="noopener noreferrer">隱私權與資料說明</a></p>';
+        '<p id="account-message" class="form-message" role="status"></p><p class="account-footnote"><a href="./privacy.html" target="_blank" rel="noopener noreferrer">隱私權與資料說明</a></p>';
       return;
     }
     const onboarding = !profile?.nickname;
