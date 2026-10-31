@@ -768,7 +768,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=accounts-2').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=accounts-3').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
