@@ -6,14 +6,15 @@
   <meta name="theme-color" content="#F7F5F1">
   <meta name="description" content="依角色、種類與系列瀏覽吉伊卡哇商品，整理我的娃。">
   <title>吉伊卡哇圖鑑</title>
-  <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="./favicon.ico">
-  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=collection-settings-4">
-  <link rel="stylesheet" href="./account.css?v=accounts-2">
-  <script type="module" src="./app.mjs?v=accounts-3"></script>
+  <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="./favicon.ico?v=02b96246e090374e">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png?v=c9e48b28753a9ed9">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
+  <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
+  <link rel="stylesheet" href="./styles.css?v=d185d6a9e76d92f6">
+  <link rel="stylesheet" href="./account.css?v=d185d6a9e76d92f6">
+  <script type="module" src="./app.mjs?v=d185d6a9e76d92f6"></script>
+  <meta name="chiikawa-site-version" content="d185d6a9e76d92f6">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -36,6 +37,7 @@
             <button id="open-settings" aria-haspopup="dialog" aria-controls="settings-dialog" disabled><span data-icon="sliders"></span>收藏設定</button>
             <div class="menu-divider"></div>
             <button id="open-data"><span data-icon="box"></span>資料管理</button>
+            <button id="open-guide" aria-haspopup="dialog" aria-controls="guide-dialog"><span data-icon="info"></span>使用說明</button>
           </div>
         </div>
       </div>
@@ -74,13 +76,52 @@
   <footer class="privacy-footer"><a href="./privacy.html">隱私權與資料說明</a></footer>
 
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+  <dialog id="guide-dialog" class="panel-dialog guide-dialog" aria-labelledby="guide-title" aria-describedby="guide-description">
+    <div class="dialog-heading"><h2 id="guide-title">使用說明</h2><button class="icon-button" data-close="guide-dialog" aria-label="關閉使用說明" autofocus><span data-icon="close"></span></button></div>
+    <p id="guide-description" class="dialog-description">記下已經有的，也留住想收藏的。</p>
+    <p class="guide-example">同一款有 <strong>3 個</strong>，就是 <strong>1 款、3 個</strong>。</p>
+    <div class="guide-topics">
+      <details class="guide-topic">
+        <summary>怎麼記錄收藏與願望？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>點愛心加入收藏，先記為 1 個；到商品詳情可以調整數量。移除收藏時，該款的數量也會一併移除。</p>
+          <p>還沒擁有、但想收藏的商品，可以點星星加入願望清單。加入收藏後，會自動移出願望清單；願望不計入已收藏款數與個數。</p>
+        </div>
+      </details>
+      <details id="guide-progress" class="guide-topic">
+        <summary>收藏進度怎麼算？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>頭貼外圈顯示該角色的收集進度，以已收藏款數占圖鑑總款數的比例計算。同款買好幾個，進度仍只算 1 款。</p>
+          <p>「收藏設定」勾選的種類，會同時計入<strong>頭貼外圈</strong>與頁面的<strong>「已收藏 A／B 款」</strong>。未勾選的商品仍可收藏，個數照常記錄，並計入「我的娃」的總個數。</p>
+          <p>搜尋與篩選會更新頁面數字；頭貼外圈仍顯示該角色的整體進度。想看全部實際收藏的款數與個數，可以到「資料管理」查看。</p>
+          <p>好友的收藏統計依實際收藏計算，不受進度勾選影響。</p>
+        </div>
+      </details>
+      <details class="guide-topic" open>
+        <summary>哪些地方可以自己調整？<span data-icon="chevron"></span></summary>
+        <dl class="guide-options">
+          <div><dt>進度種類</dt><dd>到「⋯ → 收藏設定」自由勾選，吊飾娃、玩偶等所有種類都能調整。</dd></div>
+          <div><dt>角色順序</dt><dd>展開頭貼列後，長按並拖曳角色；電腦可直接拖曳。</dd></div>
+          <div><dt>瀏覽方式</dt><dd>用搜尋、地區、種類或系列找商品，也能切換「依角色／依系列」排列。</dd></div>
+          <div><dt>暱稱與頭貼</dt><dd>登入後，到「⋯ → 個人資料」修改。</dd></div>
+        </dl>
+      </details>
+      <details class="guide-topic">
+        <summary>紀錄會存在哪裡？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>未登入時，紀錄儲存在目前使用的瀏覽器；登入後可與帳號同步，在不同裝置接續使用。</p>
+          <p>「資料管理」可以匯出或匯入備份，保留收藏數量、願望清單、角色順序與收藏設定。同一份備份重複匯入，數量不會累加；同款會保留較大的數量。</p>
+        </div>
+      </details>
+    </div>
+    <div class="guide-footer"><button class="primary-button" data-close="guide-dialog">知道了</button></div>
+  </dialog>
   <dialog id="remove-dialog" class="panel-dialog compact-dialog" aria-labelledby="remove-title" aria-describedby="remove-description"><div class="warning-icon" data-icon="heart"></div><h2 id="remove-title">移出我的娃？</h2><p id="remove-description"></p><div class="confirm-actions"><button class="secondary-button" data-close="remove-dialog" autofocus>先保留</button><button class="danger-button" id="confirm-remove">確認移除</button></div></dialog>
   <dialog id="settings-dialog" class="panel-dialog settings-dialog" aria-labelledby="settings-title" aria-describedby="settings-description">
     <div class="dialog-heading"><h2 id="settings-title">收藏設定</h2><button class="icon-button" data-close="settings-dialog" aria-label="關閉收藏設定" autofocus><span data-icon="close"></span></button></div>
-    <p id="settings-description" class="dialog-description">勾選要納入收藏進度的種類。<br>未勾選的商品仍可瀏覽及收藏。</p>
-    <div class="settings-fixed"><span data-icon="check"></span><span>吊飾娃、玩偶<span>固定納入收藏進度</span></span></div>
+    <p id="settings-description" class="dialog-description">所有種類都可自由勾選，決定是否納入收藏進度。<br>未勾選的商品仍可瀏覽及收藏。</p>
     <fieldset class="progress-types"><legend>納入收藏進度</legend><div id="progress-type-options" class="progress-type-options"></div></fieldset>
-    <p class="settings-note">設定會自動儲存，並隨收藏備份保留。</p>
+    <p class="settings-note">設定會自動儲存，並隨收藏備份保留。<button id="settings-guide" class="guide-link" aria-haspopup="dialog" aria-controls="guide-dialog">看看進度怎麼算</button></p>
     <div class="settings-footer"><button class="primary-button" data-close="settings-dialog">完成</button></div>
   </dialog>
   <dialog id="data-dialog" class="panel-dialog" aria-labelledby="data-title">

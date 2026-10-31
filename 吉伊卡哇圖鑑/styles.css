@@ -31,10 +31,6 @@ dialog{color:var(--ink);border:1px solid var(--line);border-radius:var(--radius)
 .more-menu #open-settings svg{width:20px;height:20px;color:var(--coral)}
 .settings-dialog{width:420px}
 .settings-dialog .dialog-description{margin:12px 0 16px}
-.settings-fixed{display:flex;align-items:center;gap:12px;padding:13px 15px;background:var(--pink);border-radius:12px;font-size:14px;color:var(--coral-dark)}
-.settings-fixed>[data-icon]{display:flex;flex:none}
-.settings-fixed svg{width:20px;height:20px}
-.settings-fixed>span>span{display:block;margin-top:2px;font-size:11px;color:var(--muted)}
 .progress-types{min-width:0;border:0;padding:0;margin:20px 0 0}
 .progress-types legend{padding:0;margin-bottom:8px;font-size:12px;color:var(--muted)}
 .progress-type-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px}
@@ -43,9 +39,27 @@ dialog{color:var(--ink);border:1px solid var(--line);border-radius:var(--radius)
 .settings-note{font-size:11px;color:var(--muted);line-height:1.8;margin-top:16px}
 .settings-footer{display:flex;justify-content:flex-end;margin-top:18px}
 .settings-footer .primary-button{min-width:88px}
+.guide-dialog{width:520px}
+.guide-dialog .dialog-description{margin:10px 0 16px}
+.guide-example{margin:0 0 12px;padding:13px 16px;border-radius:12px;background:var(--pink);color:var(--coral-dark);font-size:14px;line-height:1.8}
+.guide-topic{border-bottom:1px solid var(--line)}
+.guide-topic summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:12px 0;list-style:none;cursor:pointer;font-size:14px;font-weight:600}
+.guide-topic summary::-webkit-details-marker{display:none}
+.guide-topic summary>[data-icon]{display:flex;flex:none;color:var(--muted)}
+.guide-topic summary svg{width:18px;height:18px}
+.guide-topic[open] summary svg{transform:rotate(180deg)}
+.guide-copy,.guide-options{margin:0;padding:0 0 16px;font-size:13px;line-height:1.9}
+.guide-copy p{margin:0}
+.guide-copy p+p{margin-top:10px}
+.guide-options>div+div{margin-top:12px}
+.guide-options dt{font-weight:600;color:var(--coral-dark)}
+.guide-options dd{margin:2px 0 0;color:var(--muted)}
+.guide-footer{display:flex;justify-content:flex-end;margin-top:20px}
+.guide-footer .primary-button{min-width:88px;min-height:44px}
+.guide-link{display:block;min-height:32px;margin-top:4px;padding:4px 0;color:var(--coral-dark);text-decoration:underline;text-underline-offset:3px;font-size:12px}
 .menu-divider{height:1px;background:var(--line);margin:6px 12px}
-.more-menu #open-data{min-height:44px;padding:10px 12px;border-radius:12px;font-size:14px}
-.more-menu #open-data svg{width:20px;height:20px;color:var(--muted)}
+.more-menu #open-data,.more-menu #open-guide{min-height:44px;padding:10px 12px;border-radius:12px;font-size:14px}
+.more-menu #open-data svg,.more-menu #open-guide svg{width:20px;height:20px;color:var(--muted)}
 .site-header{height:auto;background:var(--bg)}
 .header-inner{gap:16px;align-items:center}
 .header-inner .character-nav{flex:1;min-width:0;margin:0;border:0;padding:8px 0}

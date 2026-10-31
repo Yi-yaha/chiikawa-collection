@@ -1,6 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems } from './model.mjs?v=collection-settings-4';
-import { createCatalogImageLoader } from './image-loader.mjs';
-import { createCharacterSorter } from './character-sorter.mjs?v=character-order-2';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems } from './model.mjs?v=d185d6a9e76d92f6';
+import { createCatalogImageLoader } from './image-loader.mjs?v=d185d6a9e76d92f6';
+import { createCharacterSorter } from './character-sorter.mjs?v=d185d6a9e76d92f6';
+import { watchForSiteUpdates } from './site-updates.mjs?v=d185d6a9e76d92f6';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -659,6 +660,19 @@ $('open-settings').addEventListener('click', () => {
   openDialog('settings-dialog');
 });
 $('settings-dialog').addEventListener('close', () => $('more-button').focus({preventScroll:true}));
+function showGuide({ progress = false } = {}) {
+  $('more-menu').hidden = true;
+  $('more-button').setAttribute('aria-expanded', 'false');
+  if (progress) {
+    $('guide-progress').open = true;
+  }
+  openDialog('guide-dialog');
+  if (progress) $('guide-progress').scrollIntoView({ block:'nearest' });
+  else $('guide-dialog').scrollTop = 0;
+}
+$('open-guide').addEventListener('click', () => showGuide());
+$('settings-guide').addEventListener('click', () => showGuide({ progress:true }));
+$('guide-dialog').addEventListener('close', () => ($('settings-dialog').open ? $('settings-guide') : $('more-button')).focus({preventScroll:true}));
 $('progress-type-options').addEventListener('change', event => {
   const input = event.target.closest('[data-progress-type]');
   if (!input || !PROGRESS_TYPES.includes(input.dataset.progressType)) return;
@@ -750,7 +764,7 @@ document.addEventListener('error', event => {
 
 async function init() {
   try {
-    const response = await fetch('./assets/catalog.json?v=chiikawa-series-7');
+    const response = await fetch('./assets/catalog.json', { cache:'no-cache' });
     if(!response.ok) throw new Error('資料載入失敗');
     const catalog = await response.json();
     state.items = catalog.items;
@@ -768,7 +782,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=accounts-3').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=d185d6a9e76d92f6').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
@@ -802,4 +816,4 @@ async function init() {
     $('retry-load').addEventListener('click',init);
   }
 }
-init();
+init().finally(() => watchForSiteUpdates());

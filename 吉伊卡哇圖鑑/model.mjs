@@ -1,7 +1,7 @@
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
 export const ITEM_TYPES = ['吊娃', '娃', '扭蛋', '徽章', '立牌', '公仔', '景品', '地方限定吊娃', '地方限定吊牌', '其他', '待分類'];
-export const PROGRESS_TYPES = ITEM_TYPES.filter(type => !['吊娃', '娃'].includes(type));
+export const PROGRESS_TYPES = [...ITEM_TYPES];
 export const typeLabel = type => ({娃:'玩偶', 吊娃:'吊飾娃', 地方限定吊娃:'地方限定吊飾娃', 鐵牌:'地方限定吊牌', 其他:'其他小物'}[type] || type);
 
 function normalizeIncludedTypes(value, includeMetalTags = true) {

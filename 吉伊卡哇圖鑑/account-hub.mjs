@@ -1,9 +1,9 @@
-import { createClient } from './supabase-client.mjs';
-import { cloudConfig } from './cloud-config.mjs';
-import { createCloudStore } from './cloud-store.mjs';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, filterItems } from './model.mjs?v=collection-settings-4';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs';
+import { createClient } from './supabase-client.mjs?v=d185d6a9e76d92f6';
+import { cloudConfig } from './cloud-config.mjs?v=d185d6a9e76d92f6';
+import { createCloudStore } from './cloud-store.mjs?v=d185d6a9e76d92f6';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=d185d6a9e76d92f6';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, filterItems } from './model.mjs?v=d185d6a9e76d92f6';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=d185d6a9e76d92f6';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
