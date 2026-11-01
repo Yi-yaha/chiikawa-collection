@@ -1,9 +1,9 @@
-import { createClient } from './supabase-client.mjs?v=fffc7d24b6f0aeb5';
-import { cloudConfig } from './cloud-config.mjs?v=fffc7d24b6f0aeb5';
-import { createCloudStore } from './cloud-store.mjs?v=fffc7d24b6f0aeb5';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=fffc7d24b6f0aeb5';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=fffc7d24b6f0aeb5';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=fffc7d24b6f0aeb5';
+import { createClient } from './supabase-client.mjs?v=8b7353a526099df0';
+import { cloudConfig } from './cloud-config.mjs?v=8b7353a526099df0';
+import { createCloudStore } from './cloud-store.mjs?v=8b7353a526099df0';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=8b7353a526099df0';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=8b7353a526099df0';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=8b7353a526099df0';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,6 +29,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   let user = null, profile = null, authLoading = true, sessionGeneration = 0;
   let friends = [], blocks = [], friendsLoaded = false, friendsError = '', refreshingFriends = false;
   let selectedFriend = null, friendSnapshot = null, lookup = null, friendTab = 'collection', compareTab = 'both', friendConfirmation = null;
+  let friendLookupGeneration = 0;
   let friendAnalysisOpen = false, friendAnalysisTab = 'characters', friendAnalysisExpanded = false, friendCollectionScroll = 0;
   let friendFiltersExpanded = false;
   let syncStatus = { state:'guest', pending:0, conflicts:[] };
@@ -290,10 +291,10 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     const codeInput = $('friend-code-input');
     const restoreCodeFocus = document.activeElement === codeInput;
     const selection = restoreCodeFocus ? [codeInput.selectionStart,codeInput.selectionEnd] : null;
-    const codeValue = codeInput?.value || sessionStorage.getItem('chiikawa-pending-friend') || '';
+    const codeValue = codeInput?.value ?? formatFriendCode(sessionStorage.getItem('chiikawa-pending-friend') || '');
     $('friends-content').innerHTML = '<div class="dialog-heading"><div><span class="social-eyebrow">一起收集喜歡的娃</span><h2 id="friends-title">好友</h2></div>' + closeButton('friends-dialog','關閉好友') + '</div>' +
       '<div class="my-friend-code"><span>我的好友代碼</span><div><code>' + h(formatFriendCode(profile?.friend_code)) + '</code><button class="text-button" data-action="copy-code">複製</button><button class="text-button" data-action="copy-invite">分享連結</button></div></div>' +
-      '<form id="find-friend-form" class="find-friend-form"><label for="friend-code-input">加入好友</label><div><input id="friend-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="輸入好友代碼" maxlength="20" value="' + h(codeValue) + '" required><button class="primary-button" type="submit">尋找</button></div></form><div id="friend-lookup-result">' + (lookup ? '<div class="friend-row">' + avatar(lookup) + '<div class="friend-row-info"><strong>' + h(lookup.nickname) + '</strong><span>接受邀請後，彼此分享收藏</span></div><button class="primary-button" id="send-friend-request">送出邀請</button></div>' : '') + '</div><p id="friends-message" class="form-message" role="status"></p>' +
+      '<form id="find-friend-form" class="find-friend-form"><label for="friend-code-input">加入好友</label><div><div class="friend-code-field"><input id="friend-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="輸入好友代碼" maxlength="20" value="' + h(codeValue) + '" required><button id="clear-friend-code" class="friend-code-clear" type="button" aria-label="清空好友代碼"' + (!codeValue ? ' hidden' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><button class="primary-button" type="submit">尋找</button></div></form><div id="friend-lookup-result">' + (lookup ? '<div class="friend-row">' + avatar(lookup) + '<div class="friend-row-info"><strong>' + h(lookup.nickname) + '</strong><span>接受邀請後，彼此分享收藏</span></div><button class="primary-button" id="send-friend-request">送出邀請</button></div>' : '') + '</div><p id="friends-message" class="form-message" role="status"></p>' +
       (friendsError ? '<div class="social-error"><p>' + h(friendsError) + '</p><button class="secondary-button" data-action="refresh-friends">重新讀取</button></div>' : !friendsLoaded ? '<p class="social-loading" role="status">正在讀取好友…</p>' : '') +
       '<section class="friends-section"><h3>我的好友 <span class="section-count">' + n(accepted.length) + '</span></h3>' + (accepted.length ? accepted.map(friend => friendRow(friend,'accepted')).join('') : friendsLoaded ? '<div class="social-empty"><strong>一起分享收藏的樂趣</strong><p>把好友代碼分享給朋友，或輸入對方的代碼，邀請彼此成為收藏好友。</p></div>' : '') + '</section>' +
       (outgoing.length ? '<section class="friends-section"><h3>已送出的邀請</h3>' + outgoing.map(friend => friendRow(friend,'outgoing')).join('') + '</section>' : '') +
@@ -408,19 +409,31 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     void action(event.submitter,async () => {
       const code = normalizeFriendCode($('friend-code-input').value);
       if (code.length !== 12) { message('friends-message','請輸入完整的 12 碼好友代碼。',true); return; }
-      const found = await rpc('lookup_collection_friend',{ p_code:code });
-      if (normalizeFriendCode($('friend-code-input')?.value) !== code) { message('friends-message','好友代碼已變更，請重新尋找。'); return; }
+      const generation = ++friendLookupGeneration;
+      let found;
+      try { found = await rpc('lookup_collection_friend',{ p_code:code }); }
+      catch (error) { if (generation === friendLookupGeneration) throw error; return; }
+      if (generation !== friendLookupGeneration || normalizeFriendCode($('friend-code-input')?.value) !== code) return;
       lookup = { ...found, code }; renderFriends();
     },'friends-message');
   });
   $('friends-content').addEventListener('input',event => {
     if (event.target.id === 'friend-search') renderFriendProducts();
-    if (event.target.id === 'friend-code-input') { lookup = null; $('friend-lookup-result').replaceChildren(); }
+    if (event.target.id === 'friend-code-input') {
+      friendLookupGeneration++; lookup = null; $('friend-lookup-result').replaceChildren();
+      $('clear-friend-code').hidden = !event.target.value;
+      message('friends-message','');
+    }
   });
   $('friends-content').addEventListener('change',event => { if (['friend-character','friend-type','friend-series'].includes(event.target.id)) renderFriendProducts(); });
   $('friends-content').addEventListener('click',event => {
     const button = event.target.closest('button'); if (!button) return;
-    if (button.dataset.viewFriend) {
+    if (button.id === 'clear-friend-code') {
+      const input = $('friend-code-input'); input.value = '';
+      sessionStorage.removeItem('chiikawa-pending-friend');
+      input.dispatchEvent(new Event('input',{ bubbles:true }));
+      input.focus({ preventScroll:true });
+    } else if (button.dataset.viewFriend) {
       selectedFriend = friends.find(friend => friend.id === button.dataset.viewFriend && friend.status === 'accepted');
       friendAnalysisOpen = false; friendAnalysisTab = 'characters'; friendAnalysisExpanded = false; friendCollectionScroll = 0;
       friendFiltersExpanded = false;

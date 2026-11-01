@@ -79,8 +79,12 @@
 .my-friend-code .text-button:hover{color:var(--action-pink-ink)}
 .find-friend-form{margin:20px 0 12px}
 .find-friend-form>div{display:flex;gap:8px;margin-top:7px}
-.find-friend-form input{flex:1}
-.find-friend-form button{min-width:76px;border:1px solid transparent}
+.friend-code-field{position:relative;flex:1;min-width:0}
+.find-friend-form input{padding-right:44px}
+.find-friend-form>div>.primary-button{min-width:76px;border:1px solid transparent}
+.friend-code-clear{position:absolute;right:0;top:0;display:grid;place-items:center;width:44px;height:100%;min-height:44px;color:var(--muted);border-radius:var(--control-radius)}
+.friend-code-clear svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+@media(hover:hover) and (pointer:fine){.friend-code-clear:hover{color:var(--ink)}}
 .friends-section{border-top:1px solid var(--line);padding-top:20px;margin-top:24px}
 .section-count{font-size:11px;margin-left:5px;color:var(--muted);font-weight:400}
 .friend-row{display:flex;align-items:center;gap:12px;padding:13px 0;min-width:0}
