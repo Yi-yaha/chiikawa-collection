@@ -278,6 +278,8 @@ html{scroll-padding-top:118px}
 .collect-button{width:44px;height:44px;top:0;right:0}
 .collect-button::before,.wish-button::before{content:none}
 .collect-button svg,.wish-button svg{width:18px;height:18px;stroke-width:1.6}
+/* 星星輪廓較內縮，放大後與愛心同寬，並維持相近的實際線條粗細。 */
+.wish-button svg{width:21px;height:21px;stroke-width:1.4}
 .product-meta .product-info-button{position:relative;inset:auto;width:22px;height:19.5px;padding:0;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
 .product-meta .product-info-button::before{inset:0;background:transparent}
 /* 擴大可點範圍，讓緊湊的圖示仍容易用手指操作。 */

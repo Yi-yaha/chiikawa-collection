@@ -1,10 +1,10 @@
-import { createClient } from './supabase-client.mjs?v=046db360110022fa';
-import { cloudConfig } from './cloud-config.mjs?v=046db360110022fa';
-import { createCloudStore } from './cloud-store.mjs?v=046db360110022fa';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=046db360110022fa';
-import { createFriendInviteURL } from './friend-invite.mjs?v=046db360110022fa';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=046db360110022fa';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=046db360110022fa';
+import { createClient } from './supabase-client.mjs?v=86364903f08f7002';
+import { cloudConfig } from './cloud-config.mjs?v=86364903f08f7002';
+import { createCloudStore } from './cloud-store.mjs?v=86364903f08f7002';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=86364903f08f7002';
+import { createFriendInviteURL } from './friend-invite.mjs?v=86364903f08f7002';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=86364903f08f7002';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=86364903f08f7002';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
