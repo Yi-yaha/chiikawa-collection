@@ -1,7 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems } from './model.mjs?v=89b9fbd1aecec0f6';
-import { createCatalogImageLoader } from './image-loader.mjs?v=89b9fbd1aecec0f6';
-import { createCharacterSorter } from './character-sorter.mjs?v=89b9fbd1aecec0f6';
-import { watchForSiteUpdates } from './site-updates.mjs?v=89b9fbd1aecec0f6';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems } from './model.mjs?v=c9f9c7696697a811';
+import { createCatalogImageLoader } from './image-loader.mjs?v=c9f9c7696697a811';
+import { createCharacterSorter } from './character-sorter.mjs?v=c9f9c7696697a811';
+import { watchForSiteUpdates } from './site-updates.mjs?v=c9f9c7696697a811';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -80,8 +80,8 @@ const catalogImages = createCatalogImageLoader($('catalog-content'));
 let sizingSample;
 const catalogSizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(([entry]) => {
   if (!entry || entry.contentRect.height <= 0) return;
-  // All cards share the same image ratio and two-line name area. Measure one
-  // card when its size changes so skipped cards keep their exact scroll space.
+  // Estimate skipped cards from a sample; each rendered card remembers its
+  // actual height, including names that wrap to a second line.
   const content = $('catalog-content');
   const height = entry.contentRect.height + 'px';
   if (content.style.getPropertyValue('--card-height') !== height) content.style.setProperty('--card-height', height);
@@ -830,7 +830,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=89b9fbd1aecec0f6').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=c9f9c7696697a811').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
