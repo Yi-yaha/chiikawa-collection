@@ -83,8 +83,8 @@ dialog{color:var(--ink);border:1px solid var(--line);border-radius:var(--radius)
 .header-actions{flex-shrink:0;gap:0}
 .header-actions .icon-button{width:44px;height:44px}
 .header-actions{align-self:flex-start;padding-top:17px}
-.header-actions #more-button{width:48px;height:48px;border:1px solid var(--line);border-radius:50%;background:var(--paper);color:var(--muted)}
-.header-actions #more-button[aria-expanded="true"]{background:var(--pink);border-color:#E3C6C0;color:var(--coral)}@media(hover:hover) and (pointer:fine){.header-actions #more-button:hover{background:var(--pink);border-color:#E3C6C0;color:var(--coral)}}
+.header-actions #more-button{width:48px;height:48px;border:0;border-radius:0;background:transparent;color:var(--muted)}
+.header-actions #more-button[aria-expanded="true"]{color:var(--coral)}@media(hover:hover) and (pointer:fine){.header-actions #more-button:hover{background:transparent;color:var(--coral)}}
 .header-actions #more-button:active{transform:scale(.96)}
 .more-menu{top:calc(100% + 8px)}
 .page-shell{padding-top:16px}
@@ -150,8 +150,8 @@ input::placeholder{color:var(--muted);opacity:1}
 .product-card{border-color:transparent;border-radius:var(--radius);isolation:isolate;transition:box-shadow .18s,transform .18s}
 .product-card.owned{border-color:var(--owned-line);outline:2px solid var(--owned-line);outline-offset:-2px;background:var(--owned-bg)}
 /* 圖片與文字共用卡片底色，收藏時整張同步切換。 */
-/* Give the removed character row's 18px to the photo, preserving card height. */
-.product-image{display:block;aspect-ratio:1.08;box-sizing:content-box;padding:0 0 18px;background:transparent}
+/* 圖片維持完整比例，不再保留舊角色列補出的額外高度。 */
+.product-image{display:block;aspect-ratio:1.08;box-sizing:border-box;padding:0;background:transparent}
 .product-image img{position:absolute;inset:18px 10px 6px;width:calc(100% - 20px);height:calc(100% - 24px);max-height:none;object-fit:contain}
 .product-image img:not([src]){visibility:hidden}
 .product-image .image-fallback{position:absolute;inset:18px 10px 6px;min-height:0;overflow:hidden}
@@ -194,11 +194,10 @@ html{scroll-padding-top:118px}
   .segmented button{padding:7px 9px}
   .product-grid{gap:10px 6px}
   .product-card{border-radius:12px}
-  /* The mobile character row occupied 16px plus a 1px gap. */
-  .product-image{aspect-ratio:1;padding:0 0 17px}
-  .product-image img{inset:20px 4px 3px;width:calc(100% - 8px);height:calc(100% - 23px)}
-  .product-image .image-fallback{inset:20px 4px 3px}
-  .product-type{top:6px;left:5px;font-size:8px;padding:1px 3px;max-width:calc(100% - 34px);border-radius:4px}
+  .product-image{aspect-ratio:1;padding:0}
+  .product-image img{inset:18px 6px 6px;width:calc(100% - 12px);height:calc(100% - 24px)}
+  .product-image .image-fallback{inset:18px 6px 6px}
+  .product-type{top:8px;left:8px;font-size:8px;padding:1px 3px;max-width:calc(100% - 34px);border-radius:4px}
   .collect-button{top:0;right:0;width:34px;height:34px}
   .collect-button::before{inset:4px}
   .collect-button svg{width:15px;height:15px}
@@ -274,21 +273,19 @@ html{scroll-padding-top:118px}
 .product-visual{position:relative;flex-shrink:0}
 .product-image-button{flex-shrink:0;background:transparent;transition:none}
 .product-image-button:active{transform:none}
-.product-meta{display:grid;grid-template-columns:minmax(0,1fr) 24px;align-items:end;gap:2px;padding:8px 8px 10px 10px}
+.product-meta{display:grid;grid-template-columns:minmax(0,1fr) 22px;align-items:end;gap:2px;padding:8px 8px 10px}
 .product-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;overflow:hidden;overflow-wrap:anywhere;font-size:13px;line-height:1.5;height:auto;max-height:3em;font-weight:600}
 .collect-button{width:44px;height:44px;top:0;right:0}
-.collect-button::before{inset:6px}
-.collect-button svg{width:18px;height:18px}
-.product-meta .product-info-button{position:relative;inset:auto;width:24px;height:19.5px;padding:0;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.collect-button::before,.wish-button::before{content:none}
+.collect-button svg,.wish-button svg{width:18px;height:18px;stroke-width:1.6}
+.product-meta .product-info-button{position:relative;inset:auto;width:22px;height:19.5px;padding:0;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
 .product-meta .product-info-button::before{inset:0;background:transparent}
 /* 擴大可點範圍，讓緊湊的圖示仍容易用手指操作。 */
 .product-meta .product-info-button::after{content:"";position:absolute;width:44px;height:44px;left:50%;top:50%;transform:translate(-50%,-50%)}
-.product-meta .product-info-button svg,.wish-button svg{width:18px;height:18px;position:relative}
+.product-meta .product-info-button svg{width:16px;height:16px;stroke-width:1.5;opacity:.85;position:relative}
 .wish-button{position:absolute;left:0;bottom:0;z-index:2;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
-.wish-button::before{content:"";position:absolute;inset:7px;border-radius:50%}
 @media(hover:hover) and (pointer:fine){.wish-button:hover{color:var(--wish)}}
 .wish-button.wished{color:var(--wish)}
-.wish-button.wished::before{background:var(--wish-bg)}
 .wish-button.wished svg{fill:currentColor}
 .product-card.wished{border-color:#DEC68F;outline:2px solid #DEC68F;outline-offset:-2px}
 .character-tab.wish-tab .avatar{background:var(--paper);color:var(--wish)}
@@ -342,7 +339,7 @@ html{scroll-padding-top:118px}
 .detail-info dl{border-top:1px solid var(--line);padding-top:20px;margin:22px 0 0}
 .detail-link{margin-top:20px}
 @media(max-width:700px){
-  .product-meta{padding:6px 6px 10px 7px}
+  .product-meta{padding:6px 8px 10px}
   .product-name{font-size:12px}
   .product-meta .product-info-button{height:18px}
   .product-type{max-width:calc(100% - 47px)}
