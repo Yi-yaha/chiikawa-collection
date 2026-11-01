@@ -1,10 +1,10 @@
-import { createClient } from './supabase-client.mjs?v=8a29dc9587e48d09';
-import { cloudConfig } from './cloud-config.mjs?v=8a29dc9587e48d09';
-import { createCloudStore } from './cloud-store.mjs?v=8a29dc9587e48d09';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=8a29dc9587e48d09';
-import { createFriendInviteURL } from './friend-invite.mjs?v=8a29dc9587e48d09';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=8a29dc9587e48d09';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=8a29dc9587e48d09';
+import { createClient } from './supabase-client.mjs?v=54968039badd95b8';
+import { cloudConfig } from './cloud-config.mjs?v=54968039badd95b8';
+import { createCloudStore } from './cloud-store.mjs?v=54968039badd95b8';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=54968039badd95b8';
+import { createFriendInviteURL } from './friend-invite.mjs?v=54968039badd95b8';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=54968039badd95b8';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=54968039badd95b8';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -71,8 +71,17 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     });
   }
   $('account-dialog').addEventListener('cancel', event => { if (user && !profile?.nickname) event.preventDefault(); });
-  $('account-dialog').addEventListener('close', () => { resetAvatarDraft(); if (!user || profile?.nickname) $('more-button').focus({ preventScroll:true }); });
-  $('friends-dialog').addEventListener('close', () => { selectedFriend = null; friendSnapshot = null; $('more-button').focus({ preventScroll:true }); });
+  $('account-dialog').addEventListener('close', () => {
+    resetAvatarDraft();
+    if (pendingView?.open === 'account') pendingView = null;
+    if (!user) { pendingHub = false; clearFriendLookup(); }
+    if (!user || profile?.nickname) $('more-button').focus({ preventScroll:true });
+  });
+  $('friends-dialog').addEventListener('close', () => {
+    selectedFriend = null; friendSnapshot = null; friendConfirmation = null; pendingHub = false; pendingView = null;
+    clearFriendLookup();
+    $('more-button').focus({ preventScroll:true });
+  });
 
   const store = createCloudStore({ client, storage, normalize, onApply:saved => { applySaved(saved); if (selectedFriend && friendSnapshot && $('friends-dialog').open) renderFriendDetail(); }, onScope,
     online:() => navigator.onLine,
@@ -429,13 +438,19 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     }
   });
   $('friends-content').addEventListener('change',event => { if (['friend-character','friend-type','friend-series'].includes(event.target.id)) renderFriendProducts(); });
+  function clearFriendLookup() {
+    friendLookupGeneration++; lookup = null;
+    sessionStorage.removeItem('chiikawa-pending-friend');
+    const input = $('friend-code-input'); if (input) input.value = '';
+    const clearButton = $('clear-friend-code'); if (clearButton) clearButton.hidden = true;
+    $('friend-lookup-result')?.replaceChildren();
+    message('friends-message','');
+  }
   $('friends-content').addEventListener('click',event => {
     const button = event.target.closest('button'); if (!button) return;
     if (button.id === 'clear-friend-code') {
-      const input = $('friend-code-input'); input.value = '';
-      sessionStorage.removeItem('chiikawa-pending-friend');
-      input.dispatchEvent(new Event('input',{ bubbles:true }));
-      input.focus({ preventScroll:true });
+      clearFriendLookup();
+      $('friend-code-input').focus({ preventScroll:true });
     } else if (button.dataset.viewFriend) {
       selectedFriend = friends.find(friend => friend.id === button.dataset.viewFriend && friend.status === 'accepted');
       friendAnalysisOpen = false; friendAnalysisTab = 'characters'; friendAnalysisExpanded = false; friendCollectionScroll = 0;
