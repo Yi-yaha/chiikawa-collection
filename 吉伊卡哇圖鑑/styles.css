@@ -268,7 +268,7 @@ html{scroll-padding-top:118px}
 }
 @media(max-width:360px){.character-tab{flex-basis:52px}}
 
-/* 名稱最多兩行；資訊按鈕對齊最後一行，星星疊在圖片左下角。 */
+/* 名稱最多兩行；資訊按鈕對齊最後一行，星星疊在圖片左上角。 */
 .product-card{display:flex;flex-direction:column}
 .product-visual{position:relative;flex-shrink:0}
 .product-image-button{flex-shrink:0;background:transparent;transition:none}
@@ -283,7 +283,7 @@ html{scroll-padding-top:118px}
 /* 擴大可點範圍，讓緊湊的圖示仍容易用手指操作。 */
 .product-meta .product-info-button::after{content:"";position:absolute;width:44px;height:44px;left:50%;top:50%;transform:translate(-50%,-50%)}
 .product-meta .product-info-button svg{width:16px;height:16px;stroke-width:1.5;opacity:.85;position:relative}
-.wish-button{position:absolute;left:0;bottom:0;z-index:2;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.wish-button{position:absolute;left:0;top:0;z-index:2;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
 @media(hover:hover) and (pointer:fine){.wish-button:hover{color:var(--wish)}}
 .wish-button.wished{color:var(--wish)}
 .wish-button.wished svg{fill:currentColor}
