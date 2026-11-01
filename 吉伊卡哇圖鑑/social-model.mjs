@@ -1,4 +1,4 @@
-import { typeLabel } from './model.mjs?v=232947aae92a509c';
+import { typeLabel } from './model.mjs?v=3f497a4ff88ac353';
 
 export const normalizeNickname = value => String(value ?? '').trim().replace(/\s+/gu, ' ');
 export const validNickname = value => {

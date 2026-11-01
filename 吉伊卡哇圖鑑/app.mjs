@@ -1,7 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems } from './model.mjs?v=232947aae92a509c';
-import { createCatalogImageLoader } from './image-loader.mjs?v=232947aae92a509c';
-import { createCharacterSorter } from './character-sorter.mjs?v=232947aae92a509c';
-import { watchForSiteUpdates } from './site-updates.mjs?v=232947aae92a509c';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=3f497a4ff88ac353';
+import { createCatalogImageLoader } from './image-loader.mjs?v=3f497a4ff88ac353';
+import { createCharacterSorter } from './character-sorter.mjs?v=3f497a4ff88ac353';
+import { watchForSiteUpdates } from './site-updates.mjs?v=3f497a4ff88ac353';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -58,6 +58,7 @@ const avatarCrops = {
   '大鳥':[50,42,1.5], '擬態怪獸':[50,34,2.4], '大樹':[50,50,1.25]
 };
 function avatarPortrait(character) {
+  if (character === '其他角色') character = '奇美拉';
   const [x,y,zoom] = avatarCrops[character] || [50,50,1];
   const crop = '--portrait-size:' + (zoom*100) + '%;--portrait-x:' + (50-x*zoom) + '%;--portrait-y:' + (50-y*zoom) + '%';
   return '<span class="avatar-portrait" style="' + crop + '"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="300" height="300"></span>';
@@ -190,7 +191,7 @@ function renderTabs() {
     '<button class="character-tab mine-tab ' + (state.scope === 'mine' ? 'active' : '') + '" data-scope="mine" aria-pressed="' + (state.scope === 'mine') + '"><span class="avatar">' + icon('heart') + '</span><span>我的娃</span></button>',
     '<button class="character-tab wish-tab ' + (state.scope === 'wishlist' ? 'active' : '') + '" data-scope="wishlist" aria-pressed="' + (state.scope === 'wishlist') + '"><span class="avatar">' + icon('star') + '</span><span>願望清單</span></button>',
     '<button class="character-tab all-tab ' + (state.scope === 'all' ? 'active' : '') + '" data-scope="all" aria-pressed="' + (state.scope === 'all') + '"><span class="avatar"><span class="all-characters-portrait" aria-hidden="true"></span></span><span>所有角色</span></button>',
-    ...state.characterOrder.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-describedby="character-sort-help" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + collectionRing() + '</span><span>' + escapeHTML(character) + '</span></button>')
+    ...characterTabOrder(state.characterOrder).map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-describedby="character-sort-help" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + collectionRing() + '</span><span>' + escapeHTML(character) + '</span></button>')
   ];
   $('character-tabs').innerHTML = tabs.join('');
   $('character-toggle').disabled = !state.ready;
@@ -199,7 +200,13 @@ function renderTabs() {
 }
 function updateCollectionTabs() {
   const counts = new Map();
-  state.owned.forEach(id => { const item = itemMap.get(id); if (item && isProgressIncluded(item, state.includedTypes)) counts.set(item.character, (counts.get(item.character) || 0) + 1); });
+  state.owned.forEach(id => {
+    const item = itemMap.get(id);
+    if (item && isProgressIncluded(item, state.includedTypes)) {
+      const character = characterTabName(item.character);
+      counts.set(character, (counts.get(character) || 0) + 1);
+    }
+  });
   $('character-tabs').querySelectorAll('[data-scope]').forEach(tab => {
     const scope = tab.dataset.scope;
     if (scope === 'all') {
@@ -216,7 +223,7 @@ function updateCollectionTabs() {
       tab.setAttribute('aria-label', '我的娃：' + number(owned) + ' 款收藏，共 ' + number(totalQuantity()) + ' 個');
       return;
     }
-    const total = characterTotals.get(scope) || 0;
+    const total = [...characterTotals].reduce((sum, [character, count]) => sum + (characterTabName(character) === scope ? count : 0), 0);
     const progress = total ? Math.min(owned / total, 1) * 100 : 0;
     const label = scope + (total ? '：收藏目標 ' + number(owned) + '／' + number(total) + ' 款（' + number(Math.round(progress * 10) / 10) + '%）' : '：目前沒有納入收藏目標的商品');
     tab.setAttribute('aria-label', label);
@@ -430,7 +437,7 @@ function updateCollectionCatalog(id) {
   else section.querySelector('.product-grid').insertAdjacentHTML('beforeend', productCard(item));
 }
 function setScope(scope) {
-  if (state.scope === scope || (!['mine', 'wishlist', 'all'].includes(scope) && !state.characters.includes(scope))) return;
+  if (state.scope === scope || (!['mine', 'wishlist', 'all'].includes(scope) && !characterTabOrder(state.characters).includes(scope))) return;
   const enteringPersonal = scope === 'mine' || scope === 'wishlist';
   dismissToast();
   state.scope = scope;
@@ -604,9 +611,9 @@ function restoreCleared() {
 
 const characterSorter = createCharacterSorter($('character-tabs'), {
   enabled: () => charactersExpanded,
-  getOrder: () => state.characterOrder,
+  getOrder: () => characterTabOrder(state.characterOrder),
   onCommit: (order, character) => {
-    state.characterOrder = order;
+    state.characterOrder = reorderCharacterTabs(state.characterOrder, order);
     const stored = persist();
     if (['mine', 'wishlist', 'all'].includes(state.scope)) renderCatalog();
     $('character-sort-status').textContent = character + '已移到第 ' + (order.indexOf(character) + 1) + ' 位' + (stored ? '，順序已儲存' : '，目前無法儲存');
@@ -836,7 +843,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=232947aae92a509c').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=3f497a4ff88ac353').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({

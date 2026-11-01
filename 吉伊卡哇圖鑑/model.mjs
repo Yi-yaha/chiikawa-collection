@@ -22,6 +22,17 @@ export function isProgressIncluded(item, includedTypes = {}) {
 }
 const splitOtherCharacters = ['小甲蟲','那孩子','哥布林','奧德','鎧甲人','流星','綜合角色','人魚島'];
 export const independentCharacters = ['大強','奇美拉','惡夢大象','灰孩子','睡衣派對','乳酸菌超人','巫婆','大腳怪','馴鹿','小惡魔','粉蟲','黃綠蟲','河豚','中止蟲','大鳥','擬態怪獸','大樹'];
+export const otherCharacters = ['奇美拉','惡夢大象','灰孩子','睡衣派對','乳酸菌超人','巫婆','大腳怪','馴鹿','小惡魔','粉蟲','黃綠蟲','河豚','中止蟲','大鳥','擬態怪獸','大樹'];
+export const characterTabName = character => otherCharacters.includes(character) ? '其他角色' : character;
+
+export function characterTabOrder(order) {
+  return [...new Set(order.map(characterTabName))];
+}
+
+// 頭貼合併顯示，儲存時仍保留原角色與群組內的順序，延續舊收藏與備份。
+export function reorderCharacterTabs(order, tabOrder) {
+  return tabOrder.flatMap(tab => order.filter(character => characterTabName(character) === tab));
+}
 
 export function normalizeSaved(value, characters, validIds, itemAliases = {}) {
   const input = value && typeof value === 'object' ? value : {};
@@ -101,6 +112,7 @@ export function scopeItems(items, scope, owned, wishlist = new Set()) {
   if (scope === 'all') return items;
   if (scope === 'mine') return items.filter(item => owned.has(item.id));
   if (scope === 'wishlist') return items.filter(item => wishlist.has(item.id) && !owned.has(item.id));
+  if (scope === '其他角色') return items.filter(item => otherCharacters.includes(item.character));
   return items.filter(item => item.character === scope);
 }
 
