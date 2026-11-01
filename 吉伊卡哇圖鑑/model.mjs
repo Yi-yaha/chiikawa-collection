@@ -7,6 +7,70 @@ export const UNASSIGNED_SERIES = '__unassigned__';
 export const seriesKey = item => (typeof item.series === 'string' ? item.series.trim() : '') || UNASSIGNED_SERIES;
 export const seriesLabel = key => key === UNASSIGNED_SERIES ? '未設定系列' : key;
 
+// 只整理選單的瀏覽分區；商品原本的系列名稱與歸屬保持獨立。
+const SERIES_CATEGORIES = [
+  { id:'theme', label:'主題系列', keywords:'企劃' },
+  { id:'venue', label:'店舖與景點', keywords:'店鋪 場館 本舖' },
+  { id:'season', label:'節慶與季節', keywords:'節日' },
+  { id:'lottery', label:'抽賞', keywords:'抽獎 一番賞' },
+  { id:'collaboration', label:'聯名', keywords:'品牌聯名' },
+  { id:'game', label:'手遊', keywords:'遊戲' },
+  { id:'local', label:'地方限定', keywords:'旅遊 地區' },
+  { id:'daily', label:'日常造型與小物', keywords:'配件 基礎' },
+  { id:'unassigned', label:'未設定系列', keywords:'' }
+];
+const themeSeries = new Set(['魔法吉伊卡哇','天使與惡魔','平行時空','吉伊卡哇電影','Chiikawa Baby（一般商品）','開心遊樂園','花仙子','幽靈森林','5週年','上海特展','奇幻馬戲團','東京吉伊卡哇','東京伴手禮','吉伊卡哇觀光']);
+const venueSeries = new Set(['吉伊卡哇樂園（PARK）','吉伊卡哇專賣店','吉伊卡哇飯店','吉伊卡哇餐廳','吉伊卡哇拉麵豚','吉伊卡哇烘焙坊','吉伊卡哇壽司','吉伊卡哇水族館','吉伊卡哇咖啡廳','吉伊卡哇聖誕市集','獅薩祭典與伴手禮店']);
+const seasonalSeries = new Set(['正月','鏡餅','注連繩三小隻','馬年','羊年','蛇年','龍年','兔年','虎年','生日','節分','復活節','情人節','七夕','中秋燈會','鯉魚旗','打西瓜','秋的味道']);
+const collaborationSeries = new Set(['MLB 東京系列','日本代表隊','泰迪熊搪膠']);
+const seriesCollator = new Intl.Collator('zh-TW', { numeric:true });
+
+function seriesCategory(key, items) {
+  if (key === UNASSIGNED_SERIES) return 'unassigned';
+  if (/抽賞|一番賞/.test(key)) return 'lottery';
+  if (/聯名/.test(key) || collaborationSeries.has(key)) return 'collaboration';
+  if (/^手遊(?:\s|$)/.test(key)) return 'game';
+  if (venueSeries.has(key) || /^MOGUMOGU本舖(?:\s|$)/.test(key)) return 'venue';
+  if (themeSeries.has(key)) return 'theme';
+  if (items.length && items.every(item => ['地方限定吊娃','地方限定吊牌','鐵牌'].includes(item.type))) return 'local';
+  if (seasonalSeries.has(key) || /萬聖|聖誕|冬季|冬日|秋季|夏日|櫻花|浴衣|納涼|楓葉/.test(key)) return 'season';
+  return 'daily';
+}
+
+function compareSeries(a, b) {
+  // 中文代數依實際代數排，讓三麗鷗初代至四代連續出現。
+  const generations = { 初:1, 一:1, 二:2, 三:3, 四:4, 五:5, 六:6, 七:7, 八:8, 九:9, 十:10 };
+  const sortable = key => seriesLabel(key).replace(/(初|[一二三四五六七八九十])代/g, (_, value) => generations[value] + '代');
+  return seriesCollator.compare(sortable(a), sortable(b));
+}
+
+export function groupSeriesOptions(items, { query = '', catalog = items } = {}) {
+  const catalogSeries = new Map();
+  for (const item of catalog) {
+    const key = seriesKey(item);
+    if (!catalogSeries.has(key)) catalogSeries.set(key, []);
+    catalogSeries.get(key).push(item);
+  }
+  const counts = new Map();
+  for (const item of items) {
+    const key = seriesKey(item);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const categories = SERIES_CATEGORIES.map(category => ({ ...category, options:[] }));
+  const byId = new Map(categories.map(category => [category.id, category]));
+  const needle = query.trim().toLocaleLowerCase('zh-TW');
+  for (const [key, count] of counts) {
+    // 用完整圖鑑決定分區，避免改變角色、地區或種類後，同系列突然搬家。
+    const category = byId.get(seriesCategory(key, catalogSeries.get(key) || items.filter(item => seriesKey(item) === key)));
+    if (needle && !`${category.label} ${category.keywords}`.toLocaleLowerCase('zh-TW').includes(needle) && !seriesLabel(key).toLocaleLowerCase('zh-TW').includes(needle)) continue;
+    category.options.push({ key, label:seriesLabel(key), count });
+  }
+  return categories.filter(category => category.options.length).map(category => ({
+    id:category.id, label:category.label,
+    options:category.options.sort((a, b) => compareSeries(a.key, b.key))
+  }));
+}
+
 function normalizeIncludedTypes(value, includeMetalTags = true) {
   const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   return Object.fromEntries(PROGRESS_TYPES.map(type => [type,

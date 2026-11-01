@@ -363,3 +363,24 @@ html{scroll-padding-top:118px}
 /* 地區、種類與系列各自篩選。 */
 .filter-options{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.35fr)}
 @media(max-width:700px){.filter-options{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.filter-options>.series-anchor{grid-column:1/-1}}
+
+/* 系列先選大分類，再展開該區的系列；搜尋直接顯示符合項目。 */
+.series-popover{display:flex;flex-direction:column;max-height:var(--series-menu-space,calc(100dvh - 220px))}
+.series-search-wrap{flex-shrink:0}
+.series-options{min-height:0;max-height:440px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.series-all{margin-bottom:4px}
+.series-category{border-top:1px solid var(--line)}
+.series-category-toggle{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:10px;text-align:left;font-size:13px;line-height:1.5;border-radius:7px;transition:background .16s,color .16s}
+.series-category-name{display:flex;align-items:center;gap:6px;flex:1;min-width:0;font-weight:600}
+.series-category-name svg{width:14px;height:14px;color:var(--coral)}
+.series-category-toggle small{flex-shrink:0;color:var(--muted);font-size:11px;white-space:nowrap}
+.series-category-toggle>svg{width:15px;height:15px;color:var(--muted);transform:rotate(-90deg)}
+.series-category-toggle[aria-expanded="true"]{background:var(--bg)}
+.series-category-toggle[aria-expanded="true"]>svg{transform:rotate(0)}
+.series-category-toggle.has-selection{color:var(--coral-dark)}
+.series-category-options{margin:3px 0 8px 14px;padding-left:5px;border-left:1px solid var(--line)}
+.series-option>span{min-width:0;overflow-wrap:anywhere}
+.series-option small{white-space:nowrap}
+.series-search-heading{padding:10px 10px 4px;font-size:11px;font-weight:600;color:var(--muted)}
+.series-unassigned{border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
+@media(hover:hover) and (pointer:fine){.series-category-toggle:hover{background:var(--bg)}}

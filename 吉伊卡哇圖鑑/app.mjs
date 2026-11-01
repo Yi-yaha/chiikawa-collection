@@ -1,7 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=47cb232c1d9f96a4';
-import { createCatalogImageLoader } from './image-loader.mjs?v=47cb232c1d9f96a4';
-import { createCharacterSorter } from './character-sorter.mjs?v=47cb232c1d9f96a4';
-import { watchForSiteUpdates } from './site-updates.mjs?v=47cb232c1d9f96a4';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=fffc7d24b6f0aeb5';
+import { createCatalogImageLoader } from './image-loader.mjs?v=fffc7d24b6f0aeb5';
+import { createCharacterSorter } from './character-sorter.mjs?v=fffc7d24b6f0aeb5';
+import { watchForSiteUpdates } from './site-updates.mjs?v=fffc7d24b6f0aeb5';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -76,6 +76,7 @@ let lastClearKey = STORAGE_KEY + '-last-clear';
 const filterExpansionKey = STORAGE_KEY + '-filters-expanded';
 let filtersExpanded = false;
 let charactersExpanded = false;
+let openSeriesCategory = '';
 try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
 const catalogImages = createCatalogImageLoader($('catalog-content'));
 let sizingSample;
@@ -267,15 +268,27 @@ function renderRegionOptions() {
   $('region-filter').innerHTML = '<option value="">全部地區</option>' + ['日本','台灣','韓國','香港','中國'].filter(region => counts.has(region) || state.region === region).map(region => '<option value="' + escapeHTML(region) + '"' + (state.region === region ? ' selected' : '') + '>' + escapeHTML(region) + '（' + number(counts.get(region) || 0) + ' 款）</option>').join('');
 }
 function renderSeriesOptions() {
-  const counts = new Map();
   const available = filterItems(baseItems(), {type:state.type,region:state.region,query:state.query});
-  available.forEach(item => {const key=seriesKey(item);counts.set(key, (counts.get(key) || 0) + 1);});
-  const search = $('series-search').value.trim().toLocaleLowerCase('zh-TW');
-  const names = [...counts.keys()].filter(name => seriesLabel(name).toLocaleLowerCase('zh-TW').includes(search)).sort((a,b) => a.localeCompare(b,'zh-TW',{numeric:true}));
-  let html = '<button class="series-option ' + (!state.series ? 'selected' : '') + '" data-series="" aria-pressed="' + !state.series + '"><span>全部系列</span><small>' + number(available.length) + ' 款</small></button>';
-  html += names.map(name => '<button class="series-option ' + (state.series === name ? 'selected' : '') + '" data-series="' + escapeHTML(name) + '" aria-pressed="' + (state.series === name) + '"><span>' + escapeHTML(seriesLabel(name)) + '</span><small>' + number(counts.get(name)) + ' 款</small></button>').join('');
-  if (!names.length) html += '<p class="series-option-empty">找不到符合的系列，換個名稱試試看。</p>';
+  const search = $('series-search').value.trim();
+  const categories = groupSeriesOptions(available, {query:search, catalog:state.items});
+  const option = ({key, label, count}) => '<button type="button" class="series-option ' + (state.series === key ? 'selected' : '') + '" data-series="' + escapeHTML(key) + '" aria-pressed="' + (state.series === key) + '"><span>' + escapeHTML(label) + '</span><small>' + number(count) + ' 款</small></button>';
+  let html = '<button type="button" class="series-option series-all ' + (!state.series ? 'selected' : '') + '" data-series="" aria-pressed="' + !state.series + '"><span>全部系列</span><small>' + number(available.length) + ' 款</small></button>';
+  html += categories.map(category => {
+    if (category.id === 'unassigned') return '<div class="series-unassigned">' + category.options.map(option).join('') + '</div>';
+    const selected = category.options.some(({key}) => key === state.series);
+    const heading = escapeHTML(category.label);
+    const options = category.options.map(option).join('');
+    if (search) return '<section class="series-category"><h3 class="series-search-heading">' + heading + '</h3>' + options + '</section>';
+    const expanded = category.id === openSeriesCategory;
+    return '<section class="series-category"><button type="button" class="series-category-toggle' + (selected ? ' has-selection' : '') + '" data-series-category="' + category.id + '" aria-expanded="' + expanded + '" aria-controls="series-category-' + category.id + '"><span class="series-category-name">' + heading + (selected ? icon('check') : '') + '</span><small>' + number(category.options.length) + ' 個系列</small>' + icon('chevron') + '</button><div id="series-category-' + category.id + '" class="series-category-options"' + (expanded ? '' : ' hidden') + '>' + options + '</div></section>';
+  }).join('');
+  if (!categories.length) html += '<p class="series-option-empty">' + (search ? '找不到符合的系列，換個名稱試試看。' : '目前沒有可選的系列，試試切換角色或調整篩選。') + '</p>';
   $('series-options').innerHTML = html;
+}
+function sizeSeriesPopover() {
+  if ($('series-popover').hidden) return;
+  const space = window.innerHeight - $('series-popover').getBoundingClientRect().top - 16;
+  $('series-popover').style.setProperty('--series-menu-space', Math.max(120, space) + 'px');
 }
 function renderFilters() {
   renderFilterDisclosure();
@@ -644,11 +657,26 @@ $('series-toggle').addEventListener('click', () => {
   $('series-popover').hidden = false;
   $('series-toggle').setAttribute('aria-expanded','true');
   $('series-search').value = '';
+  openSeriesCategory = groupSeriesOptions(state.items).find(category => category.options.some(({key}) => key === state.series))?.id || '';
   renderSeriesOptions();
+  sizeSeriesPopover();
+  $('series-options').scrollTop = 0;
   $('series-toggle').focus({ preventScroll:true });
 });
-$('series-search').addEventListener('input', renderSeriesOptions);
+$('series-search').addEventListener('input', () => { renderSeriesOptions(); $('series-options').scrollTop = 0; });
+window.addEventListener('resize', sizeSeriesPopover);
 $('series-options').addEventListener('click', event => {
+  const category = event.target.closest('[data-series-category]');
+  if (category) {
+    openSeriesCategory = openSeriesCategory === category.dataset.seriesCategory ? '' : category.dataset.seriesCategory;
+    $('series-options').querySelectorAll('[data-series-category]').forEach(button => {
+      const expanded = button.dataset.seriesCategory === openSeriesCategory;
+      button.setAttribute('aria-expanded', String(expanded));
+      $(button.getAttribute('aria-controls')).hidden = !expanded;
+    });
+    if (openSeriesCategory) $('series-options').scrollTop += category.getBoundingClientRect().top - $('series-options').getBoundingClientRect().top;
+    return;
+  }
   const target = event.target.closest('[data-series]');
   if (target) {
     state.series = target.dataset.series;
@@ -843,7 +871,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=47cb232c1d9f96a4').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=fffc7d24b6f0aeb5').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
