@@ -1,9 +1,9 @@
-import { createClient } from './supabase-client.mjs?v=3f497a4ff88ac353';
-import { cloudConfig } from './cloud-config.mjs?v=3f497a4ff88ac353';
-import { createCloudStore } from './cloud-store.mjs?v=3f497a4ff88ac353';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=3f497a4ff88ac353';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=3f497a4ff88ac353';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=3f497a4ff88ac353';
+import { createClient } from './supabase-client.mjs?v=47cb232c1d9f96a4';
+import { cloudConfig } from './cloud-config.mjs?v=47cb232c1d9f96a4';
+import { createCloudStore } from './cloud-store.mjs?v=47cb232c1d9f96a4';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=47cb232c1d9f96a4';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=47cb232c1d9f96a4';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=47cb232c1d9f96a4';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -278,8 +278,9 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (inviteCode) { const input = $('friend-code-input'); if (input) input.value = formatFriendCode(inviteCode); }
   }
   function friendRow(friend, type) {
-    return '<div class="friend-row">' + avatar(friend) + '<div class="friend-row-info"><strong>' + h(friend.nickname || '收藏好友') + '</strong><span>' + (type === 'accepted' ? '看看收藏與彼此的差異' : type === 'incoming' ? '想與你分享收藏' : '等待對方接受') + '</span></div>' +
-      (type === 'accepted' ? '<button class="primary-button" data-view-friend="' + h(friend.id) + '">查看</button>' : type === 'incoming' ? '<div class="friend-row-actions"><button class="text-button" data-friend-id="' + h(friend.id) + '" data-response="decline">婉拒</button><button class="primary-button" data-friend-id="' + h(friend.id) + '" data-response="accept">接受</button></div>' : '<button class="text-button" data-friend-id="' + h(friend.id) + '" data-response="cancel">取消邀請</button>') + '</div>';
+    if (type === 'accepted') return '<button type="button" class="friend-row friend-row-link" data-view-friend="' + h(friend.id) + '" aria-label="查看' + h(friend.nickname || '收藏好友') + '的收藏">' + avatar(friend) + '<span class="friend-row-info"><strong>' + h(friend.nickname || '收藏好友') + '</strong></span><svg class="friend-row-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>';
+    return '<div class="friend-row">' + avatar(friend) + '<div class="friend-row-info"><strong>' + h(friend.nickname || '收藏好友') + '</strong><span>' + (type === 'incoming' ? '想與你分享收藏' : '等待對方接受') + '</span></div>' +
+      (type === 'incoming' ? '<div class="friend-row-actions"><button class="text-button" data-friend-id="' + h(friend.id) + '" data-response="decline">婉拒</button><button class="primary-button" data-friend-id="' + h(friend.id) + '" data-response="accept">接受</button></div>' : '<button class="text-button" data-friend-id="' + h(friend.id) + '" data-response="cancel">取消邀請</button>') + '</div>';
   }
   function renderFriends() {
     if (selectedFriend && friendSnapshot) { renderFriendDetail(); return; }

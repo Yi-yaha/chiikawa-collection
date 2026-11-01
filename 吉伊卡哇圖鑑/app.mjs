@@ -1,7 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=3f497a4ff88ac353';
-import { createCatalogImageLoader } from './image-loader.mjs?v=3f497a4ff88ac353';
-import { createCharacterSorter } from './character-sorter.mjs?v=3f497a4ff88ac353';
-import { watchForSiteUpdates } from './site-updates.mjs?v=3f497a4ff88ac353';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=47cb232c1d9f96a4';
+import { createCatalogImageLoader } from './image-loader.mjs?v=47cb232c1d9f96a4';
+import { createCharacterSorter } from './character-sorter.mjs?v=47cb232c1d9f96a4';
+import { watchForSiteUpdates } from './site-updates.mjs?v=47cb232c1d9f96a4';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -843,7 +843,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=3f497a4ff88ac353').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=47cb232c1d9f96a4').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
