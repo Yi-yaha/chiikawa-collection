@@ -24,6 +24,24 @@ const venueSeries = new Set(['吉伊卡哇樂園（PARK）','吉伊卡哇專賣�
 const seasonalSeries = new Set(['新年','正月','鏡餅','馬年','羊年','蛇年','龍年','兔年','虎年','生日','節分','復活節','情人節','七夕','中秋燈會','鯉魚旗','打西瓜','秋的味道']);
 const collaborationSeries = new Set(['MLB 東京系列','日本代表隊','泰迪熊搪膠']);
 const seriesCollator = new Intl.Collator('zh-TW', { numeric:true });
+const lotteryCharacterOrder = new Map(['吉伊','小八','兔兔','小桃','師傅','栗子','獅薩','古本'].map((character, index) => [character, index]));
+const lotterySectionLabels = { character:'角色抽賞', theme:'主題抽賞' };
+
+function lotterySection(key, characters) {
+  return key.endsWith('抽賞') && characters.has(key.slice(0, -2)) ? 'character' : 'theme';
+}
+
+function groupLotteryOptions(options, characters) {
+  const sections = ['character', 'theme'].map(id => ({ id, label:lotterySectionLabels[id], options:[] }));
+  for (const option of options) sections[lotterySection(option.key, characters) === 'character' ? 0 : 1].options.push(option);
+  sections[0].options.sort((a, b) =>
+    (lotteryCharacterOrder.get(a.key.slice(0, -2)) ?? lotteryCharacterOrder.size) -
+    (lotteryCharacterOrder.get(b.key.slice(0, -2)) ?? lotteryCharacterOrder.size) || compareSeries(a.key, b.key));
+  // 同主題的年份放在一起，再依年份由舊到新排列。
+  const theme = key => key.replace(/^\d{4}\s*/, '');
+  sections[1].options.sort((a, b) => compareSeries(theme(a.key), theme(b.key)) || compareSeries(a.key, b.key));
+  return sections.filter(section => section.options.length);
+}
 
 function seriesCategory(key, items) {
   if (key === UNASSIGNED_SERIES) return 'unassigned';
@@ -46,6 +64,7 @@ function compareSeries(a, b) {
 
 export function groupSeriesOptions(items, { query = '', catalog = items } = {}) {
   const catalogSeries = new Map();
+  const characters = new Set(catalog.map(item => item.character).filter(Boolean));
   for (const item of catalog) {
     const key = seriesKey(item);
     if (!catalogSeries.has(key)) catalogSeries.set(key, []);
@@ -62,13 +81,17 @@ export function groupSeriesOptions(items, { query = '', catalog = items } = {}) 
   for (const [key, count] of counts) {
     // 用完整圖鑑決定分區，避免改變角色、地區或種類後，同系列突然搬家。
     const category = byId.get(seriesCategory(key, catalogSeries.get(key) || items.filter(item => seriesKey(item) === key)));
-    if (needle && !`${category.label} ${category.keywords}`.toLocaleLowerCase('zh-TW').includes(needle) && !seriesLabel(key).toLocaleLowerCase('zh-TW').includes(needle)) continue;
+    const sectionLabel = category.id === 'lottery' ? lotterySectionLabels[lotterySection(key, characters)] : '';
+    if (needle && !`${category.label} ${category.keywords} ${sectionLabel}`.toLocaleLowerCase('zh-TW').includes(needle) && !seriesLabel(key).toLocaleLowerCase('zh-TW').includes(needle)) continue;
     category.options.push({ key, label:seriesLabel(key), count });
   }
-  return categories.filter(category => category.options.length).map(category => ({
-    id:category.id, label:category.label,
-    options:category.options.sort((a, b) => compareSeries(a.key, b.key))
-  }));
+  return categories.filter(category => category.options.length).map(category => {
+    if (category.id === 'lottery') {
+      const sections = groupLotteryOptions(category.options, characters);
+      return { id:category.id, label:category.label, options:sections.flatMap(section => section.options), sections };
+    }
+    return { id:category.id, label:category.label, options:category.options.sort((a, b) => compareSeries(a.key, b.key)) };
+  });
 }
 
 function normalizeIncludedTypes(value, includeMetalTags = true) {

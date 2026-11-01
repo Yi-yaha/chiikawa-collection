@@ -379,6 +379,8 @@ html{scroll-padding-top:118px}
 .series-category-toggle[aria-expanded="true"]>svg{transform:rotate(0)}
 .series-category-toggle.has-selection{color:var(--coral-dark)}
 .series-category-options{margin:3px 0 8px 14px;padding-left:5px;border-left:1px solid var(--line)}
+.series-subgroup+.series-subgroup{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.series-subgroup-heading{padding:8px 10px 4px;font-size:11px;line-height:1.5;font-weight:600;color:var(--muted)}
 .series-option>span{min-width:0;overflow-wrap:anywhere}
 .series-option small{white-space:nowrap}
 .series-search-heading{padding:10px 10px 4px;font-size:11px;font-weight:600;color:var(--muted)}
