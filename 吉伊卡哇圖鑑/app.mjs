@@ -1,8 +1,8 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=54968039badd95b8';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=54968039badd95b8';
-import { createCatalogImageLoader } from './image-loader.mjs?v=54968039badd95b8';
-import { createCharacterSorter } from './character-sorter.mjs?v=54968039badd95b8';
-import { watchForSiteUpdates } from './site-updates.mjs?v=54968039badd95b8';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=cc79b8b54b995770';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=cc79b8b54b995770';
+import { createCatalogImageLoader } from './image-loader.mjs?v=cc79b8b54b995770';
+import { createCharacterSorter } from './character-sorter.mjs?v=cc79b8b54b995770';
+import { watchForSiteUpdates } from './site-updates.mjs?v=cc79b8b54b995770';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -328,10 +328,10 @@ function productCard(item) {
   const detailAction = ' data-detail="' + item.id + '" aria-label="查看' + name + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog"';
   const imageAction = mine ? detailAction : ' data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"';
   return '<article class="product-card ' + (owned ? 'owned' : wished ? 'wished' : '') + '" data-item="' + item.id + '">' +
-    '<button class="product-image-button"' + imageAction + '><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img data-src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div></button>' +
+    '<div class="product-visual"><button class="product-image-button"' + imageAction + '><div class="product-image"><span class="product-type">' + escapeHTML(typeLabel(item.type)) + '</span><img data-src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div></button>' +
+    '<button class="wish-button ' + (wished ? 'wished' : '') + '" data-wish="' + item.id + '" aria-label="' + '將' + name + (wished ? '移出願望清單' : '加入願望清單') + '" aria-pressed="' + wished + '"' + (owned ? ' hidden' : '') + '>' + icon('star') + '</button></div>' +
     '<div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><button class="product-info-button"' + detailAction + '>' + icon('info') + '</button></div>' +
-    '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (mine ? '移出我的娃' : owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"' + (mine ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '') + '>' + icon('heart') + '</button>' +
-    '<div class="product-actions"' + (owned ? ' hidden' : '') + '><button class="wish-button ' + (wished ? 'wished' : '') + '" data-wish="' + item.id + '" aria-label="' + '將' + name + (wished ? '移出願望清單' : '加入願望清單') + '" aria-pressed="' + wished + '"' + (owned ? ' hidden' : '') + '>' + icon('star') + '</button></div></article>';
+    '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (mine ? '移出我的娃' : owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"' + (mine ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '') + '>' + icon('heart') + '</button></article>';
 }
 function emptyState() {
   const untouchedMine = state.scope === 'mine' && state.owned.size === 0;
@@ -411,7 +411,6 @@ function updateCollectionCard(id) {
   wish.classList.toggle('wished', wished);
   wish.setAttribute('aria-pressed', String(wished));
   wish.setAttribute('aria-label', '將' + item.character + '・' + item.name + (wished ? '移出願望清單' : '加入願望清單'));
-  card.querySelector('.product-actions').hidden = owned;
 }
 function updateCollectionCatalog(id, batch = null) {
   const personal = state.scope === 'mine' || state.scope === 'wishlist';
@@ -933,7 +932,7 @@ async function init() {
     browseState.enable();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=54968039badd95b8').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=cc79b8b54b995770').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
