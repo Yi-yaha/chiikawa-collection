@@ -73,13 +73,14 @@
 .conflict-choices small{font-size:11px;font-weight:400}
 .friends-dialog{width:860px;max-height:calc(100dvh - 44px);scrollbar-gutter:stable;overscroll-behavior:contain}
 .social-eyebrow{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}
-.sharing-note{padding:13px 15px;background:var(--pink);border-radius:12px;color:var(--coral-dark);font-size:12px;line-height:1.9;margin:18px 0}
 .my-friend-code{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin:16px 0;font-size:11px;color:var(--muted)}
 .my-friend-code>div{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.my-friend-code .text-button{color:var(--action-pink-ink)}
+.my-friend-code .text-button:hover{color:var(--action-pink-ink)}
 .find-friend-form{margin:20px 0 12px}
 .find-friend-form>div{display:flex;gap:8px;margin-top:7px}
 .find-friend-form input{flex:1}
-.find-friend-form button{min-width:76px;border:1px solid var(--line)}
+.find-friend-form button{min-width:76px;border:1px solid transparent}
 .friends-section{border-top:1px solid var(--line);padding-top:20px;margin-top:24px}
 .section-count{font-size:11px;margin-left:5px;color:var(--muted);font-weight:400}
 .friend-row{display:flex;align-items:center;gap:12px;padding:13px 0;min-width:0}
@@ -87,17 +88,12 @@
 .friend-row-info strong{display:block;font-size:13px;font-weight:600;overflow-wrap:anywhere}
 .friend-row-info>span{display:block;font-size:11px;color:var(--muted);margin-top:3px}
 .friend-row-actions{display:flex;align-items:center;gap:6px}
-.friend-row .primary-button,.friend-row .secondary-button{min-height:40px}
+.friend-row .primary-button,.friend-row .secondary-button{min-height:44px}
 .social-empty{padding:24px 18px;border-radius:12px;background:var(--bg);text-align:center;margin:12px 0}
 .social-empty strong{font-size:14px;font-weight:600}
 .social-empty p{font-size:12px;line-height:1.9;color:var(--muted);max-width:340px;margin:6px auto 0}
 .social-error{background:#fcf0ee;padding:14px;border-radius:10px;font-size:12px;line-height:1.8;margin-top:12px}
 .social-error button{margin-top:8px}
-.notification-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;margin:6px 0}
-.notification-row.unread{background:var(--pink)}
-.notification-row>div{flex:1;min-width:0}
-.notification-row strong{display:block;font-size:12px;overflow-wrap:anywhere;font-weight:500}
-.notification-row>div>span{display:block;font-size:10px;color:var(--muted);margin-top:3px}
 .blocked-list{border-top:1px solid var(--line);padding-top:18px;margin-top:24px;font-size:12px;color:var(--muted)}
 .blocked-list summary{cursor:pointer;min-height:32px}
 .friend-detail-heading{display:flex;gap:4px;align-items:center;min-width:0}
@@ -105,9 +101,14 @@
 .friend-detail-heading .icon-button{margin-left:-8px;flex-shrink:0}
 .friend-profile{border-bottom:1px solid var(--line);margin-bottom:14px}
 .friend-profile>div{flex:1}
+.friend-settings-button{min-height:44px;background:var(--action-pink);border:1px solid var(--action-pink);color:var(--paper);font-size:12px}
+.friend-settings-button:hover,.friend-settings-button[aria-expanded="true"]{background:var(--action-pink-hover);border-color:var(--action-pink-hover);color:var(--paper)}
 .friend-profile p{font-size:12px;color:var(--muted);margin-top:3px}
 .friend-profile b{color:var(--ink);font-weight:600}
-.friend-settings{display:flex;gap:18px;justify-content:flex-end;padding:0 0 10px}
+.friend-settings{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:0 0 10px}
+.friend-settings .text-button{min-height:44px;padding:9px 12px;border:1px solid var(--line);border-radius:var(--control-radius);color:var(--ink)}
+.friend-settings .text-button:hover{background:var(--bg)}
+.friend-settings [data-confirm-friend="block"]{color:#AE4349;border-color:#E3BCC0}
 .social-confirm{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px 0}
 .social-confirm strong{font-size:13px;overflow-wrap:anywhere}
 .social-confirm p{font-size:12px;color:var(--muted);margin:7px 0 12px}
@@ -125,16 +126,16 @@
 .stat-line small{font-size:10px;color:var(--muted);margin-left:4px}
 .stat-track{height:4px;border-radius:8px;display:block;background:#e9e2dd;overflow:hidden;margin-top:7px}
 .stat-track>span{height:100%;display:block;background:#c3948b;border-radius:inherit}
-.friend-view-tabs{display:flex;border-bottom:1px solid var(--line);gap:24px;margin:24px 0 18px}
+.friend-view-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);gap:18px;margin:24px 0 18px}
 .friend-view-tabs button{position:relative;min-height:44px;font-size:13px;color:var(--muted);padding:10px 0}
-.friend-view-tabs button[aria-pressed="true"]{color:var(--coral-dark);font-weight:600}
-.friend-view-tabs button[aria-pressed="true"]::after{position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--coral);content:''}
+.friend-view-tabs button[aria-pressed="true"]{color:var(--action-pink-ink);font-weight:600}
+.friend-view-tabs button[aria-pressed="true"]::after{position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--action-pink);content:''}
 .comparison-intro>p{font-size:14px}
 .comparison-intro strong{color:var(--coral-dark)}
 .comparison-counts{display:flex;gap:10px 24px;flex-wrap:wrap;margin:12px 0;color:var(--muted);font-size:11px}
 .comparison-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}
 .comparison-tabs button{border:1px solid var(--line);border-radius:12px;padding:11px 6px;font-size:11px;color:var(--muted);line-height:1.7}
-.comparison-tabs button[aria-pressed="true"]{border-color:#cfa49a;background:var(--pink);color:var(--coral-dark)}
+.comparison-tabs button[aria-pressed="true"]{border-color:var(--action-pink);background:var(--action-pink-soft);color:var(--action-pink-ink)}
 .comparison-tabs strong{display:block;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
 .friend-product-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .friend-product-filters input{grid-column:1/-1}
@@ -161,7 +162,7 @@
   .friend-row-info{min-width:90px}
   .friend-row-actions{gap:4px}
   .friend-profile{gap:10px;flex-wrap:wrap}
-  .friend-profile>.text-button{margin-left:auto}
+  .friend-profile>.friend-settings-button{margin-left:auto}
   .friend-profile strong{font-size:16px}
   .social-avatar.large{width:54px;height:54px;flex-basis:54px}
   .friend-stats-grid{gap:8px}

@@ -1,4 +1,4 @@
-import { typeLabel } from './model.mjs?v=c9f9c7696697a811';
+import { typeLabel } from './model.mjs?v=db3f799b65b13744';
 
 export const normalizeNickname = value => String(value ?? '').trim().replace(/\s+/gu, ' ');
 export const validNickname = value => {
@@ -37,7 +37,6 @@ export function compareCollections(items, mine = {}, theirs = {}) {
   return { both, theirsOnly, mineOnly };
 }
 
-export function notificationCount(friends = [], notifications = []) {
-  return friends.filter(friend => friend.status === 'pending' && friend.incoming).length
-    + notifications.filter(note => note.kind === 'friend_accepted' && !note.read_at).length;
+export function notificationCount(friends = []) {
+  return friends.filter(friend => friend.status === 'pending' && friend.incoming).length;
 }

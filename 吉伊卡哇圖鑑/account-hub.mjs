@@ -1,9 +1,9 @@
-import { createClient } from './supabase-client.mjs?v=c9f9c7696697a811';
-import { cloudConfig } from './cloud-config.mjs?v=c9f9c7696697a811';
-import { createCloudStore } from './cloud-store.mjs?v=c9f9c7696697a811';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=c9f9c7696697a811';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, filterItems } from './model.mjs?v=c9f9c7696697a811';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=c9f9c7696697a811';
+import { createClient } from './supabase-client.mjs?v=db3f799b65b13744';
+import { cloudConfig } from './cloud-config.mjs?v=db3f799b65b13744';
+import { createCloudStore } from './cloud-store.mjs?v=db3f799b65b13744';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=db3f799b65b13744';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, filterItems } from './model.mjs?v=db3f799b65b13744';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=db3f799b65b13744';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -27,7 +27,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'chiikawa-account-session' },
   });
   let user = null, profile = null, authLoading = true, sessionGeneration = 0;
-  let friends = [], notifications = [], blocks = [], friendsLoaded = false, friendsError = '', refreshingFriends = false;
+  let friends = [], blocks = [], friendsLoaded = false, friendsError = '', refreshingFriends = false;
   let selectedFriend = null, friendSnapshot = null, lookup = null, friendTab = 'collection', compareTab = 'both', friendConfirmation = null;
   let syncStatus = { state:'guest', pending:0, conflicts:[] };
   let syncWarningShown = false;
@@ -46,7 +46,6 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     avatarPreview = '';
   }
   const canonicalURL = () => location.origin + location.pathname;
-  const dateText = value => new Intl.DateTimeFormat('zh-TW', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Taipei' }).format(new Date(value));
   const rpc = async (name, args = {}) => { const result = await client.rpc(name, args); if (result.error) throw result.error; return result.data; };
   const message = (id, text, error = false) => { const target = $(id); if (target) { target.textContent = text; target.classList.toggle('error', error); } };
   const open = id => { const dialog = $(id); if (!dialog.open) dialog.showModal(); };
@@ -103,12 +102,11 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (inline) inline.textContent = label;
   }
   function renderBadge() {
-    const count = user ? notificationCount(friends, notifications) : 0;
-    const incoming = friends.filter(friend => friend.status === 'pending' && friend.incoming).length;
+    const count = user ? notificationCount(friends) : 0;
     $('more-notification-dot').hidden = !count;
     $('friends-menu-badge').hidden = !count;
-    $('friends-menu-badge').textContent = incoming ? n(incoming) + ' 則邀請' : n(count) + ' 則新通知';
-    $('more-button').setAttribute('aria-label', '更多選項' + (count ? '，有 ' + n(count) + ' 則待處理或未讀通知' : ''));
+    $('friends-menu-badge').textContent = n(count) + ' 則邀請';
+    $('more-button').setAttribute('aria-label', '更多選項' + (count ? '，有 ' + n(count) + ' 則待處理邀請' : ''));
   }
   function renderAccount() {
     if (authLoading) {
@@ -249,16 +247,14 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (!user || !profile?.nickname || refreshingFriends || document.hidden) return;
     const activeUid = user.id; refreshingFriends = true;
     try {
-      const [nextFriends, noteResult, nextBlocks] = await Promise.all([
+      const [nextFriends, nextBlocks] = await Promise.all([
         rpc('list_collection_friends'),
-        client.from('notifications').select('id,actor_id,actor_nickname,kind,read_at,created_at').order('read_at',{ ascending:true, nullsFirst:true }).order('created_at',{ ascending:false }).limit(50),
         rpc('list_collection_blocks'),
       ]);
       if (user?.id !== activeUid) return;
-      if (noteResult.error) throw noteResult.error;
       await photos.load([profile?.avatar_path,...(nextFriends || []).filter(friend => friend.status === 'accepted').map(friend => friend.avatar_path)]);
       if (user?.id !== activeUid) return;
-      friends = nextFriends || []; notifications = noteResult.data || []; blocks = nextBlocks || [];
+      friends = nextFriends || []; blocks = nextBlocks || [];
       friendsLoaded = true; friendsError = ''; renderBadge();
       if ($('friends-dialog').open && !selectedFriend) renderFriends();
       if (selectedFriend && !friends.some(friend => friend.other_id === selectedFriend.other_id && friend.status === 'accepted')) {
@@ -281,26 +277,24 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   }
   function friendRow(friend, type) {
     return '<div class="friend-row">' + avatar(friend) + '<div class="friend-row-info"><strong>' + h(friend.nickname || '收藏好友') + '</strong><span>' + (type === 'accepted' ? '看看收藏與彼此的差異' : type === 'incoming' ? '想與你分享收藏' : '等待對方接受') + '</span></div>' +
-      (type === 'accepted' ? '<button class="secondary-button" data-view-friend="' + h(friend.id) + '">查看</button>' : type === 'incoming' ? '<div class="friend-row-actions"><button class="text-button" data-friend-id="' + h(friend.id) + '" data-response="decline">婉拒</button><button class="primary-button" data-friend-id="' + h(friend.id) + '" data-response="accept">接受</button></div>' : '<button class="text-button" data-friend-id="' + h(friend.id) + '" data-response="cancel">取消邀請</button>') + '</div>';
+      (type === 'accepted' ? '<button class="primary-button" data-view-friend="' + h(friend.id) + '">查看</button>' : type === 'incoming' ? '<div class="friend-row-actions"><button class="text-button" data-friend-id="' + h(friend.id) + '" data-response="decline">婉拒</button><button class="primary-button" data-friend-id="' + h(friend.id) + '" data-response="accept">接受</button></div>' : '<button class="text-button" data-friend-id="' + h(friend.id) + '" data-response="cancel">取消邀請</button>') + '</div>';
   }
   function renderFriends() {
     if (selectedFriend && friendSnapshot) { renderFriendDetail(); return; }
     const incoming = friends.filter(friend => friend.status === 'pending' && friend.incoming);
     const outgoing = friends.filter(friend => friend.status === 'pending' && !friend.incoming);
     const accepted = friends.filter(friend => friend.status === 'accepted');
-    const news = notifications.filter(note => note.kind === 'friend_accepted');
     const codeInput = $('friend-code-input');
     const restoreCodeFocus = document.activeElement === codeInput;
     const selection = restoreCodeFocus ? [codeInput.selectionStart,codeInput.selectionEnd] : null;
     const codeValue = codeInput?.value || sessionStorage.getItem('chiikawa-pending-friend') || '';
-    $('friends-content').innerHTML = '<div class="dialog-heading"><div><span class="social-eyebrow">一起收集喜歡的娃</span><h2 id="friends-title">好友</h2></div>' + closeButton('friends-dialog','關閉好友') + '</div><p class="sharing-note">成為好友後，你們可以互相查看收藏清單、數量與進度，並比較彼此的收藏差異。</p>' +
+    $('friends-content').innerHTML = '<div class="dialog-heading"><div><span class="social-eyebrow">一起收集喜歡的娃</span><h2 id="friends-title">好友</h2></div>' + closeButton('friends-dialog','關閉好友') + '</div>' +
       '<div class="my-friend-code"><span>我的好友代碼</span><div><code>' + h(formatFriendCode(profile?.friend_code)) + '</code><button class="text-button" data-action="copy-code">複製</button><button class="text-button" data-action="copy-invite">分享連結</button></div></div>' +
-      '<form id="find-friend-form" class="find-friend-form"><label for="friend-code-input">加入好友</label><div><input id="friend-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="輸入好友代碼" maxlength="20" value="' + h(codeValue) + '" required><button class="secondary-button" type="submit">尋找</button></div></form><div id="friend-lookup-result">' + (lookup ? '<div class="friend-row">' + avatar(lookup) + '<div class="friend-row-info"><strong>' + h(lookup.nickname) + '</strong><span>接受邀請後，彼此分享收藏</span></div><button class="primary-button" id="send-friend-request">送出邀請</button></div>' : '') + '</div><p id="friends-message" class="form-message" role="status"></p>' +
+      '<form id="find-friend-form" class="find-friend-form"><label for="friend-code-input">加入好友</label><div><input id="friend-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="輸入好友代碼" maxlength="20" value="' + h(codeValue) + '" required><button class="primary-button" type="submit">尋找</button></div></form><div id="friend-lookup-result">' + (lookup ? '<div class="friend-row">' + avatar(lookup) + '<div class="friend-row-info"><strong>' + h(lookup.nickname) + '</strong><span>接受邀請後，彼此分享收藏</span></div><button class="primary-button" id="send-friend-request">送出邀請</button></div>' : '') + '</div><p id="friends-message" class="form-message" role="status"></p>' +
       (friendsError ? '<div class="social-error"><p>' + h(friendsError) + '</p><button class="secondary-button" data-action="refresh-friends">重新讀取</button></div>' : !friendsLoaded ? '<p class="social-loading" role="status">正在讀取好友…</p>' : '') +
-      (incoming.length ? '<section class="friends-section"><h3>收到的邀請 <span class="section-count">' + n(incoming.length) + '</span></h3>' + incoming.map(friend => friendRow(friend,'incoming')).join('') + '</section>' : '') +
       '<section class="friends-section"><h3>我的好友 <span class="section-count">' + n(accepted.length) + '</span></h3>' + (accepted.length ? accepted.map(friend => friendRow(friend,'accepted')).join('') : friendsLoaded ? '<div class="social-empty"><strong>一起分享收藏的樂趣</strong><p>把好友代碼分享給朋友，或輸入對方的代碼，邀請彼此成為收藏好友。</p></div>' : '') + '</section>' +
       (outgoing.length ? '<section class="friends-section"><h3>已送出的邀請</h3>' + outgoing.map(friend => friendRow(friend,'outgoing')).join('') + '</section>' : '') +
-      (news.length ? '<section class="friends-section"><h3>最新通知</h3>' + news.map(note => '<div class="notification-row ' + (!note.read_at ? 'unread' : '') + '"><div><strong>' + h(note.actor_nickname) + ' 已接受你的好友邀請</strong><span>' + dateText(note.created_at) + '</span></div>' + (!note.read_at ? '<button class="text-button" data-read-notification="' + h(note.id) + '">知道了</button>' : '<span class="social-note">已讀</span>') + '</div>').join('') + '</section>' : '') +
+      (incoming.length ? '<section class="friends-section pending-notifications"><h3>待處理通知 <span class="section-count">' + n(incoming.length) + '</span></h3>' + incoming.map(friend => friendRow(friend,'incoming')).join('') + '</section>' : '') +
       (blocks.length ? '<details class="blocked-list"><summary>封鎖名單（' + n(blocks.length) + '）</summary>' + blocks.map(block => '<div class="friend-row"><div class="friend-row-info"><strong>' + h(block.nickname) + '</strong></div><button class="text-button" data-unblock="' + h(block.id) + '">解除封鎖</button></div>').join('') + '<p class="social-note">解除封鎖後，需要重新加入好友才會分享收藏。</p></details>' : '');
     if (restoreCodeFocus) { $('friend-code-input').focus({ preventScroll:true }); $('friend-code-input').setSelectionRange(...selection); }
   }
@@ -314,8 +308,8 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       await photos.load([result.profile?.avatar_path]);
       if (user?.id !== activeUid || selectedFriend?.other_id !== selectedId) return;
       const previous = JSON.stringify(friendSnapshot);
-      const normalized = normalize({ quantities:Object.fromEntries(result.items.map(row => [row.item_id,row.quantity])) });
-      friendSnapshot = { profile:result.profile, quantities:normalized.quantities };
+      const normalized = normalize({ quantities:Object.fromEntries(result.items.map(row => [row.item_id,row.quantity])), wishlist:result.wishlist });
+      friendSnapshot = { profile:result.profile, quantities:normalized.quantities, wishlist:Array.isArray(result.wishlist) ? normalized.wishlist : null };
       if (showLoading || previous !== JSON.stringify(friendSnapshot)) renderFriendDetail();
     } catch (error) {
       if (selectedFriend?.other_id !== selectedId) return;
@@ -329,19 +323,21 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (!friendSnapshot || !selectedFriend) return;
     const previousFilters = Object.fromEntries(['friend-search','friend-character','friend-type','friend-series'].map(id => [id,$(id)?.value || '']));
     const previousScroll = $('friends-dialog').scrollTop;
-    const { profile:other, quantities } = friendSnapshot;
+    const { profile:other, quantities, wishlist } = friendSnapshot;
+    const wished = new Set(wishlist || []);
+    const productScope = friendTab === 'wishlist' ? items.filter(item => wished.has(item.id)) : items.filter(item => quantities[item.id] > 0 || friendTab === 'compare' && getSaved().quantities[item.id] > 0);
     const stats = collectionStats(items,quantities), myStats = collectionStats(items,getSaved().quantities);
     const differences = compareCollections(items,getSaved().quantities,quantities);
     const character = stats.characters[0], type = stats.types[0];
     const myCharacter = myStats.characters[0];
     $('friends-content').innerHTML = '<div class="dialog-heading"><div class="friend-detail-heading"><button class="icon-button" data-action="back-friends" aria-label="返回好友清單"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><h2 id="friends-title">' + h(other.nickname) + '的收藏</h2></div>' + closeButton('friends-dialog','關閉好友收藏') + '</div>' +
-      '<div class="friend-profile">' + avatar(other,'large') + '<div><strong>' + h(other.nickname) + '</strong><p>已收藏 <b>' + n(stats.styles) + '</b> 款，共 <b>' + n(stats.pieces) + '</b> 個</p></div><button class="text-button" data-action="friend-settings">好友設定</button></div>' +
+      '<div class="friend-profile">' + avatar(other,'large') + '<div><strong>' + h(other.nickname) + '</strong><p>已收藏 <b>' + n(stats.styles) + '</b> 款，共 <b>' + n(stats.pieces) + '</b> 個</p></div><button class="secondary-button friend-settings-button" data-action="friend-settings" aria-expanded="false" aria-controls="friend-settings">好友設定</button></div>' +
       '<div id="friend-settings" class="friend-settings" hidden><button class="text-button" data-confirm-friend="remove">移除好友</button><button class="text-button" data-confirm-friend="block">封鎖這位使用者</button></div><div id="friend-confirmation"></div><p id="friends-message" class="form-message" role="status"></p>' +
       '<p class="collection-story">' + (stats.styles ? '收藏以<strong>' + h(character.label) + '</strong>為主，最常收<strong>' + h(type.label) + '</strong>。' + (stats.multiples ? '有 ' + n(stats.multiples) + ' 款擁有不只一個。' : '') : '收藏旅程剛開始，期待新的娃加入。') + '</p>' +
       (stats.styles ? '<div class="friend-stats-grid"><section class="friend-stat-card"><h3>最常收的角色</h3>' + statsList(stats.characters) + '</section><section class="friend-stat-card"><h3>收藏種類比例</h3>' + statsList(stats.types) + '<p class="social-note">以已收藏款數計算</p></section><section class="friend-stat-card progress-stat-card"><h3>種類收集進度</h3>' + statsList(stats.types,'progress') + '<p class="social-note">以完整圖鑑中各種類的款數計算</p></section></div>' : '') +
-      '<div class="friend-view-tabs" role="group" aria-label="好友收藏檢視"><button data-friend-tab="collection" aria-pressed="' + (friendTab === 'collection') + '">他的收藏</button><button data-friend-tab="compare" aria-pressed="' + (friendTab === 'compare') + '">收藏比較</button></div>' +
+      '<div class="friend-view-tabs" role="group" aria-label="好友收藏檢視"><button data-friend-tab="collection" aria-pressed="' + (friendTab === 'collection') + '">他的收藏</button><button data-friend-tab="compare" aria-pressed="' + (friendTab === 'compare') + '">收藏比較</button><button data-friend-tab="wishlist" aria-pressed="' + (friendTab === 'wishlist') + '">他的願望清單</button></div>' +
       (friendTab === 'compare' ? '<div class="comparison-intro"><p>你們共同收藏了 <strong>' + n(differences.both.length) + '</strong> 款。</p>' + (myCharacter && character ? '<p class="social-note">你最常收' + h(myCharacter.label) + '，對方最常收' + h(character.label) + '。</p>' : '') + '<div class="comparison-counts"><span>你：' + n(myStats.styles) + ' 款／' + n(myStats.pieces) + ' 個</span><span>對方：' + n(stats.styles) + ' 款／' + n(stats.pieces) + ' 個</span></div></div><div class="comparison-tabs" role="group" aria-label="比較收藏差異">' + [['both','我們都有'],['theirsOnly','他有，我還沒有'],['mineOnly','我有，他還沒有']].map(([key,label]) => '<button data-compare-tab="' + key + '" aria-pressed="' + (compareTab === key) + '">' + label + '<strong>' + n(differences[key].length) + '</strong></button>').join('') + '</div>' : '') +
-      '<div class="friend-product-filters"><label class="visually-hidden" for="friend-search">搜尋好友收藏</label><input id="friend-search" type="search" placeholder="搜尋娃娃名稱或角色"><label class="visually-hidden" for="friend-character">篩選角色</label><select id="friend-character"><option value="">全部角色</option>' + characters.map(character => '<option value="' + h(character) + '">' + h(character) + '</option>').join('') + '</select><label class="visually-hidden" for="friend-type">篩選種類</label><select id="friend-type"><option value="">全部種類</option>' + ITEM_TYPES.map(type => '<option value="' + h(type) + '">' + h(typeLabel(type)) + '</option>').join('') + '</select><label class="visually-hidden" for="friend-series">篩選系列</label><select id="friend-series"><option value="">全部系列</option>' + [...new Set(items.filter(item => quantities[item.id] > 0 || friendTab === 'compare' && getSaved().quantities[item.id] > 0).map(item => item.name))].sort((a,b) => a.localeCompare(b,'zh-TW')).map(name => '<option value="' + h(name) + '">' + h(name) + '</option>').join('') + '</select></div><p id="friend-results-count" class="friend-results-count" role="status" aria-live="polite"></p><div id="friend-products" class="friend-products"></div>';
+      '<div class="friend-product-filters"><label class="visually-hidden" for="friend-search">' + (friendTab === 'wishlist' ? '搜尋好友願望清單' : '搜尋好友收藏') + '</label><input id="friend-search" type="search" placeholder="搜尋娃娃名稱或角色"><label class="visually-hidden" for="friend-character">篩選角色</label><select id="friend-character"><option value="">全部角色</option>' + characters.map(character => '<option value="' + h(character) + '">' + h(character) + '</option>').join('') + '</select><label class="visually-hidden" for="friend-type">篩選種類</label><select id="friend-type"><option value="">全部種類</option>' + ITEM_TYPES.map(type => '<option value="' + h(type) + '">' + h(typeLabel(type)) + '</option>').join('') + '</select><label class="visually-hidden" for="friend-series">篩選系列</label><select id="friend-series"><option value="">全部系列</option>' + [...new Set(productScope.map(item => item.name))].sort((a,b) => a.localeCompare(b,'zh-TW')).map(name => '<option value="' + h(name) + '">' + h(name) + '</option>').join('') + '</select></div><p id="friend-results-count" class="friend-results-count" role="status" aria-live="polite"></p><div id="friend-products" class="friend-products"></div>';
     for (const [id,value] of Object.entries(previousFilters)) { $(id).value = value; if ($(id).value !== value) $(id).value = ''; }
     renderFriendProducts();
     $('friends-dialog').scrollTop = previousScroll;
@@ -349,11 +345,17 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   function renderFriendProducts() {
     if (!friendSnapshot || !$('friend-products')) return;
     const myQuantities = getSaved().quantities, theirQuantities = friendSnapshot.quantities;
-    const scope = friendTab === 'collection' ? items.filter(item => theirQuantities[item.id]>0) : compareCollections(items,myQuantities,theirQuantities)[compareTab];
+    const wished = new Set(friendSnapshot.wishlist || []);
+    if (friendTab === 'wishlist' && friendSnapshot.wishlist === null) {
+      $('friend-results-count').textContent = '';
+      $('friend-products').innerHTML = '<div class="social-empty"><strong>願望清單暫時無法讀取</strong><p>請稍後再試。</p><button class="primary-button" data-action="retry-friend-collection">重新讀取</button></div>';
+      return;
+    }
+    const scope = friendTab === 'collection' ? items.filter(item => theirQuantities[item.id]>0) : friendTab === 'wishlist' ? items.filter(item => wished.has(item.id)) : compareCollections(items,myQuantities,theirQuantities)[compareTab];
     const character = $('friend-character').value;
     const filtered = filterItems(scope.filter(item => !character || item.character === character),{ query:$('friend-search').value, type:$('friend-type').value, series:$('friend-series').value });
-    $('friend-results-count').textContent = '顯示 ' + n(filtered.length) + ' 款' + (friendTab === 'collection' ? '・共 ' + n(filtered.reduce((sum,item) => sum+(theirQuantities[item.id] || 0),0)) + ' 個' : '');
-    $('friend-products').innerHTML = filtered.length ? filtered.map(item => '<article class="friend-product"><div class="friend-product-image"><img src="' + safeImage(item.image) + '" alt="' + h(item.character + '・' + item.name) + '" width="200" height="200" loading="lazy" decoding="async"></div><small>' + h(item.character) + '・' + h(typeLabel(item.type)) + '</small><h3>' + h(item.name) + '</h3><p>' + (friendTab === 'collection' ? '收藏 ' + n(theirQuantities[item.id]) + ' 個' : '你 ' + n(myQuantities[item.id]) + ' 個・對方 ' + n(theirQuantities[item.id]) + ' 個') + '</p></article>').join('') : '<div class="social-empty"><strong>這裡還沒有娃</strong><p>可以切換比較項目，或調整篩選條件。</p></div>';
+    $('friend-results-count').textContent = (friendTab === 'wishlist' ? '想收藏 ' : '顯示 ') + n(filtered.length) + ' 款' + (friendTab === 'collection' ? '・共 ' + n(filtered.reduce((sum,item) => sum+(theirQuantities[item.id] || 0),0)) + ' 個' : '');
+    $('friend-products').innerHTML = filtered.length ? filtered.map(item => '<article class="friend-product"><div class="friend-product-image"><img src="' + safeImage(item.image) + '" alt="' + h(item.character + '・' + item.name) + '" width="200" height="200" loading="lazy" decoding="async"></div><small>' + h(item.character) + '・' + h(typeLabel(item.type)) + '</small><h3>' + h(item.name) + '</h3><p>' + (friendTab === 'collection' ? '收藏 ' + n(theirQuantities[item.id]) + ' 個' : friendTab === 'wishlist' ? '想收藏' : '你 ' + n(myQuantities[item.id]) + ' 個・對方 ' + n(theirQuantities[item.id]) + ' 個') + '</p></article>').join('') : '<div class="social-empty"><strong>' + (friendTab === 'wishlist' && !scope.length ? '他的願望清單還沒有娃' : '沒有符合條件的娃') + '</strong><p>' + (friendTab === 'wishlist' && !scope.length ? '之後想收藏的娃會顯示在這裡。' : '可以切換檢視項目，或調整篩選條件。') + '</p></div>';
     $('friends-content').querySelectorAll('[data-compare-tab]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.compareTab === compareTab)));
   }
   $('friends-content').addEventListener('submit',event => {
@@ -380,7 +382,11 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     else if (button.dataset.compareTab) { compareTab = button.dataset.compareTab; renderFriendProducts(); }
     else if (button.dataset.action === 'back-friends') { selectedFriend = null; friendSnapshot = null; renderFriends(); }
     else if (button.dataset.action === 'refresh-friends') void refreshFriends();
-    else if (button.dataset.action === 'friend-settings') $('friend-settings').hidden = !$('friend-settings').hidden;
+    else if (button.dataset.action === 'retry-friend-collection') void loadFriendSnapshot();
+    else if (button.dataset.action === 'friend-settings') {
+      $('friend-settings').hidden = !$('friend-settings').hidden;
+      button.setAttribute('aria-expanded',String(!$('friend-settings').hidden));
+    }
     else if (button.dataset.confirmFriend && selectedFriend) {
       friendConfirmation = button.dataset.confirmFriend;
       $('friend-confirmation').innerHTML = '<div class="social-confirm"><strong>' + (friendConfirmation === 'block' ? '封鎖' : '移除') + h(selectedFriend.nickname) + '？</strong><p>' + (friendConfirmation === 'block' ? '彼此將停止分享收藏，也無法再送出好友邀請。' : '彼此將停止分享收藏，之後仍可重新加入好友。') + '</p><div><button class="secondary-button" data-action="cancel-friend-confirmation">先保留</button><button class="danger-button" data-action="confirm-friend-change">確認' + (friendConfirmation === 'block' ? '封鎖' : '移除') + '</button></div></div>';
@@ -400,8 +406,6 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       void action(button,async () => {
         await rpc('request_collection_friend',{ p_code:lookup.code }); lookup = null; sessionStorage.removeItem('chiikawa-pending-friend'); await refreshFriends(); renderFriends(); message('friends-message','邀請已送出，等待對方接受。');
       },'friends-message');
-    } else if (button.dataset.readNotification) {
-      void action(button,async () => { await rpc('read_collection_notifications',{ p_ids:[button.dataset.readNotification] }); await refreshFriends(); },'friends-message');
     } else if (button.dataset.unblock) {
       void action(button,async () => { await rpc('unblock_collection_user',{ p_other_id:button.dataset.unblock }); await refreshFriends(); toast('已解除封鎖'); },'friends-message');
     }
@@ -421,7 +425,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (!authLoading && user?.id === nextUser?.id) { user = nextUser; return; }
     const current = ++sessionGeneration;
     resetAvatarDraft(); photos.clear();
-    user = nextUser; profile = null; authLoading = true; friends = []; notifications = []; blocks = []; friendsLoaded = false; friendsError = ''; renderBadge();
+    user = nextUser; profile = null; authLoading = true; friends = []; blocks = []; friendsLoaded = false; friendsError = ''; renderBadge();
     if (!user) {
       store.close(); authLoading = false;
       if ($('friends-dialog').open) $('friends-dialog').close();
