@@ -1,8 +1,8 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=6b1137bb19a43fb8';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=6b1137bb19a43fb8';
-import { createCatalogImageLoader } from './image-loader.mjs?v=6b1137bb19a43fb8';
-import { createCharacterSorter } from './character-sorter.mjs?v=6b1137bb19a43fb8';
-import { watchForSiteUpdates } from './site-updates.mjs?v=6b1137bb19a43fb8';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=617f30221bca3c2f';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=617f30221bca3c2f';
+import { createCatalogImageLoader } from './image-loader.mjs?v=617f30221bca3c2f';
+import { createCharacterSorter } from './character-sorter.mjs?v=617f30221bca3c2f';
+import { watchForSiteUpdates } from './site-updates.mjs?v=617f30221bca3c2f';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -695,7 +695,14 @@ $('series-toggle').addEventListener('click', () => {
   openSeriesCategory = groupSeriesOptions(state.items).find(category => category.options.some(({key}) => key === state.series))?.id || '';
   renderSeriesOptions();
   sizeSeriesPopover();
-  $('series-options').scrollTop = 0;
+  const options = $('series-options');
+  options.scrollTop = 0;
+  const selected = options.querySelector('.series-option.selected');
+  if (selected) {
+    const bounds = options.getBoundingClientRect();
+    const position = selected.getBoundingClientRect();
+    options.scrollTop = position.top - bounds.top - (options.clientHeight - position.height) / 2;
+  }
   $('series-toggle').focus({ preventScroll:true });
 });
 $('series-search').addEventListener('input', () => { renderSeriesOptions(); $('series-options').scrollTop = 0; });
@@ -932,7 +939,7 @@ async function init() {
     browseState.enable();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=6b1137bb19a43fb8').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=617f30221bca3c2f').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
