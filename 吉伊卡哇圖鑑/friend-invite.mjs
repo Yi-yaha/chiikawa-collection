@@ -6,7 +6,7 @@ export const FRIEND_INVITE_DESCRIPTION = '在吉伊卡哇圖鑑加入好友，�
 export function createFriendInviteURL(siteURL, friendCode) {
   const code = normalizeFriendCode(friendCode);
   if (code.length !== 12) throw new Error('請確認好友代碼後再分享。');
-  const url = new URL('./invite.html', siteURL);
+  const url = new URL('./friend.html', siteURL);
   url.searchParams.set('friend', code);
   return url.href;
 }

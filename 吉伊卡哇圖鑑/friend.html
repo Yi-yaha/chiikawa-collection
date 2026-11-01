@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F7F5F1">
+  <meta name="description" content="在吉伊卡哇圖鑑加入好友，一起欣賞彼此的娃、比較收藏，分享想收的願望清單。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_TW">
+  <meta property="og:site_name" content="吉伊卡哇圖鑑">
+  <meta property="og:title" content="加我好友，一起分享收藏！">
+  <meta property="og:description" content="在吉伊卡哇圖鑑加入好友，一起欣賞彼此的娃、比較收藏，分享想收的願望清單。">
+  <meta property="og:image" content="https://yi-yaha.github.io/chiikawa-collection/assets/favicon-512.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:image:alt" content="吉伊卡哇圖鑑的吉伊圖示">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="加我好友，一起分享收藏！">
+  <meta name="twitter:description" content="在吉伊卡哇圖鑑加入好友，一起欣賞彼此的娃、比較收藏，分享想收的願望清單。">
+  <meta name="twitter:image" content="https://yi-yaha.github.io/chiikawa-collection/assets/favicon-512.png">
+  <meta name="twitter:image:alt" content="吉伊卡哇圖鑑的吉伊圖示">
+  <title>加我好友，一起分享收藏！</title>
+  <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="./favicon.ico?v=02b96246e090374e">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png?v=c9e48b28753a9ed9">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
+  <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
+  <link rel="stylesheet" href="./styles.css?v=5c96d28109c8633c">
+  <link rel="stylesheet" href="./account.css?v=5c96d28109c8633c">
+  <script type="module" src="./app.mjs?v=5c96d28109c8633c"></script>
+  <meta name="chiikawa-site-version" content="5c96d28109c8633c">
+</head>
+<body>
+  <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <nav class="character-nav" id="character-nav" aria-label="選擇我的娃、願望清單、所有角色或個別角色">
+        <div class="character-picker-heading" id="character-picker-heading" hidden><span class="character-picker-title">所有角色</span><span class="character-sort-hint">長按拖曳頭貼，調整順序</span></div>
+        <span id="character-sort-help" class="visually-hidden">展開後可長按拖曳角色頭貼調整順序，或按住 Alt 搭配方向鍵移動。我的娃、願望清單與所有角色固定在最前面。</span>
+        <span id="character-sort-status" class="visually-hidden" role="status" aria-live="polite"></span>
+        <div id="character-tabs" class="character-tabs"><span class="loading-label">載入角色…</span></div>
+        <button class="icon-button character-toggle" id="character-toggle" type="button" aria-label="展開所有角色" aria-expanded="false" aria-controls="character-tabs" disabled><span data-icon="chevron"></span></button>
+      </nav>
+      <div class="header-actions">
+        <div class="menu-anchor">
+          <button class="icon-button" id="more-button" aria-label="更多選項" aria-expanded="false" aria-controls="more-menu"><span data-icon="more"></span><span id="more-notification-dot" class="notification-dot" aria-hidden="true" hidden></span></button>
+          <div class="more-menu" id="more-menu" hidden>
+            <button id="open-account" aria-haspopup="dialog" aria-controls="account-dialog"><span data-icon="person"></span><span class="account-menu-copy"><span id="account-menu-name">個人資料</span><small id="account-menu-status">登入，讓收藏跟著你</small></span></button>
+            <button id="open-friends" aria-haspopup="dialog" aria-controls="friends-dialog"><span data-icon="friends"></span>好友<span id="friends-menu-badge" class="friends-menu-badge" hidden></span></button>
+            <div class="menu-divider"></div>
+            <button id="open-settings" aria-haspopup="dialog" aria-controls="settings-dialog" disabled><span data-icon="sliders"></span>收藏設定</button>
+            <div class="menu-divider"></div>
+            <button id="open-data"><span data-icon="box"></span>資料管理</button>
+            <button id="open-guide" aria-haspopup="dialog" aria-controls="guide-dialog"><span data-icon="info"></span>使用說明</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="page-shell">
+    <section id="catalog" class="catalog" aria-labelledby="catalog-title">
+      <div class="catalog-heading">
+        <div><h1 id="catalog-title">我的娃</h1></div>
+      </div>
+      <div class="filters">
+        <div class="filter-controls">
+          <div class="search-filter-row">
+            <label class="search-control"><span data-icon="search"></span><input id="catalog-search" type="search" placeholder="搜尋娃娃名稱" aria-label="搜尋商品名稱或角色" autocomplete="off"></label>
+            <button class="filter-toggle" id="filter-toggle" aria-label="展開地區、種類與系列篩選" aria-expanded="false" aria-controls="filter-options"><span data-icon="sliders"></span><span id="filter-toggle-label">篩選</span><span class="filter-count" id="filter-count" hidden>0</span><span class="filter-toggle-chevron" data-icon="chevron"></span></button>
+          </div>
+          <div id="filter-options" class="filter-options" hidden>
+            <label class="select-control"><select id="region-filter" aria-label="篩選地區"><option value="">全部地區</option></select><span data-icon="chevron"></span></label>
+            <label class="select-control"><select id="type-filter" aria-label="篩選種類"><option value="">全部種類</option></select><span data-icon="chevron"></span></label>
+            <div class="series-anchor">
+              <button id="series-toggle" class="select-control series-toggle" aria-label="篩選系列：全部系列" aria-haspopup="dialog" aria-expanded="false" aria-controls="series-popover"><span id="series-label">全部系列</span><span data-icon="chevron"></span></button>
+              <div id="series-popover" class="series-popover" role="dialog" aria-label="選擇系列" hidden>
+                <div class="series-search-wrap"><span data-icon="search"></span><input id="series-search" type="search" placeholder="搜尋系列或分類" aria-label="搜尋系列或分類" autocomplete="off"></div>
+                <div id="series-options" class="series-options"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <section class="collection-overview" aria-label="收藏統計">
+        <p id="result-context" class="summary-context" hidden>目前篩選結果</p>
+        <div class="result-tools">
+          <div id="result-count" class="catalog-summary" role="status" aria-live="polite">正在整理圖鑑…</div>
+          <div class="segmented" role="group" aria-label="排列方式"><button data-group="character" class="active" aria-pressed="true"><span data-icon="person"></span>依角色</button><button data-group="series" aria-pressed="false"><span data-icon="grid"></span>依系列</button></div>
+        </div>
+      </section>
+      <div class="filter-summary"><div id="active-filters" class="active-filters"></div><button id="reset-filters" class="text-button" hidden><span data-icon="reset"></span>重設篩選</button></div>
+      <div id="catalog-content" aria-busy="true"><div class="product-grid skeleton-grid" aria-hidden="true"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+    </section>
+
+  </main>
+  <footer class="privacy-footer"><a href="./privacy.html">隱私權與資料說明</a></footer>
+
+  <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+  <dialog id="guide-dialog" class="panel-dialog guide-dialog" aria-labelledby="guide-title" aria-describedby="guide-description">
+    <div class="dialog-heading"><h2 id="guide-title">使用說明</h2><button class="icon-button" data-close="guide-dialog" aria-label="關閉使用說明" autofocus><span data-icon="close"></span></button></div>
+    <p id="guide-description" class="dialog-description">記下已經有的，也留住想收藏的。</p>
+    <p class="guide-example">同一款有 <strong>3 個</strong>，就是 <strong>1 款、3 個</strong>。</p>
+    <div class="guide-topics">
+      <details class="guide-topic">
+        <summary>怎麼記錄收藏與願望？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>點愛心加入收藏，先記為 1 個；到商品詳情可以調整數量。移除收藏時，該款的數量也會一併移除。</p>
+          <p>還沒擁有、但想收藏的商品，可以點星星加入願望清單。加入收藏後，會自動移出願望清單；願望不計入已收藏款數與個數。</p>
+        </div>
+      </details>
+      <details id="guide-progress" class="guide-topic">
+        <summary>收藏進度怎麼算？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>「圖鑑收錄」是目前範圍內的商品總款數，「已收藏」是你擁有的不同款數，「持有」則包含同款重複收藏的個數。</p>
+          <p>「收藏設定」勾選的種類，只影響<strong>收藏目標</strong>與<strong>頭貼外圈</strong>的進度。同款買好幾個，目標仍只計 1 款；未勾選的種類照常記錄收藏款數與持有個數。</p>
+          <p>納入收藏目標的種類，會在種類名稱旁顯示「目標」標示。到「⋯ → 收藏設定」可以查看、調整；未勾選的種類不顯示標示。</p>
+          <p>搜尋與篩選會更新頁面統計；頭貼外圈仍顯示該角色的整體目標進度。</p>
+          <p>好友的收藏統計依實際收藏計算，不受進度勾選影響。</p>
+        </div>
+      </details>
+      <details class="guide-topic" open>
+        <summary>哪些地方可以自己調整？<span data-icon="chevron"></span></summary>
+        <dl class="guide-options">
+          <div><dt>收藏目標</dt><dd>到「⋯ → 收藏設定」勾選想納入目標的種類，種類名稱旁會顯示「目標」標示。</dd></div>
+          <div><dt>角色順序</dt><dd>展開頭貼列後，長按並拖曳角色；電腦可直接拖曳。</dd></div>
+          <div><dt>瀏覽方式</dt><dd>角色圖鑑依種類分區，「我的娃」與願望清單依角色分區，也能切換為依系列排列。系列選單先選大分類，再點開選擇系列；也可直接搜尋系列或分類名稱。搜尋、地區、種類與系列可以一起篩選。</dd></div>
+          <div><dt>暱稱與頭貼</dt><dd>登入後，到「⋯ → 個人資料」修改。</dd></div>
+        </dl>
+      </details>
+      <details class="guide-topic">
+        <summary>紀錄會存在哪裡？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>未登入時，紀錄儲存在目前使用的瀏覽器；登入後可與帳號同步，在不同裝置接續使用。</p>
+          <p>「資料管理」可以匯出或匯入備份，保留收藏數量、願望清單、角色順序與收藏設定。同一份備份重複匯入，數量不會累加；同款會保留較大的數量。</p>
+        </div>
+      </details>
+    </div>
+    <div class="guide-footer"><button class="primary-button" data-close="guide-dialog">知道了</button></div>
+  </dialog>
+  <dialog id="remove-dialog" class="panel-dialog compact-dialog" aria-labelledby="remove-title" aria-describedby="remove-description"><div class="warning-icon" data-icon="heart"></div><h2 id="remove-title">移出我的娃？</h2><p id="remove-description"></p><div class="confirm-actions"><button class="secondary-button" data-close="remove-dialog" autofocus>先保留</button><button class="danger-button" id="confirm-remove">確認移除</button></div></dialog>
+  <dialog id="settings-dialog" class="panel-dialog settings-dialog" aria-labelledby="settings-title" aria-describedby="settings-description">
+    <div class="dialog-heading"><h2 id="settings-title">收藏設定</h2><button class="icon-button" data-close="settings-dialog" aria-label="關閉收藏設定" autofocus><span data-icon="close"></span></button></div>
+    <p id="settings-description" class="dialog-description">勾選的種類會標示「目標」，並計入角色頭貼外圈進度。<br>所有種類的實際收藏款數與持有個數都會完整記錄。</p>
+    <fieldset class="progress-types"><legend>納入收藏目標</legend><div id="progress-type-options" class="progress-type-options"></div></fieldset>
+    <p class="settings-note">設定會自動儲存，並隨收藏備份保留。<button id="settings-guide" class="guide-link" aria-haspopup="dialog" aria-controls="guide-dialog">看看進度怎麼算</button></p>
+    <div class="settings-footer"><button class="primary-button" data-close="settings-dialog">完成</button></div>
+  </dialog>
+  <dialog id="data-dialog" class="panel-dialog" aria-labelledby="data-title">
+    <div class="dialog-heading"><div><h2 id="data-title">資料管理</h2></div><button class="icon-button" data-close="data-dialog" aria-label="關閉資料管理"><span data-icon="close"></span></button></div>
+    <p id="data-description" class="dialog-description">目前收藏儲存在這台裝置。登入帳號後，可以在手機與電腦接續使用，也能繼續匯出備份。</p>
+    <div id="cloud-sync-status" class="cloud-sync-status" role="status"><span id="cloud-sync-label">收藏儲存在這台裝置</span><button id="sync-now" class="text-button" hidden>立即同步</button><button id="resolve-sync" class="text-button" hidden>處理同步差異</button></div>
+    <button id="import-guest-collection" class="text-button guest-import-button" hidden>帶入這台裝置原有的收藏</button>
+    <div class="data-summary"><span data-icon="heart"></span><div><strong id="data-count">0 款收藏，共 0 個</strong><span id="data-wish-count">願望清單 0 款</span></div></div>
+    <button id="export-data" class="data-action"><span data-icon="download"></span><span><strong>匯出收藏備份</strong><small>保存收藏數量、願望清單與角色順序</small></span><span data-icon="arrow-right"></span></button>
+    <button id="import-data" class="data-action"><span data-icon="upload"></span><span><strong>匯入收藏備份</strong><small>合併收藏與願望清單，套用備份中的排列設定</small></span><span data-icon="arrow-right"></span></button>
+    <input id="import-file" type="file" accept="application/json,.json" hidden>
+    <p id="data-message" class="data-message" role="status"></p>
+    <div class="danger-zone"><div><strong>清除收藏紀錄</strong><p>清空「我的娃」，願望清單與角色順序會保留。</p></div><button id="ask-clear" class="danger-button">清除紀錄</button></div>
+  </dialog>
+  <dialog id="clear-dialog" class="panel-dialog compact-dialog" aria-labelledby="clear-title"><div class="warning-icon" data-icon="heart"></div><h2 id="clear-title">清除所有收藏紀錄？</h2><p id="clear-description">「我的娃」將會清空，商品圖鑑與角色順序會保留。建議先匯出備份。</p><div class="confirm-actions"><button class="secondary-button" data-close="clear-dialog">先保留</button><button class="danger-button" id="confirm-clear">確認清除收藏</button></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden><span data-icon="check"></span><span id="toast-message"></span><button id="toast-undo" hidden>復原</button></div>
+  <noscript><p class="noscript">請開啟瀏覽器的 JavaScript，才能瀏覽圖鑑和儲存收藏。</p></noscript>
+</body>
+</html>

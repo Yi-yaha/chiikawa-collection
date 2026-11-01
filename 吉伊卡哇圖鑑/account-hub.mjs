@@ -1,10 +1,10 @@
-import { createClient } from './supabase-client.mjs?v=593d958247a3ce87';
-import { cloudConfig } from './cloud-config.mjs?v=593d958247a3ce87';
-import { createCloudStore } from './cloud-store.mjs?v=593d958247a3ce87';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=593d958247a3ce87';
-import { createFriendInviteURL } from './friend-invite.mjs?v=593d958247a3ce87';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=593d958247a3ce87';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=593d958247a3ce87';
+import { createClient } from './supabase-client.mjs?v=5c96d28109c8633c';
+import { cloudConfig } from './cloud-config.mjs?v=5c96d28109c8633c';
+import { createCloudStore } from './cloud-store.mjs?v=5c96d28109c8633c';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=5c96d28109c8633c';
+import { createFriendInviteURL } from './friend-invite.mjs?v=5c96d28109c8633c';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=5c96d28109c8633c';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=5c96d28109c8633c';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -50,7 +50,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
     avatarPreview = '';
   }
-  const canonicalURL = () => location.origin + location.pathname;
+  const canonicalURL = () => new URL('./',location.href).href;
   const rpc = async (name, args = {}) => { const result = await client.rpc(name, args); if (result.error) throw result.error; return result.data; };
   const message = (id, text, error = false) => { const target = $(id); if (target) { target.textContent = text; target.classList.toggle('error', error); } };
   const open = id => { const dialog = $(id); if (!dialog.open) dialog.showModal(); };
