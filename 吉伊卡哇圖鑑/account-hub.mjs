@@ -1,9 +1,10 @@
-import { createClient } from './supabase-client.mjs?v=13e7f274dbea8a5c';
-import { cloudConfig } from './cloud-config.mjs?v=13e7f274dbea8a5c';
-import { createCloudStore } from './cloud-store.mjs?v=13e7f274dbea8a5c';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=13e7f274dbea8a5c';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=13e7f274dbea8a5c';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=13e7f274dbea8a5c';
+import { createClient } from './supabase-client.mjs?v=593d958247a3ce87';
+import { cloudConfig } from './cloud-config.mjs?v=593d958247a3ce87';
+import { createCloudStore } from './cloud-store.mjs?v=593d958247a3ce87';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=593d958247a3ce87';
+import { createFriendInviteURL } from './friend-invite.mjs?v=593d958247a3ce87';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=593d958247a3ce87';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=593d958247a3ce87';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -489,7 +490,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     const button = event.target.closest('[data-action]');
     if (!profile?.friend_code || !button) return;
     if (button.dataset.action === 'copy-code') void copyText(formatFriendCode(profile.friend_code));
-    if (button.dataset.action === 'copy-invite') { const url = new URL(canonicalURL()); url.searchParams.set('friend',profile.friend_code); void copyText(url.href); }
+    if (button.dataset.action === 'copy-invite') void copyText(createFriendInviteURL(canonicalURL(),profile.friend_code));
   });
   function getViewState() {
     if (pendingView) return pendingView;

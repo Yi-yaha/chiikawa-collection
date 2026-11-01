@@ -1,11 +1,13 @@
-import { typeLabel } from './model.mjs?v=13e7f274dbea8a5c';
+import { typeLabel } from './model.mjs?v=593d958247a3ce87';
+import { normalizeFriendCode } from './friend-invite.mjs?v=593d958247a3ce87';
+
+export { normalizeFriendCode };
 
 export const normalizeNickname = value => String(value ?? '').trim().replace(/\s+/gu, ' ');
 export const validNickname = value => {
   const name = normalizeNickname(value);
   return [...name].length >= 1 && [...name].length <= 24 && !/[\u0000-\u001f\u007f-\u009f]/u.test(name);
 };
-export const normalizeFriendCode = value => String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 export const formatFriendCode = value => normalizeFriendCode(value).match(/.{1,4}/g)?.join('－') || '';
 
 export function collectionStats(items, quantities = {}) {
