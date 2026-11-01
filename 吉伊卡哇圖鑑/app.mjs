@@ -1,7 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems } from './model.mjs?v=dac15ec3901ac85f';
-import { createCatalogImageLoader } from './image-loader.mjs?v=dac15ec3901ac85f';
-import { createCharacterSorter } from './character-sorter.mjs?v=dac15ec3901ac85f';
-import { watchForSiteUpdates } from './site-updates.mjs?v=dac15ec3901ac85f';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems } from './model.mjs?v=232947aae92a509c';
+import { createCatalogImageLoader } from './image-loader.mjs?v=232947aae92a509c';
+import { createCharacterSorter } from './character-sorter.mjs?v=232947aae92a509c';
+import { watchForSiteUpdates } from './site-updates.mjs?v=232947aae92a509c';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -145,7 +145,7 @@ function matchingCatalogItems() {
 }
 function catalogGrouping() {
   if (state.groupBy === 'series') return 'series';
-  return state.scope === 'mine' || state.scope === 'wishlist' ? 'character' : 'type';
+  return ['mine', 'wishlist', 'all'].includes(state.scope) ? 'character' : 'type';
 }
 
 function updateProgressSetting() {
@@ -189,6 +189,7 @@ function renderTabs() {
   const tabs = [
     '<button class="character-tab mine-tab ' + (state.scope === 'mine' ? 'active' : '') + '" data-scope="mine" aria-pressed="' + (state.scope === 'mine') + '"><span class="avatar">' + icon('heart') + '</span><span>我的娃</span></button>',
     '<button class="character-tab wish-tab ' + (state.scope === 'wishlist' ? 'active' : '') + '" data-scope="wishlist" aria-pressed="' + (state.scope === 'wishlist') + '"><span class="avatar">' + icon('star') + '</span><span>願望清單</span></button>',
+    '<button class="character-tab all-tab ' + (state.scope === 'all' ? 'active' : '') + '" data-scope="all" aria-pressed="' + (state.scope === 'all') + '"><span class="avatar"><span class="all-characters-portrait" aria-hidden="true"></span></span><span>所有角色</span></button>',
     ...state.characterOrder.map(character => '<button class="character-tab ' + (state.scope === character ? 'active' : '') + '" data-scope="' + escapeHTML(character) + '" aria-describedby="character-sort-help" aria-pressed="' + (state.scope === character) + '" style="--avatar-bg:' + (colors[character]?.[0] || '#eee8df') + '"><span class="avatar">' + avatarPortrait(character) + collectionRing() + '</span><span>' + escapeHTML(character) + '</span></button>')
   ];
   $('character-tabs').innerHTML = tabs.join('');
@@ -201,6 +202,10 @@ function updateCollectionTabs() {
   state.owned.forEach(id => { const item = itemMap.get(id); if (item && isProgressIncluded(item, state.includedTypes)) counts.set(item.character, (counts.get(item.character) || 0) + 1); });
   $('character-tabs').querySelectorAll('[data-scope]').forEach(tab => {
     const scope = tab.dataset.scope;
+    if (scope === 'all') {
+      tab.setAttribute('aria-label', '所有角色：收錄 ' + number(state.items.length) + ' 款商品');
+      return;
+    }
     if (scope === 'wishlist') {
       tab.setAttribute('aria-label', '願望清單：' + number(state.wishlist.size) + ' 款');
       return;
@@ -222,8 +227,8 @@ function updateCollectionTabs() {
 }
 function renderHeading() {
   const mine = state.scope === 'mine';
-  $('catalog-title').textContent = mine ? '我的娃' : state.scope === 'wishlist' ? '願望清單' : state.scope + '的圖鑑';
-  const byType = !mine && state.scope !== 'wishlist';
+  $('catalog-title').textContent = mine ? '我的娃' : state.scope === 'wishlist' ? '願望清單' : state.scope === 'all' ? '所有角色' : state.scope + '的圖鑑';
+  const byType = !['mine', 'wishlist', 'all'].includes(state.scope);
   document.querySelector('[data-group="character"]').innerHTML = icon(byType ? 'tag' : 'person') + (byType ? '依種類' : '依角色');
   document.querySelectorAll('[data-group]').forEach(button => {
     const active = button.dataset.group === state.groupBy;
@@ -257,11 +262,11 @@ function renderRegionOptions() {
 function renderSeriesOptions() {
   const counts = new Map();
   const available = filterItems(baseItems(), {type:state.type,region:state.region,query:state.query});
-  available.forEach(item => counts.set(item.name, (counts.get(item.name) || 0) + 1));
+  available.forEach(item => {const key=seriesKey(item);counts.set(key, (counts.get(key) || 0) + 1);});
   const search = $('series-search').value.trim().toLocaleLowerCase('zh-TW');
-  const names = [...counts.keys()].filter(name => name.toLocaleLowerCase('zh-TW').includes(search)).sort((a,b) => a.localeCompare(b,'zh-TW',{numeric:true}));
+  const names = [...counts.keys()].filter(name => seriesLabel(name).toLocaleLowerCase('zh-TW').includes(search)).sort((a,b) => a.localeCompare(b,'zh-TW',{numeric:true}));
   let html = '<button class="series-option ' + (!state.series ? 'selected' : '') + '" data-series="" aria-pressed="' + !state.series + '"><span>全部系列</span><small>' + number(available.length) + ' 款</small></button>';
-  html += names.map(name => '<button class="series-option ' + (state.series === name ? 'selected' : '') + '" data-series="' + escapeHTML(name) + '" aria-pressed="' + (state.series === name) + '"><span>' + escapeHTML(name) + '</span><small>' + number(counts.get(name)) + ' 款</small></button>').join('');
+  html += names.map(name => '<button class="series-option ' + (state.series === name ? 'selected' : '') + '" data-series="' + escapeHTML(name) + '" aria-pressed="' + (state.series === name) + '"><span>' + escapeHTML(seriesLabel(name)) + '</span><small>' + number(counts.get(name)) + ' 款</small></button>').join('');
   if (!names.length) html += '<p class="series-option-empty">找不到符合的系列，換個名稱試試看。</p>';
   $('series-options').innerHTML = html;
 }
@@ -269,13 +274,13 @@ function renderFilters() {
   renderFilterDisclosure();
   renderTypeOptions();
   renderRegionOptions();
-  $('series-label').textContent = state.series || '全部系列';
-  $('series-toggle').setAttribute('aria-label', '篩選系列：' + (state.series || '全部系列'));
-  $('series-toggle').title = state.series || '全部系列';
+  $('series-label').textContent = (state.series ? seriesLabel(state.series) : '全部系列');
+  $('series-toggle').setAttribute('aria-label', '篩選系列：' + ((state.series ? seriesLabel(state.series) : '全部系列')));
+  $('series-toggle').title = (state.series ? seriesLabel(state.series) : '全部系列');
   const chips = [];
   if(state.type) chips.push(['type', '種類：' + typeLabel(state.type)]);
   if(state.region) chips.push(['region', '地區：' + state.region]);
-  if(state.series) chips.push(['series', '系列：' + state.series]);
+  if(state.series) chips.push(['series', '系列：' + seriesLabel(state.series)]);
   if(state.query) chips.push(['query', '搜尋：' + state.query]);
   $('active-filters').innerHTML = chips.map(([key,label]) => '<button class="filter-chip" data-remove-filter="' + key + '" aria-label="移除' + escapeHTML(label) + '">' + escapeHTML(label) + icon('close') + '</button>').join('');
   $('reset-filters').hidden = !chips.length;
@@ -323,7 +328,7 @@ function updateGoalBadges() {
 function groupSummary(group) {
   if (state.scope === 'wishlist') return '<span>想收 <strong>' + number(group.items.length) + '</strong> 款</span>';
   const groupBy = catalogGrouping();
-  const items = state.scope === 'mine' ? matchingCatalogItems().filter(item => (groupBy === 'series' ? item.name : item.character) === group.name) : group.items;
+  const items = state.scope === 'mine' ? matchingCatalogItems().filter(item => (groupBy === 'series' ? seriesKey(item) : item.character) === group.name) : group.items;
   const stats = collectionStats(items, state.owned, state.quantities);
   return '<span>圖鑑 <strong>' + number(stats.total) + '</strong> 款</span><span>已收藏 <strong>' + number(stats.owned) + '</strong> 款</span><span>持有 <strong>' + number(stats.pieces) + '</strong> 個</span>';
 }
@@ -332,7 +337,7 @@ function catalogGroup(group) {
   const titleId = 'group-title-' + groupBy + '-' + group.items[0].id;
   const groupAvatar = groupBy === 'character' ? '<img class="group-avatar" src="' + escapeHTML(avatars.get(group.name)) + '" alt="" width="30" height="30">' : '';
   const roleCount = groupBy === 'series' && new Set(group.items.map(item => item.character)).size > 1 ? '<span class="group-caption">' + new Set(group.items.map(item => item.character)).size + ' 個角色</span>' : '';
-  const name = groupBy === 'type' ? typeLabel(group.name) : group.name;
+  const name = groupBy === 'type' ? typeLabel(group.name) : groupBy === 'series' ? seriesLabel(group.name) : group.name;
   const target = groupBy === 'type' ? '<span class="group-target" data-goal-type="' + escapeHTML(group.name) + '" aria-label="此種類已納入收藏目標"' + (isProgressIncluded({ type:group.name }, state.includedTypes) ? '' : ' hidden') + '>目標</span>' : '';
   return '<section class="catalog-group" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(name) + '</h3>' + target + roleCount + '<span class="group-line"></span></div><p class="group-summary">' + groupSummary(group) + '</p><div class="product-grid">' + group.items.map(productCard).join('') + '</div></section>';
 }
@@ -349,7 +354,7 @@ function renderCatalog() {
     catalogImages.refresh();
     return;
   }
-  const order = state.scope === 'mine' || state.scope === 'wishlist' ? state.characterOrder : state.characters;
+  const order = ['mine', 'wishlist', 'all'].includes(state.scope) ? state.characterOrder : state.characters;
   const groups = groupItems(items,catalogGrouping(),order);
   $('catalog-content').innerHTML = groups.map(catalogGroup).join('');
   observeCatalogSize();
@@ -383,7 +388,8 @@ function updateCollectionCatalog(id) {
     const items = currentItems();
     renderResultCount(items);
     const sections = new Map([...$('catalog-content').querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
-    for (const group of groupItems(items, catalogGrouping(), state.characters)) {
+    const order = state.scope === 'all' ? state.characterOrder : state.characters;
+    for (const group of groupItems(items, catalogGrouping(), order)) {
       const summary = sections.get(group.name)?.querySelector('.group-summary');
       if (summary) summary.innerHTML = groupSummary(group);
     }
@@ -397,7 +403,7 @@ function updateCollectionCatalog(id) {
   const content = $('catalog-content');
   if (!items.length) { content.innerHTML = emptyState(); return; }
   const item = itemMap.get(id);
-  const key = state.groupBy === 'character' ? item.character : item.name;
+  const key = state.groupBy === 'character' ? item.character : seriesKey(item);
   const sections = new Map([...content.querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
   const section = sections.get(key);
   const groups = groupItems(items, catalogGrouping(), state.characterOrder);
@@ -424,7 +430,7 @@ function updateCollectionCatalog(id) {
   else section.querySelector('.product-grid').insertAdjacentHTML('beforeend', productCard(item));
 }
 function setScope(scope) {
-  if (state.scope === scope || (!['mine', 'wishlist'].includes(scope) && !state.characters.includes(scope))) return;
+  if (state.scope === scope || (!['mine', 'wishlist', 'all'].includes(scope) && !state.characters.includes(scope))) return;
   const enteringPersonal = scope === 'mine' || scope === 'wishlist';
   dismissToast();
   state.scope = scope;
@@ -553,7 +559,7 @@ function renderDetail(id) {
   $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2>' +
     '<div class="detail-collection"><div id="detail-quantity-panel" class="quantity-panel" hidden><div class="quantity-row"><label for="detail-quantity">收藏數量</label><div class="quantity-stepper"><button id="quantity-minus" data-quantity-step="-1" aria-label="減少收藏數量">' + icon('minus') + '</button><input id="detail-quantity" type="number" inputmode="numeric" min="0" max="' + MAX_QUANTITY + '" step="1" aria-describedby="quantity-help"><button id="quantity-plus" data-quantity-step="1" aria-label="增加收藏數量">' + icon('plus') + '</button></div></div><span id="quantity-help" class="visually-hidden">數量變更會自動儲存，設為 0 會取消收藏</span></div>' +
     '<button class="primary-button" id="detail-collect" data-collect="' + id + '"></button><button class="detail-wish-button" id="detail-wish" data-wish="' + id + '"></button></div>' +
-    '<dl><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>地區</dt><dd>' + escapeHTML(item.region || '日本') + '</dd>' + (item.limitedLocation ? '<dt>限定地點</dt><dd>' + escapeHTML(item.limitedLocation) + '</dd>' : '') + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
+    '<dl><dt>系列</dt><dd>' + escapeHTML(seriesLabel(seriesKey(item))) + '</dd><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>地區</dt><dd>' + escapeHTML(item.region || '日本') + '</dd>' + (item.limitedLocation ? '<dt>限定地點</dt><dd>' + escapeHTML(item.limitedLocation) + '</dd>' : '') + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
   updateDetailCollection();
   openDialog('detail-dialog');
 }
@@ -602,7 +608,7 @@ const characterSorter = createCharacterSorter($('character-tabs'), {
   onCommit: (order, character) => {
     state.characterOrder = order;
     const stored = persist();
-    if (state.scope === 'mine' || state.scope === 'wishlist') renderCatalog();
+    if (['mine', 'wishlist', 'all'].includes(state.scope)) renderCatalog();
     $('character-sort-status').textContent = character + '已移到第 ' + (order.indexOf(character) + 1) + ' 位' + (stored ? '，順序已儲存' : '，目前無法儲存');
   }
 });
@@ -830,7 +836,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=dac15ec3901ac85f').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=232947aae92a509c').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({

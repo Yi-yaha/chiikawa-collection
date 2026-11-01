@@ -248,7 +248,7 @@ html{scroll-padding-top:118px}
 .header-inner:has(.character-nav.is-expanded) .header-actions{position:absolute;right:max(48px,calc((100vw - 1400px)/2 + 48px));top:10px;margin:0;padding-top:0}
 .header-inner .character-nav.is-expanded .character-tabs{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));align-items:start;gap:12px 8px;max-height:calc(100dvh - 124px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:8px 3px 12px}
 .character-nav.is-expanded .character-tab{width:100%;min-width:0;justify-content:flex-start;cursor:grab;touch-action:pan-y}
-.character-nav.is-expanded .mine-tab,.character-nav.is-expanded .wish-tab{cursor:pointer}
+.character-nav.is-expanded .mine-tab,.character-nav.is-expanded .wish-tab,.character-nav.is-expanded .all-tab{cursor:pointer}
 .character-tabs.is-sorting{cursor:grabbing;scroll-behavior:auto}
 .character-tab.is-drag-source{opacity:.25;background:var(--pink);outline:1px dashed #CFAAA4;outline-offset:-2px}
 .character-drag-preview{position:fixed!important;z-index:110;pointer-events:none;margin:0;min-width:0;background:var(--paper);color:var(--ink);box-shadow:0 8px 24px #5A3B3026;outline:1px solid #E3C6C0;transition:none;cursor:grabbing;will-change:transform}
@@ -293,6 +293,9 @@ html{scroll-padding-top:118px}
 .character-tab.wish-tab .avatar svg{fill:currentColor}
 .character-tab.wish-tab.active{color:var(--wish)}
 .character-tab.wish-tab.active .avatar{background:var(--wish-bg);border-color:#DEC68F}
+.character-tab.all-tab .avatar{background:var(--paper);padding:3px}
+.character-tab.all-tab.active .avatar{background:var(--pink)}
+.all-characters-portrait{display:block;width:100%;height:100%;background:url('./assets/all-characters.png?v=da0e7160a8b12ce6') center/contain no-repeat}
 .collection-overview{margin:14px 0 16px}
 .summary-context{font-size:11px;color:var(--muted);margin-bottom:8px}
 .catalog-summary{display:grid;grid-template-columns:repeat(3,max-content);justify-content:space-between;flex:1 1 165px;min-width:max-content;gap:10px;max-width:300px}

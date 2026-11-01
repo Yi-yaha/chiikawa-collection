@@ -3,6 +3,9 @@ export const MAX_QUANTITY = 9999;
 export const ITEM_TYPES = ['吊娃', '娃', '扭蛋', '徽章', '立牌', '公仔', '景品', '地方限定吊娃', '地方限定吊牌', '其他', '待分類'];
 export const PROGRESS_TYPES = [...ITEM_TYPES];
 export const typeLabel = type => ({娃:'玩偶', 吊娃:'吊飾娃', 地方限定吊娃:'地方限定吊飾娃', 鐵牌:'地方限定吊牌', 其他:'其他小物'}[type] || type);
+export const UNASSIGNED_SERIES = '__unassigned__';
+export const seriesKey = item => (typeof item.series === 'string' ? item.series.trim() : '') || UNASSIGNED_SERIES;
+export const seriesLabel = key => key === UNASSIGNED_SERIES ? '未設定系列' : key;
 
 function normalizeIncludedTypes(value, includeMetalTags = true) {
   const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -95,6 +98,7 @@ export function progressTotals(items, includedTypes = {}) {
 }
 
 export function scopeItems(items, scope, owned, wishlist = new Set()) {
+  if (scope === 'all') return items;
   if (scope === 'mine') return items.filter(item => owned.has(item.id));
   if (scope === 'wishlist') return items.filter(item => wishlist.has(item.id) && !owned.has(item.id));
   return items.filter(item => item.character === scope);
@@ -102,7 +106,7 @@ export function scopeItems(items, scope, owned, wishlist = new Set()) {
 
 export function filterItems(items, { type = '', region = '', series = '', query = '' } = {}) {
   const needle = query.trim().toLocaleLowerCase('zh-TW');
-  return items.filter(item => (!type || item.type === type) && (!region || (item.region || '日本') === region) && (!series || item.name === series) && (!needle || `${item.name} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`.toLocaleLowerCase('zh-TW').includes(needle)));
+  return items.filter(item => (!type || item.type === type) && (!region || (item.region || '日本') === region) && (!series || seriesKey(item) === series) && (!needle || `${item.name} ${item.series || ''} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`.toLocaleLowerCase('zh-TW').includes(needle)));
 }
 
 export function collectionStats(items, owned, quantities = {}, includedTypes = {}) {
@@ -126,7 +130,7 @@ export function groupItems(items, groupBy, characterOrder) {
   const groups = new Map();
   const order = new Map(characterOrder.map((name, index) => [name, index]));
   for (const item of items) {
-    const key = groupBy === 'series' ? item.name : groupBy === 'type' ? item.type : item.character;
+    const key = groupBy === 'series' ? seriesKey(item) : groupBy === 'type' ? item.type : item.character;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(item);
   }
