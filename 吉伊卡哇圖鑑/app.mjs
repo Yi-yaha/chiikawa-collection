@@ -1,7 +1,8 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=8b7353a526099df0';
-import { createCatalogImageLoader } from './image-loader.mjs?v=8b7353a526099df0';
-import { createCharacterSorter } from './character-sorter.mjs?v=8b7353a526099df0';
-import { watchForSiteUpdates } from './site-updates.mjs?v=8b7353a526099df0';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=782a33394666719b';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=782a33394666719b';
+import { createCatalogImageLoader } from './image-loader.mjs?v=782a33394666719b';
+import { createCharacterSorter } from './character-sorter.mjs?v=782a33394666719b';
+import { watchForSiteUpdates } from './site-updates.mjs?v=782a33394666719b';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -61,7 +62,7 @@ function avatarPortrait(character) {
   if (character === '其他角色') character = '奇美拉';
   const [x,y,zoom] = avatarCrops[character] || [50,50,1];
   const crop = '--portrait-size:' + (zoom*100) + '%;--portrait-x:' + (50-x*zoom) + '%;--portrait-y:' + (50-y*zoom) + '%';
-  return '<span class="avatar-portrait" style="' + crop + '"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="300" height="300"></span>';
+  return '<span class="avatar-portrait" style="' + crop + '"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="300" height="300" loading="lazy" decoding="async"></span>';
 }
 const state = { items:[], characters:[], owned:new Set(), quantities:{}, wishlist:new Set(), characterOrder:[], groupBy:'character', includedTypes:{}, scope:'mine', type:'', region:'', series:'', query:'', ready:false };
 let itemMap = new Map();
@@ -71,6 +72,7 @@ let avatars = new Map();
 let toastTimer, undoAction, activeDetail, pendingRemoval;
 let storageOK = true;
 let accountHub = null;
+let accountScopeInitialized = false;
 let collectionStorageKey = STORAGE_KEY;
 let lastClearKey = STORAGE_KEY + '-last-clear';
 const filterExpansionKey = STORAGE_KEY + '-filters-expanded';
@@ -78,6 +80,18 @@ let filtersExpanded = false;
 let charactersExpanded = false;
 let openSeriesCategory = '';
 try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
+try { history.scrollRestoration = 'manual'; } catch {}
+let initialPositionPending = true;
+for (const event of ['pointerdown','touchstart','wheel','keydown']) window.addEventListener(event, () => { initialPositionPending = false; }, { passive:true, once:true });
+const browseState = createViewState({ key:STORAGE_KEY + '-browse', read:() => ({
+  scope:state.scope, type:state.type, region:state.region, series:state.series,
+  query:$('catalog-search').value, groupBy:state.groupBy, filtersExpanded, charactersExpanded,
+  tabs:{ x:$('character-tabs').scrollLeft, y:$('character-tabs').scrollTop },
+  position:initialPositionPending && browseState.saved?.position || capturePosition($('catalog-content')),
+  detail:$('detail-dialog').open ? activeDetail : null,
+  dialogs:['guide-dialog','settings-dialog','data-dialog'].filter(id => $(id).open).map(id => ({ id, y:$(id).scrollTop })),
+  social:accountHub?.getViewState() ?? browseState.saved?.social ?? null,
+}) });
 const catalogImages = createCatalogImageLoader($('catalog-content'));
 let sizingSample;
 const catalogSizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(([entry]) => {
@@ -352,14 +366,15 @@ function groupSummary(group) {
   const stats = collectionStats(items, state.owned, state.quantities);
   return '<span>圖鑑 <strong>' + number(stats.total) + '</strong> 款</span><span>已收藏 <strong>' + number(stats.owned) + '</strong> 款</span><span>持有 <strong>' + number(stats.pieces) + '</strong> 個</span>';
 }
+function catalogColumns() { return window.innerWidth >= 1280 ? 6 : window.innerWidth >= 1000 ? 5 : window.innerWidth >= 701 ? 4 : 3; }
 function catalogGroup(group) {
   const groupBy = catalogGrouping();
   const titleId = 'group-title-' + groupBy + '-' + group.items[0].id;
-  const groupAvatar = groupBy === 'character' ? '<img class="group-avatar" src="' + escapeHTML(avatars.get(group.name)) + '" alt="" width="30" height="30">' : '';
+  const groupAvatar = groupBy === 'character' ? '<img class="group-avatar" src="' + escapeHTML(avatars.get(group.name)) + '" alt="" width="30" height="30" loading="lazy" decoding="async">' : '';
   const roleCount = groupBy === 'series' && new Set(group.items.map(item => item.character)).size > 1 ? '<span class="group-caption">' + new Set(group.items.map(item => item.character)).size + ' 個角色</span>' : '';
   const name = groupBy === 'type' ? typeLabel(group.name) : groupBy === 'series' ? seriesLabel(group.name) : group.name;
   const target = groupBy === 'type' ? '<span class="group-target" data-goal-type="' + escapeHTML(group.name) + '" aria-label="此種類已納入收藏目標"' + (isProgressIncluded({ type:group.name }, state.includedTypes) ? '' : ' hidden') + '>目標</span>' : '';
-  return '<section class="catalog-group" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(name) + '</h3>' + target + roleCount + '<span class="group-line"></span></div><p class="group-summary">' + groupSummary(group) + '</p><div class="product-grid">' + group.items.map(productCard).join('') + '</div></section>';
+  return '<section class="catalog-group" data-count="' + group.items.length + '" style="--group-rows:' + Math.ceil(group.items.length / catalogColumns()) + '" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(name) + '</h3>' + target + roleCount + '<span class="group-line"></span></div><p class="group-summary">' + groupSummary(group) + '</p><div class="product-grid">' + group.items.map(productCard).join('') + '</div></section>';
 }
 function renderCatalog() {
   if (!state.ready) return;
@@ -402,42 +417,36 @@ function updateCollectionCard(id) {
   quantity.hidden = !owned;
   quantity.querySelector('.quantity-value').textContent = number(quantityOf(id)) + ' 個';
 }
-function updateCollectionCatalog(id) {
-  if (state.scope !== 'mine' && state.scope !== 'wishlist') {
-    updateCollectionCard(id);
-    const items = currentItems();
-    renderResultCount(items);
-    const sections = new Map([...$('catalog-content').querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
-    const order = state.scope === 'all' ? state.characterOrder : state.characters;
-    for (const group of groupItems(items, catalogGrouping(), order)) {
-      const summary = sections.get(group.name)?.querySelector('.group-summary');
-      if (summary) summary.innerHTML = groupSummary(group);
-    }
-    return;
-  }
-  renderTypeOptions();
-  renderRegionOptions();
-  if (!$('series-popover').hidden) renderSeriesOptions();
-  const items = currentItems();
-  renderResultCount(items);
+function updateCollectionCatalog(id, batch = null) {
+  const personal = state.scope === 'mine' || state.scope === 'wishlist';
+  const items = batch?.items || currentItems();
   const content = $('catalog-content');
-  if (!items.length) { content.innerHTML = emptyState(); return; }
+  if (!batch) {
+    if (personal) { renderTypeOptions(); renderRegionOptions(); if (!$('series-popover').hidden) renderSeriesOptions(); }
+    renderResultCount(items);
+  }
+  if (!items.length) { if (!content.querySelector('.empty-state')) content.innerHTML = emptyState(); return; }
+  const sections = batch?.sections || new Map([...content.querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
+  const order = state.scope === 'all' || personal ? state.characterOrder : state.characters;
+  const groups = batch?.groups || groupItems(items, catalogGrouping(), order);
   const item = itemMap.get(id);
-  const key = state.groupBy === 'character' ? item.character : seriesKey(item);
-  const sections = new Map([...content.querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
+  const key = catalogGrouping() === 'series' ? seriesKey(item) : catalogGrouping() === 'type' ? item.type : item.character;
   const section = sections.get(key);
-  const groups = groupItems(items, catalogGrouping(), state.characterOrder);
   const index = groups.findIndex(group => group.name === key);
-  if (index === -1) { section?.remove(); return; }
+  if (index === -1) { section?.remove(); sections.delete(key); return; }
   const group = groups[index];
+  if (section) { section.dataset.count = group.items.length; section.style.setProperty('--group-rows', Math.ceil(group.items.length / catalogColumns())); }
   if (!section) {
+    if (!personal) return;
     content.querySelector('.empty-state')?.remove();
     const nextSection = groups.slice(index + 1).map(group => sections.get(group.name)).find(Boolean);
     if (nextSection) nextSection.insertAdjacentHTML('beforebegin', catalogGroup(group));
     else content.insertAdjacentHTML('beforeend', catalogGroup(group));
+    sections.set(key, nextSection ? nextSection.previousElementSibling : content.lastElementChild);
     return;
   }
   section.querySelector('.group-summary').innerHTML = groupSummary(group);
+  if (!personal) { updateCollectionCard(id); return; }
   const caption = section.querySelector('.group-caption');
   if (caption) caption.textContent = new Set(group.items.map(item => item.character)).size + ' 個角色';
   const card = section.querySelector('[data-item="' + id + '"]');
@@ -449,6 +458,37 @@ function updateCollectionCatalog(id) {
   if (nextCard) nextCard.insertAdjacentHTML('beforebegin', productCard(item));
   else section.querySelector('.product-grid').insertAdjacentHTML('beforeend', productCard(item));
 }
+
+function applySyncedCollection(saved) {
+  // 比較收藏的識別碼，沒有變更就不重新計算圖鑑或重建卡片。
+  const wished = new Set(saved.wishlist);
+  const changed = [...new Set([...Object.keys(state.quantities), ...Object.keys(saved.quantities), ...state.wishlist, ...wished])]
+    .filter(id => state.quantities[id] !== saved.quantities[id] || state.wishlist.has(id) !== wished.has(id));
+  const orderChanged = JSON.stringify(state.characterOrder) !== JSON.stringify(saved.characterOrder);
+  const goalsChanged = JSON.stringify(state.includedTypes) !== JSON.stringify(saved.includedTypes);
+  if (!changed.length && !orderChanged && !goalsChanged) return;
+  const position = capturePosition($('catalog-content'));
+  const grouping = state.groupBy;
+  applySaved(saved); state.groupBy = grouping;
+  if (goalsChanged) { characterTotals = progressTotals(state.items,state.includedTypes); updateProgressSetting(); updateGoalBadges(); }
+  if (orderChanged) renderTabs(); else updateCollectionTabs();
+  if (changed.length || orderChanged) {
+    const items = currentItems();
+    const personal = state.scope === 'mine' || state.scope === 'wishlist';
+    const groups = groupItems(items, catalogGrouping(), personal || state.scope === 'all' ? state.characterOrder : state.characters);
+    const sections = new Map([...$('catalog-content').querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
+    const batch = { items, groups, sections };
+    if (personal) { renderTypeOptions(); renderRegionOptions(); if (!$('series-popover').hidden) renderSeriesOptions(); }
+    renderResultCount(items);
+    for (const id of changed) if (itemMap.has(id)) updateCollectionCatalog(id, batch);
+    if (orderChanged) for (const group of groups) { const section = sections.get(group.name); if (section) $('catalog-content').append(section); }
+    observeCatalogSize(); catalogImages.update();
+    restorePosition(position, $('catalog-content'));
+  }
+  updateDataSummary();
+  if (activeDetail && $('detail-dialog').open && document.activeElement?.id !== 'detail-quantity') updateDetailCollection();
+}
+
 function setScope(scope) {
   if (state.scope === scope || (!['mine', 'wishlist', 'all'].includes(scope) && !characterTabOrder(state.characters).includes(scope))) return;
   const enteringPersonal = scope === 'mine' || scope === 'wishlist';
@@ -665,6 +705,13 @@ $('series-toggle').addEventListener('click', () => {
 });
 $('series-search').addEventListener('input', () => { renderSeriesOptions(); $('series-options').scrollTop = 0; });
 window.addEventListener('resize', sizeSeriesPopover);
+let groupResizeFrame;
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(groupResizeFrame);
+  groupResizeFrame = requestAnimationFrame(() => {
+    $('catalog-content').querySelectorAll('.catalog-group').forEach(group => group.style.setProperty('--group-rows', Math.ceil(Number(group.dataset.count) / catalogColumns())));
+  });
+}, { passive:true });
 $('series-options').addEventListener('click', event => {
   const category = event.target.closest('[data-series-category]');
   if (category) {
@@ -867,26 +914,48 @@ async function init() {
     applySaved(saved);
     characterTotals = progressTotals(state.items, state.includedTypes);
     state.ready = true;
+    const browse = browseState.saved;
+    if (browse) {
+      if (['mine','wishlist','all',...characterTabOrder(state.characters)].includes(browse.scope)) state.scope = browse.scope;
+      for (const key of ['type','region','series','query']) if (typeof browse[key] === 'string') state[key] = browse[key];
+      if (['character','series'].includes(browse.groupBy)) state.groupBy = browse.groupBy;
+      filtersExpanded = Boolean(browse.filtersExpanded);
+      $('catalog-search').value = state.query;
+    }
     updateProgressSetting();
     renderTabs(); renderCatalog();
+    if (browse) {
+      setCharactersExpanded(Boolean(browse.charactersExpanded));
+      if (browse.tabs) { $('character-tabs').scrollLeft = browse.tabs.x || 0; $('character-tabs').scrollTop = browse.tabs.y || 0; }
+      if (browse.detail && itemMap.has(browse.detail)) renderDetail(browse.detail);
+      for (const dialog of Array.isArray(browse.dialogs) ? browse.dialogs : []) if (['guide-dialog','settings-dialog','data-dialog'].includes(dialog.id)) {
+        if (dialog.id === 'data-dialog') showData(); else openDialog(dialog.id);
+        $(dialog.id).scrollTop = dialog.y || 0;
+      }
+      restorePosition(browse.position, $('catalog-content'));
+    }
+    browseState.enable();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=8b7353a526099df0').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=782a33394666719b').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
-          items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
+          onReady:() => {
+            if (initialPositionPending) {
+              restorePosition(browseState.saved?.position, $('catalog-content'));
+              const tabs = browseState.saved?.tabs;
+              if (tabs) { $('character-tabs').scrollLeft = tabs.x || 0; $('character-tabs').scrollTop = tabs.y || 0; }
+            }
+            initialPositionPending = false;
+          }, initialView:browseState.saved?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
           getSaved:savedValue, normalize,
           merge:(current,incoming) => mergeSaved(current,incoming,state.characters,new Set(itemMap.keys()),itemAliases),
-          applySaved:saved => {
-            applySaved(saved);
-            characterTotals = progressTotals(state.items,state.includedTypes);
-            updateProgressSetting(); renderTabs(); renderCatalog(); updateDataSummary();
-            if (activeDetail && $('detail-dialog').open && document.activeElement?.id !== 'detail-quantity') updateDetailCollection();
-          },
+          applySaved:applySyncedCollection,
           onScope:userId => {
             collectionStorageKey = userId ? STORAGE_KEY + '-account-' + userId : STORAGE_KEY;
             lastClearKey = collectionStorageKey + '-last-clear';
+            if (!accountScopeInitialized) { accountScopeInitialized = true; return; }
             dismissToast(); pendingRemoval = null; activeDetail = null;
             ['detail-dialog','remove-dialog','clear-dialog','data-dialog'].forEach(id => { if ($(id).open) $(id).close(); });
           },

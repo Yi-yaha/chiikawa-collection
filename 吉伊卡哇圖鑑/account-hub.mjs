@@ -1,9 +1,9 @@
-import { createClient } from './supabase-client.mjs?v=8b7353a526099df0';
-import { cloudConfig } from './cloud-config.mjs?v=8b7353a526099df0';
-import { createCloudStore } from './cloud-store.mjs?v=8b7353a526099df0';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=8b7353a526099df0';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=8b7353a526099df0';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=8b7353a526099df0';
+import { createClient } from './supabase-client.mjs?v=782a33394666719b';
+import { cloudConfig } from './cloud-config.mjs?v=782a33394666719b';
+import { createCloudStore } from './cloud-store.mjs?v=782a33394666719b';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=782a33394666719b';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=782a33394666719b';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=782a33394666719b';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -22,10 +22,11 @@ function errorText(error) {
   return '操作暫時未完成，請稍後再試。';
 }
 
-export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, toast, client:clientOverride }) {
+export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, toast, client:clientOverride, initialView = null, onReady = () => {} }) {
   const client = clientOverride || createClient(cloudConfig.url, cloudConfig.publishableKey, {
     auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'chiikawa-account-session' },
   });
+  let pendingView = initialView;
   let user = null, profile = null, authLoading = true, sessionGeneration = 0;
   let friends = [], blocks = [], friendsLoaded = false, friendsError = '', refreshingFriends = false;
   let selectedFriend = null, friendSnapshot = null, lookup = null, friendTab = 'collection', compareTab = 'both', friendConfirmation = null;
@@ -257,9 +258,10 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       if (user?.id !== activeUid) return;
       await photos.load([profile?.avatar_path,...(nextFriends || []).filter(friend => friend.status === 'accepted').map(friend => friend.avatar_path)]);
       if (user?.id !== activeUid) return;
+      const listChanged = !friendsLoaded || Boolean(friendsError) || JSON.stringify(friends) !== JSON.stringify(nextFriends || []) || JSON.stringify(blocks) !== JSON.stringify(nextBlocks || []);
       friends = nextFriends || []; blocks = nextBlocks || [];
       friendsLoaded = true; friendsError = ''; renderBadge();
-      if ($('friends-dialog').open && !selectedFriend) renderFriends();
+      if (listChanged && $('friends-dialog').open && !selectedFriend) renderFriends();
       if (selectedFriend && !friends.some(friend => friend.other_id === selectedFriend.other_id && friend.status === 'accepted')) {
         selectedFriend = null; friendSnapshot = null; renderFriends(); toast('好友關係已更新，目前無法查看對方收藏');
       } else if (selectedFriend && $('friends-dialog').open) await loadFriendSnapshot(false);
@@ -489,6 +491,44 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (button.dataset.action === 'copy-code') void copyText(formatFriendCode(profile.friend_code));
     if (button.dataset.action === 'copy-invite') { const url = new URL(canonicalURL()); url.searchParams.set('friend',profile.friend_code); void copyText(url.href); }
   });
+  function getViewState() {
+    if (pendingView) return pendingView;
+    return {
+      userId:user?.id || null, open:$('friends-dialog').open ? 'friends' : $('account-dialog').open ? 'account' : null,
+      friendId:selectedFriend?.other_id || null, friendTab, compareTab,
+      friendAnalysisOpen, friendAnalysisTab, friendAnalysisExpanded, friendCollectionScroll, friendFiltersExpanded,
+      filters:Object.fromEntries(['friend-search','friend-character','friend-type','friend-series'].map(id => [id,$(id)?.value || ''])),
+      scroll:$('friends-dialog').scrollTop,
+    };
+  }
+  async function restoreView() {
+    const view = pendingView;
+    if (!view) return;
+    try {
+      if (view.userId !== (user?.id || null)) return;
+      if (view.open === 'account') { renderAccount(); open('account-dialog'); return; }
+      if (view.open !== 'friends' || !user || !profile?.nickname || document.querySelector('dialog[open]')) return;
+      renderFriends(); open('friends-dialog');
+      await refreshFriends();
+      if (!$('friends-dialog').open) return;
+      selectedFriend = friends.find(friend => friend.other_id === view.friendId && friend.status === 'accepted') || null;
+      if (selectedFriend) {
+        friendTab = ['collection','compare','wishlist'].includes(view.friendTab) ? view.friendTab : 'collection';
+        compareTab = ['both','theirsOnly','mineOnly'].includes(view.compareTab) ? view.compareTab : 'both';
+        friendAnalysisOpen = Boolean(view.friendAnalysisOpen);
+        friendAnalysisTab = ['characters','types','progress'].includes(view.friendAnalysisTab) ? view.friendAnalysisTab : 'characters';
+        friendAnalysisExpanded = Boolean(view.friendAnalysisExpanded);
+        friendFiltersExpanded = Boolean(view.friendFiltersExpanded);
+        friendCollectionScroll = Number(view.friendCollectionScroll) || 0;
+        await loadFriendSnapshot();
+        for (const id of ['friend-search','friend-character','friend-type','friend-series']) {
+          if ($(id) && typeof view.filters?.[id] === 'string') $(id).value = view.filters[id];
+        }
+        renderFriendProducts();
+      }
+      $('friends-dialog').scrollTop = Number(view.scroll) || 0;
+    } finally { pendingView = null; }
+  }
   async function handleSession(session) {
     const nextUser = session?.user || null;
     if (!authLoading && user?.id === nextUser?.id) { user = nextUser; return; }
@@ -500,6 +540,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       if ($('friends-dialog').open) $('friends-dialog').close();
       if ($('migration-dialog').open) $('migration-dialog').close();
       if ($('sync-conflict-dialog').open) $('sync-conflict-dialog').close();
+      void restoreView(); onReady();
       renderSync(); if ($('account-dialog').open || pendingHub) { renderAccount(); open('account-dialog'); } return;
     }
     try {
@@ -516,13 +557,14 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       else {
         store.enableWrites();
         if ($('account-dialog').open) $('account-dialog').close();
-        const migrating = maybeOfferMigration(); void refreshFriends();
+        const migrating = maybeOfferMigration();
+        if (pendingView && !migrating) await restoreView(); else void refreshFriends();
         if (!migrating && (pendingHub || sessionStorage.getItem('chiikawa-pending-friend'))) { pendingHub = false; showFriends(); }
       }
     } catch (error) {
       if (current !== sessionGeneration) return;
       authLoading = false; renderAccount(); message('account-message','帳號資料暫時無法讀取，請確認連線後重新登入。',true); renderSync();
-    }
+    } finally { if (current === sessionGeneration) onReady(); }
   }
   const invite = normalizeFriendCode(new URL(location.href).searchParams.get('friend'));
   if (invite.length === 12) { sessionStorage.setItem('chiikawa-pending-friend',invite); const url = new URL(location.href); url.searchParams.delete('friend'); history.replaceState(null,'',url); pendingHub = true; }
@@ -535,6 +577,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   const poll = setInterval(refresh,30000);
   renderSync(); renderBadge();
   return {
+    getViewState,
     capture:saved => store.capture(saved),
     get userId() { return store.userId; },
     destroy() { clearInterval(poll); resetAvatarDraft(); photos.clear(); authSubscription.subscription.unsubscribe(); store.destroy(); },

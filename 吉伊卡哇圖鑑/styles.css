@@ -384,3 +384,8 @@ html{scroll-padding-top:118px}
 .series-search-heading{padding:10px 10px 4px;font-size:11px;font-weight:600;color:var(--muted)}
 .series-unassigned{border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
 @media(hover:hover) and (pointer:fine){.series-category-toggle:hover{background:var(--bg)}}
+
+/* 畫面外以整區略過排版；只依卡片數量估算高度，不逐張測量商品。 */
+#catalog-content.has-card-size .catalog-group{content-visibility:auto;contain-intrinsic-block-size:auto calc(64px + var(--group-rows,1) * (var(--card-height) + var(--grid-row-gap,10px)))}
+@media(min-width:701px){#catalog-content{--grid-row-gap:14px}}
+@media(min-width:1280px){#catalog-content{--grid-row-gap:16px}}
