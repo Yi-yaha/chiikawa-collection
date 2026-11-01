@@ -154,10 +154,7 @@
 .comparison-tabs button[aria-pressed="true"]{border-color:var(--action-pink);background:var(--action-pink-soft);color:var(--action-pink-ink)}
 .comparison-tabs strong{display:block;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
 .friend-product-filters{display:grid;gap:8px}
-.friend-search-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-width:0}
 .friend-search-row input{height:44px;text-overflow:ellipsis}
-.friend-product-filters .filter-toggle{min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--control-radius);box-shadow:none}
-.friend-product-filters .filter-toggle[aria-expanded="true"]{background:var(--pink)}
 .friend-filter-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
 .friend-product-filters #friend-series{grid-column:1/-1}
 .friend-product-filters select{font-size:13px;min-height:40px;padding:7px 8px;max-width:100%}

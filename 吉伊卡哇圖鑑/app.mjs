@@ -1,8 +1,8 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=782a33394666719b';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=782a33394666719b';
-import { createCatalogImageLoader } from './image-loader.mjs?v=782a33394666719b';
-import { createCharacterSorter } from './character-sorter.mjs?v=782a33394666719b';
-import { watchForSiteUpdates } from './site-updates.mjs?v=782a33394666719b';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=13e7f274dbea8a5c';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=13e7f274dbea8a5c';
+import { createCatalogImageLoader } from './image-loader.mjs?v=13e7f274dbea8a5c';
+import { createCharacterSorter } from './character-sorter.mjs?v=13e7f274dbea8a5c';
+import { watchForSiteUpdates } from './site-updates.mjs?v=13e7f274dbea8a5c';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -937,7 +937,7 @@ async function init() {
     browseState.enable();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=782a33394666719b').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=13e7f274dbea8a5c').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({

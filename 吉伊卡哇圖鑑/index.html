@@ -19,10 +19,10 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=782a33394666719b">
-  <link rel="stylesheet" href="./account.css?v=782a33394666719b">
-  <script type="module" src="./app.mjs?v=782a33394666719b"></script>
-  <meta name="chiikawa-site-version" content="782a33394666719b">
+  <link rel="stylesheet" href="./styles.css?v=13e7f274dbea8a5c">
+  <link rel="stylesheet" href="./account.css?v=13e7f274dbea8a5c">
+  <script type="module" src="./app.mjs?v=13e7f274dbea8a5c"></script>
+  <meta name="chiikawa-site-version" content="13e7f274dbea8a5c">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -55,13 +55,13 @@
     <section id="catalog" class="catalog" aria-labelledby="catalog-title">
       <div class="catalog-heading">
         <div><h1 id="catalog-title">我的娃</h1></div>
-        <div class="catalog-heading-actions">
-          <button class="filter-toggle" id="filter-toggle" aria-label="展開地區、種類與系列篩選" aria-expanded="false" aria-controls="filter-options"><span data-icon="sliders"></span><span id="filter-toggle-label">篩選</span><span class="filter-count" id="filter-count" hidden>0</span><span class="filter-toggle-chevron" data-icon="chevron"></span></button>
-        </div>
       </div>
       <div class="filters">
         <div class="filter-controls">
-          <label class="search-control"><span data-icon="search"></span><input id="catalog-search" type="search" placeholder="搜尋娃娃名稱" aria-label="搜尋商品名稱或角色" autocomplete="off"></label>
+          <div class="search-filter-row">
+            <label class="search-control"><span data-icon="search"></span><input id="catalog-search" type="search" placeholder="搜尋娃娃名稱" aria-label="搜尋商品名稱或角色" autocomplete="off"></label>
+            <button class="filter-toggle" id="filter-toggle" aria-label="展開地區、種類與系列篩選" aria-expanded="false" aria-controls="filter-options"><span data-icon="sliders"></span><span id="filter-toggle-label">篩選</span><span class="filter-count" id="filter-count" hidden>0</span><span class="filter-toggle-chevron" data-icon="chevron"></span></button>
+          </div>
           <div id="filter-options" class="filter-options" hidden>
             <label class="select-control"><select id="region-filter" aria-label="篩選地區"><option value="">全部地區</option></select><span data-icon="chevron"></span></label>
             <label class="select-control"><select id="type-filter" aria-label="篩選種類"><option value="">全部種類</option></select><span data-icon="chevron"></span></label>
