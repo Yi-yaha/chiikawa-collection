@@ -52,7 +52,7 @@
 .avatar-upload-button:focus-visible{outline:2px solid var(--coral);outline-offset:3px}
 .social-avatar.large{width:64px;height:64px;flex-basis:64px}
 .profile-section{border-top:1px solid var(--line);padding-top:18px;margin-top:20px}
-.profile-section h3,.friends-section>h3,.friend-stat-card h3{font-size:13px;font-weight:650;margin:0 0 10px}
+.profile-section h3,.friends-section>h3{font-size:13px;font-weight:650;margin:0 0 10px}
 .friend-code-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .friend-code-row code,.my-friend-code code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:16px;letter-spacing:.5px;color:var(--coral-dark);white-space:nowrap}
 .login-method{font-size:12px;color:var(--coral-dark);margin:10px 0}
@@ -99,7 +99,7 @@
 .friend-detail-heading{display:flex;gap:4px;align-items:center;min-width:0}
 .friend-detail-heading h2{font-size:20px;overflow-wrap:anywhere;letter-spacing:.3px}
 .friend-detail-heading .icon-button{margin-left:-8px;flex-shrink:0}
-.friend-profile{border-bottom:1px solid var(--line);margin-bottom:14px}
+.friend-profile{border-bottom:1px solid var(--line)}
 .friend-profile>div{flex:1}
 .friend-settings-button{min-height:44px;background:var(--action-pink);border:1px solid var(--action-pink);color:var(--paper);font-size:12px}
 .friend-settings-button:hover,.friend-settings-button[aria-expanded="true"]{background:var(--action-pink-hover);border-color:var(--action-pink-hover);color:var(--paper)}
@@ -113,20 +113,26 @@
 .social-confirm strong{font-size:13px;overflow-wrap:anywhere}
 .social-confirm p{font-size:12px;color:var(--muted);margin:7px 0 12px}
 .social-confirm>div{display:flex;gap:8px;justify-content:flex-end}
-.collection-story{font-size:13px;line-height:1.9;color:var(--muted);margin:16px 0}
-.collection-story strong{color:var(--coral-dark);font-weight:600;margin:0 3px}
-.friend-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 24px}
-.friend-stat-card{padding:16px;border-radius:12px;background:var(--bg);min-width:0}
-.friend-stat-card h3{font-size:12px}
-.progress-stat-card{grid-column:1/-1}
-.progress-stat-card .stats-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
-.stat-line{margin:12px 0 0}
-.stat-line>div{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px}
-.stat-line strong{font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
-.stat-line small{font-size:10px;color:var(--muted);margin-left:4px}
-.stat-track{height:4px;border-radius:8px;display:block;background:#e9e2dd;overflow:hidden;margin-top:7px}
+.friend-collection-summary{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0 12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.collection-story{flex:1;min-width:150px;font-size:13px;line-height:1.9;color:var(--muted);margin:0;overflow-wrap:anywhere}
+.collection-story strong{color:var(--coral-dark);font-weight:600}
+.friend-collection-summary .friend-analysis-link{display:inline-flex;align-items:center;gap:2px;min-height:44px;color:var(--coral-dark);font-size:12px}
+.friend-analysis-link svg{width:15px;height:15px}
+.friend-analysis{max-width:560px;margin:0 auto;padding-bottom:4px}
+.friend-analysis-owner{font-size:12px;color:var(--muted);margin:4px 0 18px;overflow-wrap:anywhere}
+.friend-analysis-tabs{display:flex;flex-wrap:wrap;gap:12px 22px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.friend-analysis-tabs button{min-height:44px;padding:8px 0;border-bottom:2px solid transparent;font-size:13px;color:var(--muted)}
+.friend-analysis-tabs button[aria-pressed="true"]{color:var(--coral-dark);border-bottom-color:var(--coral);font-weight:600}
+.stat-line{margin:0 0 22px}
+.stat-line>div{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px}
+.stat-line>div>span{min-width:0;overflow-wrap:anywhere}
+.stat-line strong{flex-shrink:0;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.stat-line small{font-size:12px;color:var(--muted);margin-left:8px}
+.stat-track{height:4px;border-radius:8px;display:block;background:var(--line);overflow:hidden;margin-top:8px}
 .stat-track>span{height:100%;display:block;background:#c3948b;border-radius:inherit}
-.friend-view-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);gap:18px;margin:24px 0 18px}
+.friend-analysis-note{font-size:11px;color:var(--muted);line-height:1.8;margin:0 0 8px}
+.friends-dialog .friend-analysis-more{min-height:44px;color:var(--coral-dark);font-size:12px}
+.friend-view-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);gap:18px;margin:18px 0}
 .friend-view-tabs button{position:relative;min-height:44px;font-size:13px;color:var(--muted);padding:10px 0}
 .friend-view-tabs button[aria-pressed="true"]{color:var(--action-pink-ink);font-weight:600}
 .friend-view-tabs button[aria-pressed="true"]::after{position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--action-pink);content:''}
@@ -165,12 +171,7 @@
   .friend-profile>.friend-settings-button{margin-left:auto}
   .friend-profile strong{font-size:16px}
   .social-avatar.large{width:54px;height:54px;flex-basis:54px}
-  .friend-stats-grid{gap:8px}
-  .friend-stat-card{padding:12px 10px}
-  .stat-line>div{flex-wrap:wrap;gap:2px;font-size:10px}
-  .stat-line strong{font-size:10px}
-  .progress-stat-card .stats-list{grid-template-columns:1fr;gap:2px}
-  .progress-stat-card .stat-line>div{flex-wrap:nowrap}
+  .friend-analysis-tabs{gap:12px 18px}
   .friend-products{gap:8px}
   .friend-product-image{padding:5px}
   .friend-product h3{font-size:11px;margin:0 6px}
