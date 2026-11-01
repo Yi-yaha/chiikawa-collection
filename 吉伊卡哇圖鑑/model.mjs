@@ -105,16 +105,37 @@ export function filterItems(items, { type = '', region = '', series = '', query 
   return items.filter(item => (!type || item.type === type) && (!region || (item.region || '日本') === region) && (!series || item.name === series) && (!needle || `${item.name} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`.toLocaleLowerCase('zh-TW').includes(needle)));
 }
 
+export function collectionStats(items, owned, quantities = {}, includedTypes = {}) {
+  const stats = { total:items.length, owned:0, pieces:0, goalTotal:0, goalOwned:0 };
+  for (const item of items) {
+    const collected = owned.has(item.id);
+    const included = isProgressIncluded(item, includedTypes);
+    if (collected) {
+      stats.owned++;
+      stats.pieces += quantities[item.id] || 1;
+    }
+    if (included) {
+      stats.goalTotal++;
+      if (collected) stats.goalOwned++;
+    }
+  }
+  return stats;
+}
+
 export function groupItems(items, groupBy, characterOrder) {
   const groups = new Map();
   const order = new Map(characterOrder.map((name, index) => [name, index]));
   for (const item of items) {
-    const key = groupBy === 'series' ? item.name : item.character;
+    const key = groupBy === 'series' ? item.name : groupBy === 'type' ? item.type : item.character;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(item);
   }
   let result = [...groups].map(([name, items]) => ({ name, items }));
   if (groupBy === 'character') result.sort((a, b) => (order.get(a.name) ?? 999) - (order.get(b.name) ?? 999));
+  else if (groupBy === 'type') result.sort((a, b) => {
+    const index = type => ITEM_TYPES.includes(type) ? ITEM_TYPES.indexOf(type) : ITEM_TYPES.length;
+    return index(a.name) - index(b.name);
+  });
   else result = result.map(group => ({ ...group, items: [...group.items].sort((a, b) => (order.get(a.character) ?? 999) - (order.get(b.character) ?? 999)) }));
   return result;
 }

@@ -1,7 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems } from './model.mjs?v=c1809ced1e097cac';
-import { createCatalogImageLoader } from './image-loader.mjs?v=c1809ced1e097cac';
-import { createCharacterSorter } from './character-sorter.mjs?v=c1809ced1e097cac';
-import { watchForSiteUpdates } from './site-updates.mjs?v=c1809ced1e097cac';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems } from './model.mjs?v=89b9fbd1aecec0f6';
+import { createCatalogImageLoader } from './image-loader.mjs?v=89b9fbd1aecec0f6';
+import { createCharacterSorter } from './character-sorter.mjs?v=89b9fbd1aecec0f6';
+import { watchForSiteUpdates } from './site-updates.mjs?v=89b9fbd1aecec0f6';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -139,6 +139,14 @@ document.addEventListener('close', event => {
 }, true);
 function baseItems() { return scopeItems(state.items, state.scope, state.owned, state.wishlist); }
 function currentItems() { return filterItems(baseItems(), state); }
+function matchingCatalogItems() {
+  const items = state.scope === 'mine' ? state.items : scopeItems(state.items, state.scope, state.owned, state.wishlist);
+  return filterItems(items, state);
+}
+function catalogGrouping() {
+  if (state.groupBy === 'series') return 'series';
+  return state.scope === 'mine' || state.scope === 'wishlist' ? 'character' : 'type';
+}
 
 function updateProgressSetting() {
   $('open-settings').disabled = !state.ready;
@@ -205,7 +213,7 @@ function updateCollectionTabs() {
     }
     const total = characterTotals.get(scope) || 0;
     const progress = total ? Math.min(owned / total, 1) * 100 : 0;
-    const label = scope + '：已收藏 ' + number(owned) + '／' + number(total) + ' 款（' + number(Math.round(progress * 10) / 10) + '%）';
+    const label = scope + (total ? '：收藏目標 ' + number(owned) + '／' + number(total) + ' 款（' + number(Math.round(progress * 10) / 10) + '%）' : '：目前沒有納入收藏目標的商品');
     tab.setAttribute('aria-label', label);
     const ring = tab.querySelector('.collection-ring-fill');
     ring.setAttribute('stroke-dashoffset', String(100 - progress));
@@ -215,6 +223,8 @@ function updateCollectionTabs() {
 function renderHeading() {
   const mine = state.scope === 'mine';
   $('catalog-title').textContent = mine ? '我的娃' : state.scope === 'wishlist' ? '願望清單' : state.scope + '的圖鑑';
+  const byType = !mine && state.scope !== 'wishlist';
+  document.querySelector('[data-group="character"]').innerHTML = icon(byType ? 'tag' : 'person') + (byType ? '依種類' : '依角色');
   document.querySelectorAll('[data-group]').forEach(button => {
     const active = button.dataset.group === state.groupBy;
     button.classList.toggle('active', active);
@@ -234,7 +244,7 @@ function renderTypeOptions() {
   const counts = new Map();
   filterItems(baseItems(), {region:state.region,series:state.series,query:state.query}).forEach(item => counts.set(item.type, (counts.get(item.type) || 0) + 1));
   const allTypes = [...new Set([...ITEM_TYPES, ...state.items.map(item => item.type)])];
-  $('type-filter').innerHTML = '<option value="">全部種類</option>' + allTypes.filter(type => counts.has(type) || state.type === type).map(type => '<option value="' + escapeHTML(type) + '"' + (state.type === type ? ' selected' : '') + '>' + escapeHTML(typeLabel(type)) + '（' + number(counts.get(type) || 0) + '）</option>').join('');
+  $('type-filter').innerHTML = '<option value="">全部種類</option>' + allTypes.filter(type => counts.has(type) || state.type === type).map(type => '<option value="' + escapeHTML(type) + '"' + (state.type === type ? ' selected' : '') + '>' + escapeHTML(typeLabel(type)) + '（' + number(counts.get(type) || 0) + ' 款）</option>').join('');
 }
 function renderRegionOptions() {
   const counts = new Map();
@@ -242,7 +252,7 @@ function renderRegionOptions() {
     const region = item.region || '日本';
     counts.set(region, (counts.get(region) || 0) + 1);
   });
-  $('region-filter').innerHTML = '<option value="">全部地區</option>' + ['日本','台灣','韓國','香港','中國'].filter(region => counts.has(region) || state.region === region).map(region => '<option value="' + escapeHTML(region) + '"' + (state.region === region ? ' selected' : '') + '>' + escapeHTML(region) + '（' + number(counts.get(region) || 0) + '）</option>').join('');
+  $('region-filter').innerHTML = '<option value="">全部地區</option>' + ['日本','台灣','韓國','香港','中國'].filter(region => counts.has(region) || state.region === region).map(region => '<option value="' + escapeHTML(region) + '"' + (state.region === region ? ' selected' : '') + '>' + escapeHTML(region) + '（' + number(counts.get(region) || 0) + ' 款）</option>').join('');
 }
 function renderSeriesOptions() {
   const counts = new Map();
@@ -250,8 +260,8 @@ function renderSeriesOptions() {
   available.forEach(item => counts.set(item.name, (counts.get(item.name) || 0) + 1));
   const search = $('series-search').value.trim().toLocaleLowerCase('zh-TW');
   const names = [...counts.keys()].filter(name => name.toLocaleLowerCase('zh-TW').includes(search)).sort((a,b) => a.localeCompare(b,'zh-TW',{numeric:true}));
-  let html = '<button class="series-option ' + (!state.series ? 'selected' : '') + '" data-series="" aria-pressed="' + !state.series + '"><span>全部系列</span><small>' + number(available.length) + ' 件</small></button>';
-  html += names.map(name => '<button class="series-option ' + (state.series === name ? 'selected' : '') + '" data-series="' + escapeHTML(name) + '" aria-pressed="' + (state.series === name) + '"><span>' + escapeHTML(name) + '</span><small>' + number(counts.get(name)) + ' 件</small></button>').join('');
+  let html = '<button class="series-option ' + (!state.series ? 'selected' : '') + '" data-series="" aria-pressed="' + !state.series + '"><span>全部系列</span><small>' + number(available.length) + ' 款</small></button>';
+  html += names.map(name => '<button class="series-option ' + (state.series === name ? 'selected' : '') + '" data-series="' + escapeHTML(name) + '" aria-pressed="' + (state.series === name) + '"><span>' + escapeHTML(name) + '</span><small>' + number(counts.get(name)) + ' 款</small></button>').join('');
   if (!names.length) html += '<p class="series-option-empty">找不到符合的系列，換個名稱試試看。</p>';
   $('series-options').innerHTML = html;
 }
@@ -283,7 +293,7 @@ function productCard(item) {
     '<div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4></div>' +
     '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (mine ? '移出我的娃' : owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"' + (mine ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '') + '>' + icon('heart') + '</button>' +
     '<div class="product-actions"><button class="wish-button ' + (wished ? 'wished' : '') + '" data-wish="' + item.id + '" aria-label="' + '將' + name + (wished ? '移出願望清單' : '加入願望清單') + '" aria-pressed="' + wished + '"' + (owned ? ' hidden' : '') + '>' + icon('star') + '</button>' +
-    '<span class="product-quantity"' + (!owned ? ' hidden' : '') + '>收藏 ' + number(quantityOf(item.id)) + ' 個</span>' +
+    '<span class="product-quantity"' + (!owned ? ' hidden' : '') + '><span class="quantity-label">持有 </span><span class="quantity-value">' + number(quantityOf(item.id)) + ' 個</span></span>' +
     '<button class="product-info-button"' + detailAction + '>' + icon('info') + '</button></div></article>';
 }
 function emptyState() {
@@ -294,19 +304,37 @@ function emptyState() {
   return '<div class="empty-state"><div class="empty-icon">' + icon(untouchedMine ? 'heart' : untouchedWishes ? 'star' : 'search') + '</div><h3>' + title + '</h3><p>' + description + '</p>' + (untouchedMine || untouchedWishes ? '' : '<button class="primary-button" data-empty-action="reset">重設篩選</button>') + '</div>';
 }
 function renderResultCount(items) {
+  $('result-context').hidden = !(state.type || state.region || state.series || state.query);
   if (state.scope === 'wishlist') {
-    $('result-count').innerHTML = '想收 <strong>' + number(items.length) + '</strong> 款';
+    $('result-count').innerHTML = summaryStat('想收', items.length, '款');
     return;
   }
-  const matchingItems = (state.scope === 'mine' ? filterItems(state.items, state) : items).filter(item => isProgressIncluded(item, state.includedTypes));
-  const owned = matchingItems.filter(item => state.owned.has(item.id)).length;
-  $('result-count').innerHTML = '已收藏 <strong>' + number(owned) + '</strong>／' + number(matchingItems.length) + ' 款<span class="quantity-summary">共 ' + number(totalQuantity(items)) + ' 個</span>';
+  const stats = collectionStats(matchingCatalogItems(), state.owned, state.quantities);
+  $('result-count').innerHTML = summaryStat('圖鑑收錄', stats.total, '款') + summaryStat('已收藏', stats.owned, '款') + summaryStat('持有', stats.pieces, '個');
+}
+function summaryStat(label, value, unit) {
+  return '<span class="summary-stat"><span class="summary-label">' + label + '</span><span class="summary-value"><strong>' + number(value) + '</strong><span>' + unit + '</span></span></span>';
+}
+function updateGoalBadges() {
+  $('catalog-content').querySelectorAll('[data-goal-type]').forEach(badge => {
+    badge.hidden = !isProgressIncluded({ type:badge.dataset.goalType }, state.includedTypes);
+  });
+}
+function groupSummary(group) {
+  if (state.scope === 'wishlist') return '<span>想收 <strong>' + number(group.items.length) + '</strong> 款</span>';
+  const groupBy = catalogGrouping();
+  const items = state.scope === 'mine' ? matchingCatalogItems().filter(item => (groupBy === 'series' ? item.name : item.character) === group.name) : group.items;
+  const stats = collectionStats(items, state.owned, state.quantities);
+  return '<span>圖鑑 <strong>' + number(stats.total) + '</strong> 款</span><span>已收藏 <strong>' + number(stats.owned) + '</strong> 款</span><span>持有 <strong>' + number(stats.pieces) + '</strong> 個</span>';
 }
 function catalogGroup(group) {
-  const titleId = 'group-title-' + state.groupBy + '-' + group.items[0].id;
-  const groupAvatar = state.groupBy === 'character' ? '<img class="group-avatar" src="' + escapeHTML(avatars.get(group.name)) + '" alt="" width="30" height="30">' : '';
-  const roleCount = state.groupBy === 'series' ? '<span class="group-caption">' + new Set(group.items.map(item => item.character)).size + ' 個角色</span>' : '';
-  return '<section class="catalog-group" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(group.name) + '</h3><span class="group-number">' + number(group.items.length) + '</span>' + roleCount + '<span class="group-line"></span></div><div class="product-grid">' + group.items.map(productCard).join('') + '</div></section>';
+  const groupBy = catalogGrouping();
+  const titleId = 'group-title-' + groupBy + '-' + group.items[0].id;
+  const groupAvatar = groupBy === 'character' ? '<img class="group-avatar" src="' + escapeHTML(avatars.get(group.name)) + '" alt="" width="30" height="30">' : '';
+  const roleCount = groupBy === 'series' && new Set(group.items.map(item => item.character)).size > 1 ? '<span class="group-caption">' + new Set(group.items.map(item => item.character)).size + ' 個角色</span>' : '';
+  const name = groupBy === 'type' ? typeLabel(group.name) : group.name;
+  const target = groupBy === 'type' ? '<span class="group-target" data-goal-type="' + escapeHTML(group.name) + '" aria-label="此種類已納入收藏目標"' + (isProgressIncluded({ type:group.name }, state.includedTypes) ? '' : ' hidden') + '>目標</span>' : '';
+  return '<section class="catalog-group" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(name) + '</h3>' + target + roleCount + '<span class="group-line"></span></div><p class="group-summary">' + groupSummary(group) + '</p><div class="product-grid">' + group.items.map(productCard).join('') + '</div></section>';
 }
 function renderCatalog() {
   if (!state.ready) return;
@@ -322,7 +350,7 @@ function renderCatalog() {
     return;
   }
   const order = state.scope === 'mine' || state.scope === 'wishlist' ? state.characterOrder : state.characters;
-  const groups = groupItems(items,state.groupBy,order);
+  const groups = groupItems(items,catalogGrouping(),order);
   $('catalog-content').innerHTML = groups.map(catalogGroup).join('');
   observeCatalogSize();
   catalogImages.refresh();
@@ -347,10 +375,20 @@ function updateCollectionCard(id) {
   wish.setAttribute('aria-label', '將' + item.character + '・' + item.name + (wished ? '移出願望清單' : '加入願望清單'));
   const quantity = card.querySelector('.product-quantity');
   quantity.hidden = !owned;
-  quantity.textContent = '收藏 ' + number(quantityOf(id)) + ' 個';
+  quantity.querySelector('.quantity-value').textContent = number(quantityOf(id)) + ' 個';
 }
 function updateCollectionCatalog(id) {
-  if (state.scope !== 'mine' && state.scope !== 'wishlist') { updateCollectionCard(id); renderResultCount(currentItems()); return; }
+  if (state.scope !== 'mine' && state.scope !== 'wishlist') {
+    updateCollectionCard(id);
+    const items = currentItems();
+    renderResultCount(items);
+    const sections = new Map([...$('catalog-content').querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
+    for (const group of groupItems(items, catalogGrouping(), state.characters)) {
+      const summary = sections.get(group.name)?.querySelector('.group-summary');
+      if (summary) summary.innerHTML = groupSummary(group);
+    }
+    return;
+  }
   renderTypeOptions();
   renderRegionOptions();
   if (!$('series-popover').hidden) renderSeriesOptions();
@@ -362,7 +400,7 @@ function updateCollectionCatalog(id) {
   const key = state.groupBy === 'character' ? item.character : item.name;
   const sections = new Map([...content.querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
   const section = sections.get(key);
-  const groups = groupItems(items, state.groupBy, state.characterOrder);
+  const groups = groupItems(items, catalogGrouping(), state.characterOrder);
   const index = groups.findIndex(group => group.name === key);
   if (index === -1) { section?.remove(); return; }
   const group = groups[index];
@@ -373,7 +411,7 @@ function updateCollectionCatalog(id) {
     else content.insertAdjacentHTML('beforeend', catalogGroup(group));
     return;
   }
-  section.querySelector('.group-number').textContent = number(group.items.length);
+  section.querySelector('.group-summary').innerHTML = groupSummary(group);
   const caption = section.querySelector('.group-caption');
   if (caption) caption.textContent = new Set(group.items.map(item => item.character)).size + ' 個角色';
   const card = section.querySelector('[data-item="' + id + '"]');
@@ -663,11 +701,12 @@ $('more-button').addEventListener('click', () => {
   $('more-menu').hidden = !$('more-menu').hidden;
   $('more-button').setAttribute('aria-expanded',String(!$('more-menu').hidden));
 });
-$('open-settings').addEventListener('click', () => {
+function showCollectionSettings() {
   $('more-menu').hidden = true;
   $('more-button').setAttribute('aria-expanded', 'false');
   openDialog('settings-dialog');
-});
+}
+$('open-settings').addEventListener('click', showCollectionSettings);
 $('settings-dialog').addEventListener('close', () => $('more-button').focus({preventScroll:true}));
 function showGuide({ progress = false } = {}) {
   $('more-menu').hidden = true;
@@ -689,7 +728,7 @@ $('progress-type-options').addEventListener('change', event => {
   state.includedTypes[input.dataset.progressType] = input.checked;
   characterTotals = progressTotals(state.items, state.includedTypes);
   updateCollectionTabs();
-  renderResultCount(currentItems());
+  updateGoalBadges();
   persist();
 });
 $('open-data').addEventListener('click', () => { $('more-menu').hidden = true; $('more-button').setAttribute('aria-expanded','false'); showData(); });
@@ -791,7 +830,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=c1809ced1e097cac').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=89b9fbd1aecec0f6').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({

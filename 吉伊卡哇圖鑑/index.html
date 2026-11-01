@@ -11,10 +11,10 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=c1809ced1e097cac">
-  <link rel="stylesheet" href="./account.css?v=c1809ced1e097cac">
-  <script type="module" src="./app.mjs?v=c1809ced1e097cac"></script>
-  <meta name="chiikawa-site-version" content="c1809ced1e097cac">
+  <link rel="stylesheet" href="./styles.css?v=89b9fbd1aecec0f6">
+  <link rel="stylesheet" href="./account.css?v=89b9fbd1aecec0f6">
+  <script type="module" src="./app.mjs?v=89b9fbd1aecec0f6"></script>
+  <meta name="chiikawa-site-version" content="89b9fbd1aecec0f6">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -67,7 +67,13 @@
           </div>
         </div>
       </div>
-      <div class="result-bar"><p id="result-count" role="status" aria-live="polite">正在整理圖鑑…</p><div class="segmented" role="group" aria-label="排列方式"><button data-group="character" class="active" aria-pressed="true"><span data-icon="person"></span>依角色</button><button data-group="series" aria-pressed="false"><span data-icon="grid"></span>依系列</button></div></div>
+      <section class="collection-overview" aria-label="收藏統計">
+        <p id="result-context" class="summary-context" hidden>目前篩選結果</p>
+        <div class="result-tools">
+          <div id="result-count" class="catalog-summary" role="status" aria-live="polite">正在整理圖鑑…</div>
+          <div class="segmented" role="group" aria-label="排列方式"><button data-group="character" class="active" aria-pressed="true"><span data-icon="person"></span>依角色</button><button data-group="series" aria-pressed="false"><span data-icon="grid"></span>依系列</button></div>
+        </div>
+      </section>
       <div class="filter-summary"><div id="active-filters" class="active-filters"></div><button id="reset-filters" class="text-button" hidden><span data-icon="reset"></span>重設篩選</button></div>
       <div id="catalog-content" aria-busy="true"><div class="product-grid skeleton-grid" aria-hidden="true"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
     </section>
@@ -91,18 +97,19 @@
       <details id="guide-progress" class="guide-topic">
         <summary>收藏進度怎麼算？<span data-icon="chevron"></span></summary>
         <div class="guide-copy">
-          <p>頭貼外圈顯示該角色的收集進度，以已收藏款數占圖鑑總款數的比例計算。同款買好幾個，進度仍只算 1 款。</p>
-          <p>「收藏設定」勾選的種類，會同時計入<strong>頭貼外圈</strong>與頁面的<strong>「已收藏 A／B 款」</strong>。未勾選的商品仍可收藏，個數照常記錄，並計入目前角色或「我的娃」的總個數。</p>
-          <p>搜尋與篩選會更新頁面數字；頭貼外圈仍顯示該角色的整體進度。想看全部實際收藏的款數與個數，可以到「資料管理」查看。</p>
+          <p>「圖鑑收錄」是目前範圍內的商品總款數，「已收藏」是你擁有的不同款數，「持有」則包含同款重複收藏的個數。</p>
+          <p>「收藏設定」勾選的種類，只影響<strong>收藏目標</strong>與<strong>頭貼外圈</strong>的進度。同款買好幾個，目標仍只計 1 款；未勾選的種類照常記錄收藏款數與持有個數。</p>
+          <p>納入收藏目標的種類，會在種類名稱旁顯示「目標」標示。到「⋯ → 收藏設定」可以查看、調整；未勾選的種類不顯示標示。</p>
+          <p>搜尋與篩選會更新頁面統計；頭貼外圈仍顯示該角色的整體目標進度。</p>
           <p>好友的收藏統計依實際收藏計算，不受進度勾選影響。</p>
         </div>
       </details>
       <details class="guide-topic" open>
         <summary>哪些地方可以自己調整？<span data-icon="chevron"></span></summary>
         <dl class="guide-options">
-          <div><dt>進度種類</dt><dd>到「⋯ → 收藏設定」自由勾選，吊飾娃、玩偶等所有種類都能調整。</dd></div>
+          <div><dt>收藏目標</dt><dd>到「⋯ → 收藏設定」勾選想納入目標的種類，種類名稱旁會顯示「目標」標示。</dd></div>
           <div><dt>角色順序</dt><dd>展開頭貼列後，長按並拖曳角色；電腦可直接拖曳。</dd></div>
-          <div><dt>瀏覽方式</dt><dd>用搜尋、地區、種類或系列找商品，也能切換「依角色／依系列」排列。</dd></div>
+          <div><dt>瀏覽方式</dt><dd>角色圖鑑依種類分區，「我的娃」與願望清單依角色分區，也能切換為依系列排列。搜尋、地區、種類與系列可以一起篩選。</dd></div>
           <div><dt>暱稱與頭貼</dt><dd>登入後，到「⋯ → 個人資料」修改。</dd></div>
         </dl>
       </details>
@@ -119,8 +126,8 @@
   <dialog id="remove-dialog" class="panel-dialog compact-dialog" aria-labelledby="remove-title" aria-describedby="remove-description"><div class="warning-icon" data-icon="heart"></div><h2 id="remove-title">移出我的娃？</h2><p id="remove-description"></p><div class="confirm-actions"><button class="secondary-button" data-close="remove-dialog" autofocus>先保留</button><button class="danger-button" id="confirm-remove">確認移除</button></div></dialog>
   <dialog id="settings-dialog" class="panel-dialog settings-dialog" aria-labelledby="settings-title" aria-describedby="settings-description">
     <div class="dialog-heading"><h2 id="settings-title">收藏設定</h2><button class="icon-button" data-close="settings-dialog" aria-label="關閉收藏設定" autofocus><span data-icon="close"></span></button></div>
-    <p id="settings-description" class="dialog-description">所有種類都可自由勾選，決定是否納入收藏進度。<br>未勾選的商品仍可瀏覽及收藏。</p>
-    <fieldset class="progress-types"><legend>納入收藏進度</legend><div id="progress-type-options" class="progress-type-options"></div></fieldset>
+    <p id="settings-description" class="dialog-description">勾選的種類會標示「目標」，並計入角色頭貼外圈進度。<br>所有種類的實際收藏款數與持有個數都會完整記錄。</p>
+    <fieldset class="progress-types"><legend>納入收藏目標</legend><div id="progress-type-options" class="progress-type-options"></div></fieldset>
     <p class="settings-note">設定會自動儲存，並隨收藏備份保留。<button id="settings-guide" class="guide-link" aria-haspopup="dialog" aria-controls="guide-dialog">看看進度怎麼算</button></p>
     <div class="settings-footer"><button class="primary-button" data-close="settings-dialog">完成</button></div>
   </dialog>
