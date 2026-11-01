@@ -143,8 +143,12 @@
 .comparison-tabs button{border:1px solid var(--line);border-radius:12px;padding:11px 6px;font-size:11px;color:var(--muted);line-height:1.7}
 .comparison-tabs button[aria-pressed="true"]{border-color:var(--action-pink);background:var(--action-pink-soft);color:var(--action-pink-ink)}
 .comparison-tabs strong{display:block;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
-.friend-product-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.friend-product-filters input{grid-column:1/-1}
+.friend-product-filters{display:grid;gap:8px}
+.friend-search-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-width:0}
+.friend-search-row input{height:44px;text-overflow:ellipsis}
+.friend-product-filters .filter-toggle{min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--control-radius);box-shadow:none}
+.friend-product-filters .filter-toggle[aria-expanded="true"]{background:var(--pink)}
+.friend-filter-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
 .friend-product-filters #friend-series{grid-column:1/-1}
 .friend-product-filters select{font-size:13px;min-height:40px;padding:7px 8px;max-width:100%}
 .friend-results-count{font-size:11px;color:var(--muted);margin:13px 0}
@@ -157,7 +161,7 @@
 .friend-product h3{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;height:3em;overflow:hidden;font-size:12px;font-weight:600;line-height:1.5;margin:0 9px;overflow-wrap:anywhere}
 .friend-product>p{font-size:10px;color:var(--coral-dark);margin:7px 9px 10px;line-height:1.6;font-variant-numeric:tabular-nums}
 .friend-products .image-fallback{min-height:0;height:100%;text-align:center;font-size:10px}
-@media(min-width:701px){.friend-product-filters{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}.friend-product-filters input{grid-column:auto}.friend-product-filters #friend-series{grid-column:1/-1}}
+@media(min-width:701px){.friend-filter-options{grid-template-columns:repeat(3,minmax(0,1fr))}.friend-product-filters #friend-series{grid-column:auto}}
 @media(max-width:700px){
   .friends-dialog{padding:20px 16px;width:calc(100vw - 20px);max-width:calc(100vw - 20px);max-height:calc(100dvh - 24px)}
   .friends-dialog .text-button,.account-dialog .text-button{font-size:12px;min-height:40px}
