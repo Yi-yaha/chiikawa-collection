@@ -269,27 +269,28 @@ html{scroll-padding-top:118px}
 }
 @media(max-width:360px){.character-tab{flex-basis:52px}}
 
-/* Names use their actual height, up to two lines, followed by the action row. */
+/* 名稱最多兩行；資訊按鈕對齊最後一行，已收藏卡片不保留底部操作列。 */
 .product-card{display:flex;flex-direction:column}
 .product-image-button{flex-shrink:0;background:transparent;transition:none}
 .product-image-button:active{transform:none}
-.product-meta{padding:8px 10px 0}
+.product-meta{display:grid;grid-template-columns:minmax(0,1fr) 24px;align-items:end;gap:2px;padding:8px 8px 10px 10px}
 .product-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;overflow:hidden;overflow-wrap:anywhere;font-size:13px;line-height:1.5;height:auto;max-height:3em;font-weight:600}
 .product-actions{display:flex;align-items:center;justify-content:space-between;gap:0;height:44px;padding:0;margin-top:2px}
 .collect-button{width:44px;height:44px;top:0;right:0}
 .collect-button::before{inset:6px}
 .collect-button svg{width:18px;height:18px}
-.product-actions .product-info-button,.wish-button{position:relative;inset:auto;flex:0 0 44px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
-.product-actions .product-info-button::before{inset:8px;background:transparent}
-.product-actions .product-info-button svg,.wish-button svg{width:18px;height:18px;position:relative}
+.product-meta .product-info-button{position:relative;inset:auto;width:24px;height:19.5px;padding:0;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.product-meta .product-info-button::before{inset:0;background:transparent}
+/* 擴大可點範圍，讓緊湊的圖示仍容易用手指操作。 */
+.product-meta .product-info-button::after{content:"";position:absolute;width:44px;height:44px;left:50%;top:50%;transform:translate(-50%,-50%)}
+.product-meta .product-info-button svg,.wish-button svg{width:18px;height:18px;position:relative}
+.wish-button{position:relative;inset:auto;flex:0 0 44px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
 .wish-button::before{content:"";position:absolute;inset:7px;border-radius:50%}
 @media(hover:hover) and (pointer:fine){.wish-button:hover{color:var(--wish)}}
 .wish-button.wished{color:var(--wish)}
 .wish-button.wished::before{background:var(--wish-bg)}
 .wish-button.wished svg{fill:currentColor}
 .product-card.wished{border-color:#DEC68F;outline:2px solid #DEC68F;outline-offset:-2px}
-.product-quantity{flex:1;min-width:0;padding:0 6px;color:var(--coral);font-size:11px;line-height:1.3;font-variant-numeric:tabular-nums}
-.quantity-value{white-space:nowrap}
 .character-tab.wish-tab .avatar{background:var(--paper);color:var(--wish)}
 .character-tab.wish-tab .avatar svg{fill:currentColor}
 .character-tab.wish-tab.active{color:var(--wish)}
@@ -341,8 +342,9 @@ html{scroll-padding-top:118px}
 .detail-info dl{border-top:1px solid var(--line);padding-top:20px;margin:22px 0 0}
 .detail-link{margin-top:20px}
 @media(max-width:700px){
-  .product-meta{padding:6px 7px 0}
+  .product-meta{padding:6px 6px 10px 7px}
   .product-name{font-size:12px}
+  .product-meta .product-info-button{height:18px}
   .product-type{max-width:calc(100% - 47px)}
   .detail-info{padding:22px 20px}
   .detail-info h2{font-size:21px}
@@ -352,8 +354,6 @@ html{scroll-padding-top:118px}
 }
 @media(max-width:360px){
   .quantity-row{gap:6px}
-  .product-quantity{padding:0 3px;font-size:10px}
-  .product-quantity .quantity-label{display:none}
 }
 
 /* 大螢幕增加每排卡片數，手機延續原有的三欄。 */
