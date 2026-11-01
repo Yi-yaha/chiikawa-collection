@@ -1,9 +1,9 @@
-import { createClient } from './supabase-client.mjs?v=1909f35c2ced5dc9';
-import { cloudConfig } from './cloud-config.mjs?v=1909f35c2ced5dc9';
-import { createCloudStore } from './cloud-store.mjs?v=1909f35c2ced5dc9';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=1909f35c2ced5dc9';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, filterItems } from './model.mjs?v=1909f35c2ced5dc9';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=1909f35c2ced5dc9';
+import { createClient } from './supabase-client.mjs?v=c1809ced1e097cac';
+import { cloudConfig } from './cloud-config.mjs?v=c1809ced1e097cac';
+import { createCloudStore } from './cloud-store.mjs?v=c1809ced1e097cac';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=c1809ced1e097cac';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, filterItems } from './model.mjs?v=c1809ced1e097cac';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=c1809ced1e097cac';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

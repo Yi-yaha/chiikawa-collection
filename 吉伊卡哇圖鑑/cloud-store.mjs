@@ -1,4 +1,4 @@
-import { STORAGE_KEY } from './model.mjs?v=1909f35c2ced5dc9';
+import { STORAGE_KEY } from './model.mjs?v=c1809ced1e097cac';
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const valueOf = row => ({ quantity:row?.quantity || 0, wished:row?.quantity > 0 ? false : Boolean(row?.wished) });

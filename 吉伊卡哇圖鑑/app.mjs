@@ -1,7 +1,7 @@
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems } from './model.mjs?v=1909f35c2ced5dc9';
-import { createCatalogImageLoader } from './image-loader.mjs?v=1909f35c2ced5dc9';
-import { createCharacterSorter } from './character-sorter.mjs?v=1909f35c2ced5dc9';
-import { watchForSiteUpdates } from './site-updates.mjs?v=1909f35c2ced5dc9';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, groupItems } from './model.mjs?v=c1809ced1e097cac';
+import { createCatalogImageLoader } from './image-loader.mjs?v=c1809ced1e097cac';
+import { createCharacterSorter } from './character-sorter.mjs?v=c1809ced1e097cac';
+import { watchForSiteUpdates } from './site-updates.mjs?v=c1809ced1e097cac';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -791,7 +791,7 @@ async function init() {
     renderTabs(); renderCatalog();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=1909f35c2ced5dc9').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=c1809ced1e097cac').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
