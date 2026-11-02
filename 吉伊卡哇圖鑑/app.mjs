@@ -1,8 +1,8 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=6f7cb198b6306bb5';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=6f7cb198b6306bb5';
-import { createCatalogImageLoader } from './image-loader.mjs?v=6f7cb198b6306bb5';
-import { createCharacterSorter } from './character-sorter.mjs?v=6f7cb198b6306bb5';
-import { watchForSiteUpdates } from './site-updates.mjs?v=6f7cb198b6306bb5';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=ef006a7ddba09d42';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=ef006a7ddba09d42';
+import { createCatalogImageLoader } from './image-loader.mjs?v=ef006a7ddba09d42';
+import { createCharacterSorter } from './character-sorter.mjs?v=ef006a7ddba09d42';
+import { watchForSiteUpdates } from './site-updates.mjs?v=ef006a7ddba09d42';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -79,6 +79,7 @@ const filterExpansionKey = STORAGE_KEY + '-filters-expanded';
 let filtersExpanded = false;
 let charactersExpanded = false;
 let openSeriesCategory = '';
+const openSeriesSubcategories = new Set();
 try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
 try { history.scrollRestoration = 'manual'; } catch {}
 let initialPositionPending = true;
@@ -284,11 +285,21 @@ function renderRegionOptions() {
 function renderSeriesOptions() {
   const available = filterItems(baseItems(), {type:state.type,region:state.region,query:state.query});
   const search = $('series-search').value.trim();
-  const categories = groupSeriesOptions(available, {query:search, catalog:state.items});
+  const categories = groupSeriesOptions(available, {query:search, catalog:state.items, seriesTree:state.seriesTree});
   const option = ({key, label, count}) => '<button type="button" class="series-option ' + (state.series === key ? 'selected' : '') + '" data-series="' + escapeHTML(key) + '" aria-pressed="' + (state.series === key) + '"><span>' + escapeHTML(label) + '</span><small>' + number(count) + ' 款</small></button>';
+  const hierarchy = (node, depth = 0) => {
+    if (!node.hasChildren) return node.ownOptions.map(option).join('');
+    const heading = escapeHTML(node.label);
+    const body = node.ownOptions.map(option).join('') + node.children.map(child => hierarchy(child, depth + 1)).join('');
+    if (search) return '<section class="series-category"><' + (depth ? 'p class="series-subgroup-heading"' : 'h3 class="series-search-heading"') + '>' + heading + '</' + (depth ? 'p' : 'h3') + '>' + body + '</section>';
+    const selected = node.options.some(({key}) => key === state.series);
+    const expanded = depth ? openSeriesSubcategories.has(node.id) : node.id === openSeriesCategory;
+    return '<section class="series-category"><button type="button" class="series-category-toggle' + (selected ? ' has-selection' : '') + '" data-series-' + (depth ? 'subcategory' : 'category') + '="' + escapeHTML(node.id) + '" aria-expanded="' + expanded + '" aria-controls="series-category-' + escapeHTML(node.id) + '"><span class="series-category-name">' + heading + (selected ? icon('check') : '') + '</span><small>' + number(node.options.length) + ' 個系列</small>' + icon('chevron') + '</button><div id="series-category-' + escapeHTML(node.id) + '" class="series-category-options"' + (expanded ? '' : ' hidden') + '>' + body + '</div></section>';
+  };
   let html = '<button type="button" class="series-option series-all ' + (!state.series ? 'selected' : '') + '" data-series="" aria-pressed="' + !state.series + '"><span>全部系列</span><small>' + number(available.length) + ' 款</small></button>';
   html += categories.map(category => {
     if (category.id === 'unassigned') return '<div class="series-unassigned">' + category.options.map(option).join('') + '</div>';
+    if (category.children) return hierarchy(category);
     const selected = category.options.some(({key}) => key === state.series);
     const heading = escapeHTML(category.label);
     const options = category.sections
@@ -694,7 +705,16 @@ $('series-toggle').addEventListener('click', () => {
   $('series-popover').hidden = false;
   $('series-toggle').setAttribute('aria-expanded','true');
   $('series-search').value = '';
-  openSeriesCategory = groupSeriesOptions(state.items).find(category => category.options.some(({key}) => key === state.series))?.id || '';
+  const selectedCategory = groupSeriesOptions(state.items, {seriesTree:state.seriesTree}).find(category => category.options.some(({key}) => key === state.series));
+  openSeriesCategory = selectedCategory?.id || '';
+  openSeriesSubcategories.clear();
+  const expandSelected = node => {
+    if (node.options.some(({key}) => key === state.series)) {
+      openSeriesSubcategories.add(node.id);
+      for (const child of node.children || []) expandSelected(child);
+    }
+  };
+  if (selectedCategory) expandSelected(selectedCategory);
   renderSeriesOptions();
   sizeSeriesPopover();
   const options = $('series-options');
@@ -717,6 +737,16 @@ window.addEventListener('resize', () => {
   });
 }, { passive:true });
 $('series-options').addEventListener('click', event => {
+  const subcategory = event.target.closest('[data-series-subcategory]');
+  if (subcategory) {
+    const id = subcategory.dataset.seriesSubcategory;
+    const expanded = !openSeriesSubcategories.has(id);
+    if (expanded) openSeriesSubcategories.add(id); else openSeriesSubcategories.delete(id);
+    subcategory.setAttribute('aria-expanded', String(expanded));
+    $(subcategory.getAttribute('aria-controls')).hidden = !expanded;
+    if (expanded) $('series-options').scrollTop += subcategory.getBoundingClientRect().top - $('series-options').getBoundingClientRect().top;
+    return;
+  }
   const category = event.target.closest('[data-series-category]');
   if (category) {
     openSeriesCategory = openSeriesCategory === category.dataset.seriesCategory ? '' : category.dataset.seriesCategory;
@@ -908,6 +938,7 @@ async function init() {
     if(!response.ok) throw new Error('資料載入失敗');
     const catalog = await response.json();
     state.items = catalog.items;
+    state.seriesTree = catalog.seriesTree;
     state.characters = catalog.characters;
     itemAliases = catalog.itemAliases || {};
     itemMap = new Map(state.items.map(item => [item.id,item]));
@@ -941,7 +972,7 @@ async function init() {
     browseState.enable();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=6f7cb198b6306bb5').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=ef006a7ddba09d42').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({

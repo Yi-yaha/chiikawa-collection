@@ -1,5 +1,5 @@
-import { typeLabel } from './model.mjs?v=6f7cb198b6306bb5';
-import { normalizeFriendCode } from './friend-invite.mjs?v=6f7cb198b6306bb5';
+import { typeLabel } from './model.mjs?v=ef006a7ddba09d42';
+import { normalizeFriendCode } from './friend-invite.mjs?v=ef006a7ddba09d42';
 
 export { normalizeFriendCode };
 

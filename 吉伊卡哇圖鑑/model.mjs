@@ -1,3 +1,5 @@
+import { seriesHierarchy } from './series-tree.mjs?v=ef006a7ddba09d42';
+
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
 export const ITEM_TYPES = ['吊娃', '娃', '扭蛋', '徽章', '立牌', '公仔', '景品', '地方限定吊娃', '地方限定吊牌', '其他', '待分類'];
@@ -62,7 +64,29 @@ function compareSeries(a, b) {
   return seriesCollator.compare(sortable(a), sortable(b));
 }
 
-export function groupSeriesOptions(items, { query = '', catalog = items } = {}) {
+function groupSeriesTreeOptions(items, tree, query) {
+  const counts = new Map();
+  for (const item of items) {
+    const key = seriesKey(item);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const normalize = value => value.normalize('NFKC').toLocaleLowerCase('zh-TW');
+  const needle = normalize(query.trim());
+  const groups = seriesHierarchy(tree, items, { query });
+  // 新系列尚未加入階層時仍可選取；未設定系列固定放在最後。
+  const knownNames = new Set(tree.map(node => node.name));
+  const remaining = [...counts].filter(([key]) => key !== UNASSIGNED_SERIES && !knownNames.has(key))
+    .filter(([key]) => !needle || normalize('其他系列 ' + key).includes(needle))
+    .map(([key, count]) => ({ key, label:seriesLabel(key), count }));
+  if (remaining.length) groups.push({ id:'other-series', label:'其他系列', options:remaining.sort((a, b) => compareSeries(a.key, b.key)) });
+  if (counts.has(UNASSIGNED_SERIES) && (!needle || normalize('未設定系列').includes(needle))) {
+    groups.push({ id:'unassigned', label:'未設定系列', options:[{ key:UNASSIGNED_SERIES, label:'未設定系列', count:counts.get(UNASSIGNED_SERIES) }] });
+  }
+  return groups;
+}
+
+export function groupSeriesOptions(items, { query = '', catalog = items, seriesTree } = {}) {
+  if (Array.isArray(seriesTree)) return groupSeriesTreeOptions(items, seriesTree, query);
   const catalogSeries = new Map();
   const characters = new Set(catalog.map(item => item.character).filter(Boolean));
   for (const item of catalog) {
