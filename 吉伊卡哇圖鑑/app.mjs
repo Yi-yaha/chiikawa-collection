@@ -1,8 +1,9 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=ad3a7d6961e10aba';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=ad3a7d6961e10aba';
-import { createCatalogImageLoader } from './image-loader.mjs?v=ad3a7d6961e10aba';
-import { createCharacterSorter } from './character-sorter.mjs?v=ad3a7d6961e10aba';
-import { watchForSiteUpdates } from './site-updates.mjs?v=ad3a7d6961e10aba';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=e3541f0779c48652';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=e3541f0779c48652';
+import { createCatalogImageLoader } from './image-loader.mjs?v=e3541f0779c48652';
+import { createCharacterSorter } from './character-sorter.mjs?v=e3541f0779c48652';
+import { watchForSiteUpdates } from './site-updates.mjs?v=e3541f0779c48652';
+import { createReportHub } from './report-hub.mjs?v=e3541f0779c48652';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -961,7 +962,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=ad3a7d6961e10aba');
+        const { createAccountHub } = await import('./account-hub.mjs?v=e3541f0779c48652');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
@@ -1003,6 +1004,10 @@ async function init() {
     }
     initialPositionPending = false;
     browseState.enable();
+    if (!document.getElementById('open-report')) {
+      const reports = createReportHub({items:state.items,client:accountHub?.client,getUserId:() => accountHub?.userId || null,toast});
+      if (accountHub) void accountHub.ready.then(() => reports.showIntro());else reports.showIntro();
+    }
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
   } catch {
     $('catalog-content').setAttribute('aria-busy','false');

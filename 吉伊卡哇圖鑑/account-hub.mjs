@@ -1,10 +1,10 @@
-import { createClient } from './supabase-client.mjs?v=ad3a7d6961e10aba';
-import { cloudConfig } from './cloud-config.mjs?v=ad3a7d6961e10aba';
-import { createCloudStore } from './cloud-store.mjs?v=ad3a7d6961e10aba';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=ad3a7d6961e10aba';
-import { createFriendInviteURL } from './friend-invite.mjs?v=ad3a7d6961e10aba';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=ad3a7d6961e10aba';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=ad3a7d6961e10aba';
+import { createClient } from './supabase-client.mjs?v=e3541f0779c48652';
+import { cloudConfig } from './cloud-config.mjs?v=e3541f0779c48652';
+import { createCloudStore } from './cloud-store.mjs?v=e3541f0779c48652';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=e3541f0779c48652';
+import { createFriendInviteURL } from './friend-invite.mjs?v=e3541f0779c48652';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=e3541f0779c48652';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=e3541f0779c48652';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -603,6 +603,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   const poll = setInterval(refresh,30000);
   renderSync(); renderBadge();
   return {
+    get client() { return client; },
     collectionReady:collectionReadyPromise,
     ready,
     getViewState,

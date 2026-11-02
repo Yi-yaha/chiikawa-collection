@@ -1,4 +1,4 @@
-import { seriesHierarchy } from './series-tree.mjs?v=ad3a7d6961e10aba';
+import { seriesHierarchy } from './series-tree.mjs?v=e3541f0779c48652';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
