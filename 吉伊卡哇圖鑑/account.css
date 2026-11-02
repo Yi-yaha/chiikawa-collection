@@ -2,7 +2,7 @@
 #more-button{position:relative}
 .notification-dot{position:absolute;top:0;right:0;width:10px;height:10px;border-radius:50%;background:#d85357;border:2px solid var(--bg);box-sizing:content-box}
 .account-menu-copy{display:flex;flex-direction:column;min-width:0}
-.account-menu-copy>span{font-weight:600;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.account-menu-copy>span{font-size:inherit;font-weight:inherit;line-height:22px;overflow:hidden;text-overflow:ellipsis;max-width:190px}
 .account-menu-copy small{font-size:10px;color:var(--muted);font-weight:400;margin-top:2px;white-space:normal}
 .friends-menu-badge{margin-left:auto;background:#fbebeb;color:#b64049;border-radius:5px;padding:1px 5px;font-size:10px;white-space:nowrap}
 .account-dialog{width:460px}

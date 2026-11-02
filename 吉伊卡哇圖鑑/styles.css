@@ -33,8 +33,11 @@ dialog{color:var(--ink);border:1px solid var(--line);border-radius:var(--radius)
 @media(max-width:480px){.hero{padding:21px 19px}.hero h1{font-size:24px}.hero-copy>p{max-width:151px;font-size:9px}.hero-note{font-size:8px}.hero-art{width:47%;right:-1px}.doll-chii{left:0;bottom:15px;width:113px;height:113px}.doll-hachi{width:94px;height:94px;bottom:105px;left:3%}.doll-usagi{width:94px;height:111px;right:-10%;bottom:75px}.art-star.star-one{top:18px;font-size:20px}.art-orbit{width:133px;height:140px;bottom:42px}.hero{min-height:220px}.product-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.product-image{aspect-ratio:1.05;padding:23px 15px 9px}.product-meta{padding:12px}.product-name{font-size:12px}.product-character{font-size:10px}.product-type{font-size:9px;top:11px;left:10px}.brand{font-size:16px}.header-inner{padding:0 17px}.header-actions{gap:5px}.page-shell{padding:17px 17px 0}.character-nav{margin-left:-17px;margin-right:-17px;padding-left:17px;padding-right:17px}.catalog-heading p{max-width:205px}.catalog-heading>.secondary-button{font-size:9px;padding:7px 8px}.catalog-heading>.secondary-button svg{display:none}.confirm-actions{gap:8px}.confirm-actions button{font-size:11px}.compact-dialog{padding:25px 22px}.detail-dialog{max-height:calc(100dvh - 30px)}}
 /* Compact catalog navigation and controls. */
 .more-menu{width:202px;min-width:0;max-width:calc(100vw - 34px);box-shadow:0 12px 36px rgba(60,45,35,.10)}
-.more-menu #open-settings{min-height:44px;padding:10px 12px;border-radius:12px;font-size:14px}
-.more-menu #open-settings svg{width:20px;height:20px;color:var(--coral)}
+#more-menu>button{min-height:44px;padding:10px 12px;border-radius:12px;gap:12px;font-size:14px;font-weight:500;line-height:22px;color:var(--ink)}
+#more-menu>button>[data-icon],#more-menu>button>svg{width:20px;height:20px;flex:0 0 20px;color:inherit}
+#more-menu>button svg{width:20px;height:20px;stroke-width:1.6;color:inherit}
+#more-menu #open-account{align-items:flex-start}
+#more-menu #open-account>[data-icon]{margin-top:1px}
 .settings-dialog{width:420px}
 .settings-dialog .dialog-description{margin:12px 0 16px}
 .progress-types{min-width:0;border:0;padding:0;margin:20px 0 0}
@@ -64,8 +67,6 @@ dialog{color:var(--ink);border:1px solid var(--line);border-radius:var(--radius)
 .guide-footer .primary-button{min-width:88px;min-height:44px}
 .guide-link{display:block;min-height:32px;margin-top:4px;padding:4px 0;color:var(--coral-dark);text-decoration:underline;text-underline-offset:3px;font-size:12px}
 .menu-divider{height:1px;background:var(--line);margin:6px 12px}
-.more-menu #open-data,.more-menu #open-guide{min-height:44px;padding:10px 12px;border-radius:12px;font-size:14px}
-.more-menu #open-data svg,.more-menu #open-guide svg{width:20px;height:20px;color:var(--muted)}
 .site-header{height:auto;background:var(--bg)}
 .header-inner{gap:16px;align-items:center}
 .header-inner .character-nav{flex:1;min-width:0;margin:0;border:0;padding:8px 0}

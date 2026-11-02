@@ -1,6 +1,6 @@
-import {createClient} from './supabase-client.mjs?v=e3541f0779c48652';
-import {cloudConfig} from './cloud-config.mjs?v=e3541f0779c48652';
-import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=e3541f0779c48652';
+import {createClient} from './supabase-client.mjs?v=3b815fd194c1c888';
+import {cloudConfig} from './cloud-config.mjs?v=3b815fd194c1c888';
+import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=3b815fd194c1c888';
 const h = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const paths = {message:'<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM12 7v6M9 10h6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',image:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m21 15-5-5L5 21"/>',link:'<path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',heart:'<path d="M20 5a5 5 0 0 0-7 0l-1 1-1-1a5 5 0 0 0-7 7l8 8 8-8a5 5 0 0 0 0-7Z"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + paths[name] + '</svg>';
@@ -26,7 +26,7 @@ export function createReportHub({items,getUserId = () => null,client:override,to
         <form id="report-form" novalidate>
           <div class="report-field"><label for="report-name">商品或系列名稱<span>必填</span></label><textarea id="report-name" class="report-name" rows="2" maxlength="120" placeholder="例如：兔兔的聖誕娃娃 / 簡單描述外觀" required></textarea>
             <div id="report-matches" class="report-matches" aria-live="polite" hidden></div></div>
-          <fieldset class="report-field"><legend>參考資料<span>至少提供一項</span></legend><label class="report-sub-label" for="report-link">參考連結</label><div class="report-link-input">${icon('link')}<input id="report-link" type="url" inputmode="url" maxlength="2000" placeholder="貼上商品介紹或販售頁面的連結"></div><div class="report-or">或</div>
+          <fieldset class="report-field"><legend>參考資料<span>至少提供一項</span></legend><div class="report-link-input">${icon('link')}<input id="report-link" aria-label="參考連結" type="url" inputmode="url" maxlength="2000" placeholder="貼上商品介紹或販售頁面的連結"></div><div class="report-or">或</div>
             <input type="file" id="report-files" accept="image/jpeg,image/png,image/webp" multiple hidden><button type="button" class="report-upload" id="report-add-images">${icon('image')}<span>新增商品圖片</span>${icon('plus')}</button>
             <p class="report-file-help">最多 3 張，每張 10 MB 以內；JPG、PNG、WebP。</p><div id="report-images" class="report-images" aria-live="polite"></div></fieldset>
           <div class="report-field"><div class="report-label-row"><label for="report-note">補充說明<span class="report-optional">選填</span></label><span id="report-note-count">0 / 1000</span></div><textarea id="report-note" rows="3" maxlength="1000" placeholder="例如：這個系列還缺小八和兔兔，或有其他尺寸的款式。"></textarea></div>
