@@ -1,10 +1,10 @@
-import { createClient } from './supabase-client.mjs?v=9a1edd7d4a77ded9';
-import { cloudConfig } from './cloud-config.mjs?v=9a1edd7d4a77ded9';
-import { createCloudStore } from './cloud-store.mjs?v=9a1edd7d4a77ded9';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=9a1edd7d4a77ded9';
-import { createFriendInviteURL } from './friend-invite.mjs?v=9a1edd7d4a77ded9';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=9a1edd7d4a77ded9';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=9a1edd7d4a77ded9';
+import { createClient } from './supabase-client.mjs?v=ad3a7d6961e10aba';
+import { cloudConfig } from './cloud-config.mjs?v=ad3a7d6961e10aba';
+import { createCloudStore } from './cloud-store.mjs?v=ad3a7d6961e10aba';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=ad3a7d6961e10aba';
+import { createFriendInviteURL } from './friend-invite.mjs?v=ad3a7d6961e10aba';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=ad3a7d6961e10aba';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=ad3a7d6961e10aba';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -23,11 +23,14 @@ function errorText(error) {
   return '操作暫時未完成，請稍後再試。';
 }
 
-export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, toast, client:clientOverride, initialView = null, onReady = () => {} }) {
+export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, toast, client:clientOverride, initialView = null }) {
   const client = clientOverride || createClient(cloudConfig.url, cloudConfig.publishableKey, {
     auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'chiikawa-account-session' },
   });
   let pendingView = initialView;
+  let collectionReady, viewReady;
+  const collectionReadyPromise = new Promise(resolve => { collectionReady = resolve; });
+  const ready = new Promise(resolve => { viewReady = resolve; });
   let user = null, profile = null, authLoading = true, sessionGeneration = 0;
   let friends = [], blocks = [], friendsLoaded = false, friendsError = '', refreshingFriends = false;
   let selectedFriend = null, friendSnapshot = null, lookup = null, friendTab = 'collection', compareTab = 'both', friendConfirmation = null;
@@ -314,7 +317,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       (blocks.length ? '<details class="blocked-list"><summary>封鎖名單（' + n(blocks.length) + '）</summary>' + blocks.map(block => '<div class="friend-row"><div class="friend-row-info"><strong>' + h(block.nickname) + '</strong></div><button class="text-button" data-unblock="' + h(block.id) + '">解除封鎖</button></div>').join('') + '<p class="social-note">解除封鎖後，需要重新加入好友才會分享收藏。</p></details>' : '');
     if (restoreCodeFocus) { $('friend-code-input').focus({ preventScroll:true }); $('friend-code-input').setSelectionRange(...selection); }
   }
-  async function loadFriendSnapshot(showLoading = true) {
+  async function loadFriendSnapshot(showLoading = true, render = true) {
     if (!selectedFriend || !user) return;
     const activeUid = user.id, selectedId = selectedFriend.other_id;
     if (showLoading) $('friends-content').innerHTML = '<div class="dialog-heading"><h2 id="friends-title">好友收藏</h2>' + closeButton('friends-dialog','關閉好友收藏') + '</div><p class="social-loading" role="status">正在整理收藏…</p>';
@@ -326,10 +329,12 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       const previous = JSON.stringify(friendSnapshot);
       const normalized = normalize({ quantities:Object.fromEntries(result.items.map(row => [row.item_id,row.quantity])), wishlist:result.wishlist });
       friendSnapshot = { profile:result.profile, quantities:normalized.quantities, wishlist:Array.isArray(result.wishlist) ? normalized.wishlist : null };
-      if (showLoading || previous !== JSON.stringify(friendSnapshot)) renderFriendDetail();
+      if (render && (showLoading || previous !== JSON.stringify(friendSnapshot))) renderFriendDetail();
     } catch (error) {
       if (selectedFriend?.other_id !== selectedId) return;
-      selectedFriend = null; friendSnapshot = null; renderFriends(); message('friends-message',errorText(error),true);
+      selectedFriend = null; friendSnapshot = null;
+      if (render) { renderFriends(); message('friends-message',errorText(error),true); }
+      else friendsError = errorText(error);
     }
   }
   function statsList(rows, mode = 'ratio') {
@@ -364,9 +369,11 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     $('friends-dialog').scrollTop = show ? 0 : friendCollectionScroll;
     (show ? back : $('open-friend-analysis'))?.focus({ preventScroll:true });
   }
-  function renderFriendDetail() {
+  function renderFriendDetail(restoredFilters) {
     if (!friendSnapshot || !selectedFriend) return;
-    const previousFilters = Object.fromEntries(['friend-search','friend-character','friend-type','friend-series'].map(id => [id,$(id)?.value || '']));
+    const previousFilters = Object.fromEntries(['friend-search','friend-character','friend-type','friend-series'].map(id => [id,
+      restoredFilters ? (typeof restoredFilters[id] === 'string' ? restoredFilters[id] : '') : $(id)?.value || '',
+    ]));
     const previousScroll = $('friends-dialog').scrollTop;
     const { profile:other, quantities, wishlist } = friendSnapshot;
     const wished = new Set(wishlist || []);
@@ -524,9 +531,9 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       if (view.userId !== (user?.id || null)) return;
       if (view.open === 'account') { renderAccount(); open('account-dialog'); return; }
       if (view.open !== 'friends' || !user || !profile?.nickname || document.querySelector('dialog[open]')) return;
-      renderFriends(); open('friends-dialog');
+      // 先備妥指定好友、檢視與篩選，再一次開啟目的畫面。
       await refreshFriends();
-      if (!$('friends-dialog').open) return;
+      if (view.userId !== (user?.id || null)) return;
       selectedFriend = friends.find(friend => friend.other_id === view.friendId && friend.status === 'accepted') || null;
       if (selectedFriend) {
         friendTab = ['collection','compare','wishlist'].includes(view.friendTab) ? view.friendTab : 'collection';
@@ -536,12 +543,12 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
         friendAnalysisExpanded = Boolean(view.friendAnalysisExpanded);
         friendFiltersExpanded = Boolean(view.friendFiltersExpanded);
         friendCollectionScroll = Number(view.friendCollectionScroll) || 0;
-        await loadFriendSnapshot();
-        for (const id of ['friend-search','friend-character','friend-type','friend-series']) {
-          if ($(id) && typeof view.filters?.[id] === 'string') $(id).value = view.filters[id];
-        }
-        renderFriendProducts();
+        await loadFriendSnapshot(false, false);
+        if (view.userId !== (user?.id || null)) return;
       }
+      if (selectedFriend && friendSnapshot) renderFriendDetail(view.filters);
+      else renderFriends();
+      open('friends-dialog');
       $('friends-dialog').scrollTop = Number(view.scroll) || 0;
     } finally { pendingView = null; }
   }
@@ -556,13 +563,15 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       if ($('friends-dialog').open) $('friends-dialog').close();
       if ($('migration-dialog').open) $('migration-dialog').close();
       if ($('sync-conflict-dialog').open) $('sync-conflict-dialog').close();
-      void restoreView(); onReady();
+      collectionReady(); await restoreView(); viewReady();
       renderSync(); if ($('account-dialog').open || pendingHub) { renderAccount(); open('account-dialog'); } return;
     }
     try {
+      const syncing = store.open(user.id,false);
+      collectionReady();
       const [profileResult] = await Promise.all([
         client.from('profiles').select('id,nickname,avatar_path,friend_code').eq('id',user.id).single(),
-        store.open(user.id,false),
+        syncing,
       ]);
       if (current !== sessionGeneration) return;
       if (profileResult.error) throw profileResult.error;
@@ -580,12 +589,13 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     } catch (error) {
       if (current !== sessionGeneration) return;
       authLoading = false; renderAccount(); message('account-message','帳號資料暫時無法讀取，請確認連線後重新登入。',true); renderSync();
-    } finally { if (current === sessionGeneration) onReady(); }
+    } finally { if (current === sessionGeneration) { collectionReady(); viewReady(); } }
   }
   const invite = normalizeFriendCode(new URL(location.href).searchParams.get('friend'));
   if (invite.length === 12) { sessionStorage.setItem('chiikawa-pending-friend',invite); const url = new URL(location.href); url.searchParams.delete('friend'); history.replaceState(null,'',url); pendingHub = true; }
   const { data:authSubscription } = client.auth.onAuthStateChange((_event, session) => { setTimeout(() => { void handleSession(session); },0); });
-  void client.auth.getSession().then(({ data, error }) => { if (error) { authLoading = false; renderSync(); } else void handleSession(data.session); });
+  const sessionError = () => { authLoading = false; renderSync(); collectionReady(); viewReady(); };
+  void client.auth.getSession().then(({ data, error }) => { if (error) sessionError(); else void handleSession(data.session); }).catch(sessionError);
   const refresh = () => { if (user && !document.hidden) { void store.sync(); void refreshFriends(); } };
   window.addEventListener('online',refresh);
   window.addEventListener('focus',refresh);
@@ -593,6 +603,8 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   const poll = setInterval(refresh,30000);
   renderSync(); renderBadge();
   return {
+    collectionReady:collectionReadyPromise,
+    ready,
     getViewState,
     capture:saved => store.capture(saved),
     get userId() { return store.userId; },

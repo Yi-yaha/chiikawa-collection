@@ -35,23 +35,29 @@ export function capturePosition(root = document) {
 let cancelPreviousRestore;
 export function restorePosition(position, root = document) {
   cancelPreviousRestore?.();
-  if (!position || !Number.isFinite(position.y)) return;
-  let cancelled = false, frames = 0, stable = 0;
-  const events = ['pointerdown','touchstart','wheel','keydown'];
-  const cancel = () => { cancelled = true; cleanup(); };
-  cancelPreviousRestore = cancel;
-  const cleanup = () => events.forEach(event => window.removeEventListener(event, cancel));
-  events.forEach(event => window.addEventListener(event, cancel, { passive:true, once:true }));
-  const card = position.item ? root.querySelector('[data-item="' + CSS.escape(position.item) + '"]') : null;
-  window.scrollTo({ top:Math.max(0, position.y), behavior:'instant' });
-  function settle() {
-    if (cancelled) return;
-    if (card?.isConnected && Number.isFinite(position.offset)) {
-      const delta = card.getBoundingClientRect().top - position.offset;
-      stable = Math.abs(delta) < 1 ? stable + 1 : 0;
-      if (Math.abs(delta) >= 1) window.scrollBy({ top:delta, behavior:'instant' });
+  if (!position || !Number.isFinite(position.y)) return Promise.resolve();
+  return new Promise(resolve => {
+    let cancelled = false, frames = 0, stable = 0;
+    const events = ['pointerdown','touchstart','wheel','keydown'];
+    const cancel = () => { cancelled = true; cleanup(); };
+    cancelPreviousRestore = cancel;
+    const cleanup = () => {
+      events.forEach(event => window.removeEventListener(event, cancel));
+      if (cancelPreviousRestore === cancel) cancelPreviousRestore = null;
+      resolve();
+    };
+    events.forEach(event => window.addEventListener(event, cancel, { passive:true, once:true }));
+    const card = position.item ? root.querySelector('[data-item="' + CSS.escape(position.item) + '"]') : null;
+    window.scrollTo({ top:Math.max(0, position.y), behavior:'instant' });
+    function settle() {
+      if (cancelled) return;
+      if (card?.isConnected && Number.isFinite(position.offset)) {
+        const delta = card.getBoundingClientRect().top - position.offset;
+        stable = Math.abs(delta) < 1 ? stable + 1 : 0;
+        if (Math.abs(delta) >= 1) window.scrollBy({ top:delta, behavior:'instant' });
+      } else stable++;
+      if (++frames < 12 && stable < 3) requestAnimationFrame(settle); else cleanup();
     }
-    if (++frames < 12 && stable < 3) requestAnimationFrame(settle); else cleanup();
-  }
-  requestAnimationFrame(settle);
+    requestAnimationFrame(settle);
+  });
 }
