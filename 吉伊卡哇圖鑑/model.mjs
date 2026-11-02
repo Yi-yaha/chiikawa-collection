@@ -1,4 +1,4 @@
-import { seriesHierarchy } from './series-tree.mjs?v=ef006a7ddba09d42';
+import { seriesHierarchy, seriesPathLabel } from './series-tree.mjs?v=9a1edd7d4a77ded9';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -7,7 +7,7 @@ export const PROGRESS_TYPES = [...ITEM_TYPES];
 export const typeLabel = type => ({娃:'玩偶', 吊娃:'吊飾娃', 地方限定吊娃:'地方限定吊飾娃', 鐵牌:'地方限定吊牌', 其他:'其他小物'}[type] || type);
 export const UNASSIGNED_SERIES = '__unassigned__';
 export const seriesKey = item => (typeof item.series === 'string' ? item.series.trim() : '') || UNASSIGNED_SERIES;
-export const seriesLabel = key => key === UNASSIGNED_SERIES ? '未設定系列' : key;
+export const seriesLabel = (key, tree) => key === UNASSIGNED_SERIES ? '未設定系列' : seriesPathLabel(tree, key);
 
 // 只整理選單的瀏覽分區；商品原本的系列名稱與歸屬保持獨立。
 const SERIES_CATEGORIES = [

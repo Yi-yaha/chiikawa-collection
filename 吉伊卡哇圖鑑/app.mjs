@@ -1,8 +1,8 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=ef006a7ddba09d42';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=ef006a7ddba09d42';
-import { createCatalogImageLoader } from './image-loader.mjs?v=ef006a7ddba09d42';
-import { createCharacterSorter } from './character-sorter.mjs?v=ef006a7ddba09d42';
-import { watchForSiteUpdates } from './site-updates.mjs?v=ef006a7ddba09d42';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=9a1edd7d4a77ded9';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=9a1edd7d4a77ded9';
+import { createCatalogImageLoader } from './image-loader.mjs?v=9a1edd7d4a77ded9';
+import { createCharacterSorter } from './character-sorter.mjs?v=9a1edd7d4a77ded9';
+import { watchForSiteUpdates } from './site-updates.mjs?v=9a1edd7d4a77ded9';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -65,6 +65,7 @@ function avatarPortrait(character) {
   return '<span class="avatar-portrait" style="' + crop + '"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="300" height="300" loading="lazy" decoding="async"></span>';
 }
 const state = { items:[], characters:[], owned:new Set(), quantities:{}, wishlist:new Set(), characterOrder:[], groupBy:'character', includedTypes:{}, scope:'mine', type:'', region:'', series:'', query:'', ready:false };
+const visibleSeriesLabel = key => seriesLabel(key, state.seriesTree);
 let itemMap = new Map();
 let itemAliases = {};
 let characterTotals = new Map();
@@ -321,13 +322,13 @@ function renderFilters() {
   renderFilterDisclosure();
   renderTypeOptions();
   renderRegionOptions();
-  $('series-label').textContent = (state.series ? seriesLabel(state.series) : '全部系列');
-  $('series-toggle').setAttribute('aria-label', '篩選系列：' + ((state.series ? seriesLabel(state.series) : '全部系列')));
-  $('series-toggle').title = (state.series ? seriesLabel(state.series) : '全部系列');
+  $('series-label').textContent = (state.series ? visibleSeriesLabel(state.series) : '全部系列');
+  $('series-toggle').setAttribute('aria-label', '篩選系列：' + ((state.series ? visibleSeriesLabel(state.series) : '全部系列')));
+  $('series-toggle').title = (state.series ? visibleSeriesLabel(state.series) : '全部系列');
   const chips = [];
   if(state.type) chips.push(['type', '種類：' + typeLabel(state.type)]);
   if(state.region) chips.push(['region', '地區：' + state.region]);
-  if(state.series) chips.push(['series', '系列：' + seriesLabel(state.series)]);
+  if(state.series) chips.push(['series', '系列：' + visibleSeriesLabel(state.series)]);
   if(state.query) chips.push(['query', '搜尋：' + state.query]);
   $('active-filters').innerHTML = chips.map(([key,label]) => '<button class="filter-chip" data-remove-filter="' + key + '" aria-label="移除' + escapeHTML(label) + '">' + escapeHTML(label) + icon('close') + '</button>').join('');
   $('reset-filters').hidden = !chips.length;
@@ -383,7 +384,7 @@ function catalogGroup(group) {
   const titleId = 'group-title-' + groupBy + '-' + group.items[0].id;
   const groupAvatar = groupBy === 'character' ? '<img class="group-avatar" src="' + escapeHTML(avatars.get(group.name)) + '" alt="" width="30" height="30" loading="lazy" decoding="async">' : '';
   const roleCount = groupBy === 'series' && new Set(group.items.map(item => item.character)).size > 1 ? '<span class="group-caption">' + new Set(group.items.map(item => item.character)).size + ' 個角色</span>' : '';
-  const name = groupBy === 'type' ? typeLabel(group.name) : groupBy === 'series' ? seriesLabel(group.name) : group.name;
+  const name = groupBy === 'type' ? typeLabel(group.name) : groupBy === 'series' ? visibleSeriesLabel(group.name) : group.name;
   const target = groupBy === 'type' ? '<span class="group-target" data-goal-type="' + escapeHTML(group.name) + '" aria-label="此種類已納入收藏目標"' + (isProgressIncluded({ type:group.name }, state.includedTypes) ? '' : ' hidden') + '>目標</span>' : '';
   return '<section class="catalog-group" data-count="' + group.items.length + '" style="--group-rows:' + Math.ceil(group.items.length / catalogColumns()) + '" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(name) + '</h3>' + target + roleCount + '<span class="group-line"></span></div><p class="group-summary">' + groupSummary(group) + '</p><div class="product-grid">' + group.items.map(productCard).join('') + '</div></section>';
 }
@@ -627,7 +628,7 @@ function renderDetail(id) {
   $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2>' +
     '<div class="detail-collection"><div id="detail-quantity-panel" class="quantity-panel" hidden><div class="quantity-row"><label for="detail-quantity">收藏數量</label><div class="quantity-stepper"><button id="quantity-minus" data-quantity-step="-1" aria-label="減少收藏數量">' + icon('minus') + '</button><input id="detail-quantity" type="number" inputmode="numeric" min="0" max="' + MAX_QUANTITY + '" step="1" aria-describedby="quantity-help"><button id="quantity-plus" data-quantity-step="1" aria-label="增加收藏數量">' + icon('plus') + '</button></div></div><span id="quantity-help" class="visually-hidden">數量變更會自動儲存，設為 0 會取消收藏</span></div>' +
     '<button class="primary-button" id="detail-collect" data-collect="' + id + '"></button><button class="detail-wish-button" id="detail-wish" data-wish="' + id + '"></button></div>' +
-    '<dl><dt>系列</dt><dd>' + escapeHTML(seriesLabel(seriesKey(item))) + '</dd><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>地區</dt><dd>' + escapeHTML(item.region || '日本') + '</dd>' + (item.limitedLocation ? '<dt>限定地點</dt><dd>' + escapeHTML(item.limitedLocation) + '</dd>' : '') + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
+    '<dl><dt>系列</dt><dd>' + escapeHTML(visibleSeriesLabel(seriesKey(item))) + '</dd><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>地區</dt><dd>' + escapeHTML(item.region || '日本') + '</dd>' + (item.limitedLocation ? '<dt>限定地點</dt><dd>' + escapeHTML(item.limitedLocation) + '</dd>' : '') + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
   updateDetailCollection();
   openDialog('detail-dialog');
 }
@@ -957,6 +958,7 @@ async function init() {
       filtersExpanded = Boolean(browse.filtersExpanded);
       $('catalog-search').value = state.query;
     }
+    if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     updateProgressSetting();
     renderTabs(); renderCatalog();
     if (browse) {
@@ -972,7 +974,7 @@ async function init() {
     browseState.enable();
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
     if (!accountHub) {
-      import('./account-hub.mjs?v=ef006a7ddba09d42').then(({ createAccountHub }) => {
+      import('./account-hub.mjs?v=9a1edd7d4a77ded9').then(({ createAccountHub }) => {
         if (accountHub) return;
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
