@@ -1,9 +1,9 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=3b815fd194c1c888';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=3b815fd194c1c888';
-import { createCatalogImageLoader } from './image-loader.mjs?v=3b815fd194c1c888';
-import { createCharacterSorter } from './character-sorter.mjs?v=3b815fd194c1c888';
-import { watchForSiteUpdates } from './site-updates.mjs?v=3b815fd194c1c888';
-import { createReportHub } from './report-hub.mjs?v=3b815fd194c1c888';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=5d1e720644d72701';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=5d1e720644d72701';
+import { createCatalogImageLoader } from './image-loader.mjs?v=5d1e720644d72701';
+import { createCharacterSorter } from './character-sorter.mjs?v=5d1e720644d72701';
+import { watchForSiteUpdates } from './site-updates.mjs?v=5d1e720644d72701';
+import { createReportHub } from './report-hub.mjs?v=5d1e720644d72701';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -962,7 +962,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=3b815fd194c1c888');
+        const { createAccountHub } = await import('./account-hub.mjs?v=5d1e720644d72701');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
