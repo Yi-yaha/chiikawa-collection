@@ -1,11 +1,11 @@
-import { createClient } from './supabase-client.mjs?v=a49b7a5457338c85';
-import { cloudConfig } from './cloud-config.mjs?v=a49b7a5457338c85';
-import { createCloudStore } from './cloud-store.mjs?v=a49b7a5457338c85';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=a49b7a5457338c85';
-import { createFriendInviteURL } from './friend-invite.mjs?v=a49b7a5457338c85';
-import { describePurchaseRecord } from './purchase-records.mjs?v=a49b7a5457338c85';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=a49b7a5457338c85';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=a49b7a5457338c85';
+import { createClient } from './supabase-client.mjs?v=d4bf080ee23ef785';
+import { cloudConfig } from './cloud-config.mjs?v=d4bf080ee23ef785';
+import { createCloudStore } from './cloud-store.mjs?v=d4bf080ee23ef785';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=d4bf080ee23ef785';
+import { createFriendInviteURL } from './friend-invite.mjs?v=d4bf080ee23ef785';
+import { describePurchaseRecord } from './purchase-records.mjs?v=d4bf080ee23ef785';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=d4bf080ee23ef785';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=d4bf080ee23ef785';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

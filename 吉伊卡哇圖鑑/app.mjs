@@ -1,10 +1,11 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=a49b7a5457338c85';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=a49b7a5457338c85';
-import { createCatalogImageLoader } from './image-loader.mjs?v=a49b7a5457338c85';
-import { createCharacterSorter } from './character-sorter.mjs?v=a49b7a5457338c85';
-import { watchForSiteUpdates } from './site-updates.mjs?v=a49b7a5457338c85';
-import { createReportHub } from './report-hub.mjs?v=a49b7a5457338c85';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRecord, formatPurchaseAmount, purchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=a49b7a5457338c85';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=d4bf080ee23ef785';
+import { createDetailScrollGuard } from './dialog-scroll.mjs?v=d4bf080ee23ef785';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=d4bf080ee23ef785';
+import { createCatalogImageLoader } from './image-loader.mjs?v=d4bf080ee23ef785';
+import { createCharacterSorter } from './character-sorter.mjs?v=d4bf080ee23ef785';
+import { watchForSiteUpdates } from './site-updates.mjs?v=d4bf080ee23ef785';
+import { createReportHub } from './report-hub.mjs?v=d4bf080ee23ef785';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRecord, formatPurchaseAmount, purchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=d4bf080ee23ef785';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -87,12 +88,13 @@ const openSeriesSubcategories = new Set();
 try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
 try { history.scrollRestoration = 'manual'; } catch {}
 let initialPositionPending = true;
+const detailScroll = createDetailScrollGuard($('detail-dialog'), $('catalog-content'));
 for (const event of ['pointerdown','touchstart','wheel','keydown']) window.addEventListener(event, () => { initialPositionPending = false; }, { passive:true, once:true });
 const browseState = createViewState({ key:STORAGE_KEY + '-browse', read:() => ({
   scope:state.scope, type:state.type, region:state.region, series:state.series,
   query:$('catalog-search').value, groupBy:state.groupBy, filtersExpanded, charactersExpanded,
   tabs:{ x:$('character-tabs').scrollLeft, y:$('character-tabs').scrollTop },
-  position:initialPositionPending && browseState.saved?.position || capturePosition($('catalog-content')),
+  position:detailScroll.position || initialPositionPending && browseState.saved?.position || capturePosition($('catalog-content')),
   detail:$('detail-dialog').open ? activeDetail : null,
   dialogs:['guide-dialog','settings-dialog','data-dialog'].filter(id => $(id).open).map(id => ({ id, y:$(id).scrollTop })),
   social:accountHub?.getViewState() ?? browseState.saved?.social ?? null,
@@ -489,7 +491,7 @@ function applySyncedCollection(saved) {
   const goalsChanged = JSON.stringify(state.includedTypes) !== JSON.stringify(saved.includedTypes);
   const recordsChanged = JSON.stringify(state.purchaseRecords) !== JSON.stringify(saved.purchaseRecords || {});
   if (!changed.length && !orderChanged && !goalsChanged && !recordsChanged) return;
-  const position = capturePosition($('catalog-content'));
+  const position = detailScroll.position || capturePosition($('catalog-content'));
   const grouping = state.groupBy;
   applySaved(saved); state.groupBy = grouping;
   if (goalsChanged) { characterTotals = progressTotals(state.items,state.includedTypes); updateProgressSetting(); updateGoalBadges(); }
@@ -505,7 +507,7 @@ function applySyncedCollection(saved) {
     for (const id of changed) if (itemMap.has(id)) updateCollectionCatalog(id, batch);
     if (orderChanged) for (const group of groups) { const section = sections.get(group.name); if (section) $('catalog-content').append(section); }
     observeCatalogSize(); catalogImages.update();
-    restorePosition(position, $('catalog-content'));
+    if (!detailScroll.position) restorePosition(position, $('catalog-content'));
   }
   updateDataSummary();
   if (activeDetail && $('detail-dialog').open && document.activeElement?.id !== 'detail-quantity') updateDetailCollection();
@@ -615,7 +617,10 @@ function changeDetailQuantity(quantity) {
 function safeURL(value) {
   try { const url = new URL(value); return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : ''; } catch { return ''; }
 }
-function openDialog(id) { const dialog = $(id); if(!dialog.open) dialog.showModal(); }
+function openDialog(id) {
+  if (id === 'detail-dialog') { detailScroll.open(); return; }
+  const dialog = $(id); if(!dialog.open) dialog.showModal();
+}
 function updateDetailCollection() {
   const owned = state.owned.has(activeDetail);
   const wished = state.wishlist.has(activeDetail);
@@ -1129,7 +1134,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=a49b7a5457338c85');
+        const { createAccountHub } = await import('./account-hub.mjs?v=d4bf080ee23ef785');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
@@ -1163,12 +1168,12 @@ async function init() {
     if (browse) {
       setCharactersExpanded(Boolean(browse.charactersExpanded));
       if (browse.tabs) { $('character-tabs').scrollLeft = browse.tabs.x || 0; $('character-tabs').scrollTop = browse.tabs.y || 0; }
+      if (initialPositionPending) await restorePosition(browse.position, $('catalog-content'));
       if (browse.detail && itemMap.has(browse.detail)) renderDetail(browse.detail);
       for (const dialog of Array.isArray(browse.dialogs) ? browse.dialogs : []) if (['guide-dialog','settings-dialog','data-dialog'].includes(dialog.id)) {
         if (dialog.id === 'data-dialog') showData(); else openDialog(dialog.id);
         $(dialog.id).scrollTop = dialog.y || 0;
       }
-      if (initialPositionPending) await restorePosition(browse.position, $('catalog-content'));
     }
     initialPositionPending = false;
     browseState.enable();

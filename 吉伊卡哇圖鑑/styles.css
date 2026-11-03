@@ -474,3 +474,10 @@ html{scroll-padding-top:118px}
 #catalog-content.has-card-size .catalog-group{content-visibility:auto;contain-intrinsic-block-size:auto calc(64px + var(--group-rows,1) * (var(--card-height) + var(--grid-row-gap,10px)))}
 @media(min-width:701px){#catalog-content{--grid-row-gap:14px}}
 @media(min-width:1280px){#catalog-content{--grid-row-gap:16px}}
+
+/* 商品資訊的滑動與背景清單分開，包含手機鍵盤開啟時的頁面位置。 */
+dialog{overscroll-behavior:contain}
+dialog::backdrop{overflow:hidden;overscroll-behavior:contain}
+html.detail-page-locked{overflow:hidden;overscroll-behavior:none;scroll-behavior:auto}
+html.detail-page-locked body{position:fixed;top:var(--detail-page-top);left:var(--detail-page-left);width:var(--detail-page-width);overflow:hidden}
+html.detail-page-locked .site-header{transform:translateY(calc(-1 * var(--detail-page-top)))}
