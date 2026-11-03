@@ -1,10 +1,11 @@
-import { createClient } from './supabase-client.mjs?v=5d1e720644d72701';
-import { cloudConfig } from './cloud-config.mjs?v=5d1e720644d72701';
-import { createCloudStore } from './cloud-store.mjs?v=5d1e720644d72701';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=5d1e720644d72701';
-import { createFriendInviteURL } from './friend-invite.mjs?v=5d1e720644d72701';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=5d1e720644d72701';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=5d1e720644d72701';
+import { createClient } from './supabase-client.mjs?v=48303fd8caffd43a';
+import { cloudConfig } from './cloud-config.mjs?v=48303fd8caffd43a';
+import { createCloudStore } from './cloud-store.mjs?v=48303fd8caffd43a';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=48303fd8caffd43a';
+import { createFriendInviteURL } from './friend-invite.mjs?v=48303fd8caffd43a';
+import { describePurchaseRecord } from './purchase-records.mjs?v=48303fd8caffd43a';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=48303fd8caffd43a';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=48303fd8caffd43a';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -23,7 +24,7 @@ function errorText(error) {
   return '操作暫時未完成，請稍後再試。';
 }
 
-export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, toast, client:clientOverride, initialView = null }) {
+export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, onOpenDetail, toast, client:clientOverride, initialView = null }) {
   const client = clientOverride || createClient(cloudConfig.url, cloudConfig.publishableKey, {
     auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'chiikawa-account-session' },
   });
@@ -37,6 +38,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   let friendLookupGeneration = 0;
   let friendAnalysisOpen = false, friendAnalysisTab = 'characters', friendAnalysisExpanded = false, friendCollectionScroll = 0;
   let friendFiltersExpanded = false;
+  let friendDetailOrigin = null;
   let syncStatus = { state:'guest', pending:0, conflicts:[] };
   let syncWarningShown = false;
   let pendingHub = false, activeAction = false, migrationGuest = null;
@@ -85,6 +87,12 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     clearFriendLookup();
     $('more-button').focus({ preventScroll:true });
   });
+  $('detail-dialog').addEventListener('close',() => {
+    if (!friendDetailOrigin || !$('friends-dialog').open) return;
+    const origin = [...$('friends-content').querySelectorAll('[data-friend-detail]')].find(button => button.dataset.friendDetail === friendDetailOrigin);
+    (origin || $('friend-search'))?.focus({preventScroll:true});
+    friendDetailOrigin = null;
+  });
 
   const store = createCloudStore({ client, storage, normalize, onApply:saved => { applySaved(saved); if (selectedFriend && friendSnapshot && $('friends-dialog').open) renderFriendDetail(); }, onScope,
     online:() => navigator.onLine,
@@ -114,7 +122,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     $('sync-now').hidden = !user;
     $('resolve-sync').hidden = !syncStatus.conflicts?.length;
     $('import-guest-collection').hidden = !user;
-    $('data-description').textContent = user ? '收藏數量、願望清單、角色順序與收藏設定會與帳號同步，也可以另外匯出備份。' : '目前收藏儲存在這台裝置。登入帳號後，可以在手機與電腦接續使用，也能繼續匯出備份。';
+    $('data-description').textContent = user ? '收藏數量、購買金額與備註、願望清單及收藏設定會與帳號同步，也可以另外匯出備份。' : '目前收藏與購買紀錄儲存在這台裝置。登入帳號後，可以在手機與電腦接續使用，也能繼續匯出備份。';
     const inline = $('profile-sync-status');
     if (inline) inline.textContent = label;
   }
@@ -217,7 +225,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     const guest = readGuest();
     let handled = false;
     try { handled = storage.getItem(accountStorageKeyForMigration(user.id)) === 'handled'; } catch {}
-    if (!guest.owned.length && !guest.wishlist.length || handled) return;
+    if ((!guest.owned.length && !guest.wishlist.length && !Object.keys(guest.purchaseRecords || {}).length) || handled) return;
     prompted.add(user.id); showMigration(); return true;
   }
   const accountStorageKeyForMigration = uid => STORAGE_KEY + '-migration-' + uid;
@@ -249,8 +257,9 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     if (!conflicts.length) { $('sync-conflict-dialog').close(); return; }
     const describe = value => value.quantity ? '收藏 ' + n(value.quantity) + ' 個' : value.wished ? '願望清單' : '未收藏';
     $('sync-conflict-content').innerHTML = conflicts.map(conflict => {
-      const item = items.find(item => item.id === conflict.id);
-      return '<section class="conflict-row"><h3>' + (conflict.id === '__settings' ? '角色順序與收藏設定' : h(item ? item.character + '・' + item.name : '收藏紀錄')) + '</h3><div class="conflict-choices"><button class="secondary-button" data-conflict="' + h(conflict.id) + '" data-choice="local">保留這台裝置' + (item ? '<small>' + describe(conflict.local) + '</small>' : '') + '</button><button class="secondary-button" data-conflict="' + h(conflict.id) + '" data-choice="remote">保留帳號版本' + (item ? '<small>' + describe(conflict.remote) + '</small>' : '') + '</button></div></section>';
+      const item = items.find(item => item.id === (conflict.itemId || conflict.id));
+      const detail = value => conflict.kind === 'record' ? h(describePurchaseRecord(value)) : describe(value);
+      return '<section class="conflict-row"><h3>' + (conflict.id === '__settings' ? '角色順序與收藏設定' : h(item ? item.character + '・' + item.name : '收藏紀錄')) + (conflict.kind === 'record' ? '的收藏紀錄' : '') + '</h3><div class="conflict-choices"><button class="secondary-button" data-conflict="' + h(conflict.id) + '" data-choice="local">保留這台裝置' + (item ? '<small>' + detail(conflict.local) + '</small>' : '') + '</button><button class="secondary-button" data-conflict="' + h(conflict.id) + '" data-choice="remote">保留帳號版本' + (item ? '<small>' + detail(conflict.remote) + '</small>' : '') + '</button></div></section>';
     }).join('');
   }
   $('sync-conflict-content').addEventListener('click',event => { const button = event.target.closest('[data-conflict]'); if (button) store.resolve(button.dataset.conflict,button.dataset.choice); });
@@ -420,7 +429,10 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     const character = $('friend-character').value;
     const filtered = filterItems(scope.filter(item => !character || item.character === character),{ query:$('friend-search').value, type:$('friend-type').value, series:$('friend-series').value });
     $('friend-results-count').textContent = (friendTab === 'wishlist' ? '想收藏 ' : '顯示 ') + n(filtered.length) + ' 款' + (friendTab === 'collection' ? '・共 ' + n(filtered.reduce((sum,item) => sum+(theirQuantities[item.id] || 0),0)) + ' 個' : '');
-    $('friend-products').innerHTML = filtered.length ? filtered.map(item => '<article class="friend-product"><div class="friend-product-image"><img src="' + safeImage(item.image) + '" alt="' + h(item.character + '・' + item.name) + '" width="200" height="200" loading="lazy" decoding="async"></div><small>' + h(item.character) + '・' + h(typeLabel(item.type)) + '</small><h3>' + h(item.name) + '</h3><p>' + (friendTab === 'collection' ? '收藏 ' + n(theirQuantities[item.id]) + ' 個' : friendTab === 'wishlist' ? '想收藏' : '你 ' + n(myQuantities[item.id]) + ' 個・對方 ' + n(theirQuantities[item.id]) + ' 個') + '</p></article>').join('') : '<div class="social-empty"><strong>' + (friendTab === 'wishlist' && !scope.length ? '他的願望清單還沒有娃' : '沒有符合條件的娃') + '</strong><p>' + (friendTab === 'wishlist' && !scope.length ? '之後想收藏的娃會顯示在這裡。' : '可以切換檢視項目，或調整篩選條件。') + '</p></div>';
+    $('friend-products').innerHTML = filtered.length ? filtered.map(item => {
+      const detail = ' data-friend-detail="' + h(item.id) + '" aria-label="查看' + h(item.character + '・' + item.name) + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog"';
+      return '<article class="friend-product"><button type="button" class="friend-product-image"' + detail + '><img src="' + safeImage(item.image) + '" alt="' + h(item.character + '・' + item.name) + '" width="200" height="200" loading="lazy" decoding="async"></button><small>' + h(item.character) + '・' + h(typeLabel(item.type)) + '</small><div class="friend-product-title"><h3>' + h(item.name) + '</h3><button type="button" class="friend-product-info"' + detail + '><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".8" fill="currentColor" stroke="none"/></svg></button></div><p>' + (friendTab === 'collection' ? '收藏 ' + n(theirQuantities[item.id]) + ' 個' : friendTab === 'wishlist' ? '想收藏' : '你 ' + n(myQuantities[item.id]) + ' 個・對方 ' + n(theirQuantities[item.id]) + ' 個') + '</p></article>';
+    }).join('') : '<div class="social-empty"><strong>' + (friendTab === 'wishlist' && !scope.length ? '他的願望清單還沒有娃' : '沒有符合條件的娃') + '</strong><p>' + (friendTab === 'wishlist' && !scope.length ? '之後想收藏的娃會顯示在這裡。' : '可以切換檢視項目，或調整篩選條件。') + '</p></div>';
     $('friends-content').querySelectorAll('[data-compare-tab]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.compareTab === compareTab)));
   }
   $('friends-content').addEventListener('submit',event => {
@@ -455,7 +467,10 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   }
   $('friends-content').addEventListener('click',event => {
     const button = event.target.closest('button'); if (!button) return;
-    if (button.id === 'clear-friend-code') {
+    if (button.dataset.friendDetail) {
+      const id = button.dataset.friendDetail;
+      if (items.some(item => item.id === id) && onOpenDetail) { friendDetailOrigin = id; onOpenDetail(id); }
+    } else if (button.id === 'clear-friend-code') {
       clearFriendLookup();
       $('friend-code-input').focus({ preventScroll:true });
     } else if (button.dataset.viewFriend) {
@@ -607,7 +622,10 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     collectionReady:collectionReadyPromise,
     ready,
     getViewState,
-    capture:saved => store.capture(saved),
+    capture(saved) {
+      store.capture(saved);
+      if (selectedFriend && friendSnapshot && $('friends-dialog').open) renderFriendDetail();
+    },
     get userId() { return store.userId; },
     destroy() { clearInterval(poll); resetAvatarDraft(); photos.clear(); authSubscription.subscription.unsubscribe(); store.destroy(); },
   };

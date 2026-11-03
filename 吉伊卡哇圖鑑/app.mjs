@@ -1,9 +1,10 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=5d1e720644d72701';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=5d1e720644d72701';
-import { createCatalogImageLoader } from './image-loader.mjs?v=5d1e720644d72701';
-import { createCharacterSorter } from './character-sorter.mjs?v=5d1e720644d72701';
-import { watchForSiteUpdates } from './site-updates.mjs?v=5d1e720644d72701';
-import { createReportHub } from './report-hub.mjs?v=5d1e720644d72701';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=48303fd8caffd43a';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=48303fd8caffd43a';
+import { createCatalogImageLoader } from './image-loader.mjs?v=48303fd8caffd43a';
+import { createCharacterSorter } from './character-sorter.mjs?v=48303fd8caffd43a';
+import { watchForSiteUpdates } from './site-updates.mjs?v=48303fd8caffd43a';
+import { createReportHub } from './report-hub.mjs?v=48303fd8caffd43a';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRecord, formatPurchaseAmount, describePurchaseRecord } from './purchase-records.mjs?v=48303fd8caffd43a';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -25,6 +26,7 @@ const paths = {
   friends:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M16 4a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5v2"/>',
   reset:'<path d="M3 10a9 9 0 1 1 2.5 8M3 4v6h6"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
+  edit:'<path d="m16 3 5 5-12 12-6 1 1-6L16 3ZM14 5l5 5"/>',
   box:'<path d="m3 7 9-4 9 4v11l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v11M7.5 5 16 9"/>',
   tag:'<path d="M3 4h8l10 10-7 7L3 10V4Z"/><circle cx="7.5" cy="8" r="1"/>',
   download:'<path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/>',
@@ -65,12 +67,13 @@ function avatarPortrait(character) {
   const crop = '--portrait-size:' + (zoom*100) + '%;--portrait-x:' + (50-x*zoom) + '%;--portrait-y:' + (50-y*zoom) + '%';
   return '<span class="avatar-portrait" style="' + crop + '"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="300" height="300" loading="lazy" decoding="async"></span>';
 }
-const state = { items:[], characters:[], owned:new Set(), quantities:{}, wishlist:new Set(), characterOrder:[], groupBy:'character', includedTypes:{}, scope:'mine', type:'', region:'', series:'', query:'', ready:false };
+const state = { items:[], characters:[], owned:new Set(), quantities:{}, wishlist:new Set(), purchaseRecords:{}, characterOrder:[], groupBy:'character', includedTypes:{}, scope:'mine', type:'', region:'', series:'', query:'', ready:false };
 let itemMap = new Map();
 let itemAliases = {};
 let characterTotals = new Map();
 let avatars = new Map();
 let toastTimer, undoAction, activeDetail, pendingRemoval;
+let recordEditing = false, recordExpanded = false, recordBase = null;
 let storageOK = true;
 let accountHub = null;
 let accountScopeInitialized = false;
@@ -113,11 +116,12 @@ function observeCatalogSize() {
   if (sample) catalogSizeObserver.observe(sample);
 }
 
-function savedValue() { return {version:2, owned:[...state.owned], quantities:{...state.quantities}, wishlist:[...state.wishlist], characterOrder:state.characterOrder, groupBy:state.groupBy, includedTypes:{...state.includedTypes}, includeMetalTags:state.includedTypes['地方限定吊牌'] !== false}; }
+function savedValue() { return {version:2, owned:[...state.owned], quantities:{...state.quantities}, wishlist:[...state.wishlist], purchaseRecords:Object.fromEntries(Object.entries(state.purchaseRecords).map(([id,record]) => [id,{...record}])), characterOrder:state.characterOrder, groupBy:state.groupBy, includedTypes:{...state.includedTypes}, includeMetalTags:state.includedTypes['地方限定吊牌'] !== false}; }
 function applySaved(saved) {
   state.owned = new Set(saved.owned);
   state.quantities = {...saved.quantities};
   state.wishlist = new Set(saved.wishlist);
+  state.purchaseRecords = Object.fromEntries(Object.entries(saved.purchaseRecords || {}).map(([id,record]) => [id,{...record}]));
   state.characterOrder = [...saved.characterOrder];
   state.groupBy = saved.groupBy;
   state.includedTypes = {...saved.includedTypes};
@@ -129,10 +133,16 @@ function persist() {
   catch { storageOK = false; toast('目前無法儲存，請到資料管理匯出備份'); }
   return storageOK;
 }
+function toastHost() {
+  const focused = document.activeElement?.closest('dialog[open]');
+  if (focused) return focused;
+  if ($('detail-dialog').open && $('friends-dialog')?.open) return $('detail-dialog');
+  return [...document.querySelectorAll('dialog[open]')].at(-1) || document.body;
+}
 function toast(message, undo = null) {
   clearTimeout(toastTimer);
   undoAction = undo;
-  const host = [...document.querySelectorAll('dialog[open]')].at(-1) || document.body;
+  const host = toastHost();
   if ($('toast').parentElement !== host) host.appendChild($('toast'));
   $('toast-message').textContent = message;
   $('toast-undo').hidden = !undo;
@@ -151,7 +161,7 @@ $('toast-undo').addEventListener('click', () => {
 });
 document.addEventListener('close', event => {
   if (event.target === $('toast').parentElement) {
-    const host = [...document.querySelectorAll('dialog[open]')].at(-1) || document.body;
+    const host = toastHost();
     host.appendChild($('toast'));
   }
 }, true);
@@ -477,7 +487,8 @@ function applySyncedCollection(saved) {
     .filter(id => state.quantities[id] !== saved.quantities[id] || state.wishlist.has(id) !== wished.has(id));
   const orderChanged = JSON.stringify(state.characterOrder) !== JSON.stringify(saved.characterOrder);
   const goalsChanged = JSON.stringify(state.includedTypes) !== JSON.stringify(saved.includedTypes);
-  if (!changed.length && !orderChanged && !goalsChanged) return;
+  const recordsChanged = JSON.stringify(state.purchaseRecords) !== JSON.stringify(saved.purchaseRecords || {});
+  if (!changed.length && !orderChanged && !goalsChanged && !recordsChanged) return;
   const position = capturePosition($('catalog-content'));
   const grouping = state.groupBy;
   applySaved(saved); state.groupBy = grouping;
@@ -498,6 +509,7 @@ function applySyncedCollection(saved) {
   }
   updateDataSummary();
   if (activeDetail && $('detail-dialog').open && document.activeElement?.id !== 'detail-quantity') updateDetailCollection();
+  if (activeDetail && $('detail-dialog').open && recordsChanged) updateDetailRecord();
 }
 
 function setScope(scope) {
@@ -607,12 +619,14 @@ function openDialog(id) { const dialog = $(id); if(!dialog.open) dialog.showModa
 function updateDetailCollection() {
   const owned = state.owned.has(activeDetail);
   const wished = state.wishlist.has(activeDetail);
+  const fromFriend = $('detail-content').classList.contains('from-friend');
   const button = $('detail-collect');
   button.classList.toggle('is-owned', owned);
   button.setAttribute('aria-pressed', String(owned));
-  button.innerHTML = icon('heart') + (owned ? '取消收藏' : '加入收藏');
+  button.innerHTML = icon('heart') + (fromFriend ? (owned ? '取消我的收藏' : '加入我的收藏') : (owned ? '取消收藏' : '加入收藏'));
   button.hidden = owned;
   $('detail-quantity-panel').hidden = !owned;
+  $('detail-quantity-panel').querySelector('label').textContent = fromFriend ? '我的收藏數量' : '收藏數量';
   const input = $('detail-quantity');
   if (input.value === '' || Number(input.value) !== quantityOf(activeDetail)) input.value = String(quantityOf(activeDetail));
   $('quantity-plus').disabled = quantityOf(activeDetail) >= MAX_QUANTITY;
@@ -620,19 +634,133 @@ function updateDetailCollection() {
   wish.hidden = owned;
   wish.classList.toggle('wished', wished);
   wish.setAttribute('aria-pressed', String(wished));
-  wish.innerHTML = icon('star') + (wished ? '移出願望清單' : '加入願望清單');
+  wish.innerHTML = icon('star') + (fromFriend ? (wished ? '移出我的願望清單' : '加入我的願望清單') : (wished ? '移出願望清單' : '加入願望清單'));
 }
+function detailRecordLabel(label) {
+  return ($('detail-content').classList.contains('from-friend') ? '我的' : '') + label;
+}
+function detailRecordMarkup() {
+  const fromFriend = $('detail-content').classList.contains('from-friend');
+  const field = (id,label,symbol) => '<div class="record-money-field"><span class="record-symbol"' + (id === 'record-foreign' ? ' id="record-foreign-symbol"' : '') + ' aria-hidden="true">' + symbol + '</span><input id="' + id + '" type="text" inputmode="decimal" autocomplete="off" maxlength="32" placeholder="金額" aria-label="' + label + '"></div>';
+  return '<section id="detail-record" class="collection-record" aria-label="' + detailRecordLabel('收藏紀錄') + '"><button id="record-toggle" class="record-toggle" type="button" aria-expanded="false" aria-controls="record-content"><span id="record-toggle-name">' + detailRecordLabel('收藏紀錄') + '</span><span id="record-toggle-label">展開</span>' + icon('chevron') + '</button><div id="record-content" class="record-content" hidden>' +
+    '<form id="purchase-record-form" novalidate><div class="record-form-heading"><span>' + detailRecordLabel('購買金額') + '</span><span>皆為選填</span></div><div class="record-money-grid"><label for="record-twd">台幣 TWD</label>' + field('record-twd','台幣金額','NT$') + '<select id="record-currency" aria-label="選擇外幣幣別">' + PURCHASE_CURRENCIES.map(currency => '<option value="' + currency.code + '">' + currency.name + ' ' + currency.code + '</option>').join('') + '</select>' + field('record-foreign','外幣金額','¥') + '</div><label class="record-note-label" for="record-note">' + detailRecordLabel('購買備註') + '</label><textarea id="record-note" rows="1" maxlength="2000" placeholder="例如：日本店面購入，含代購費。"></textarea><p id="record-error" class="record-error" role="alert" hidden></p>' +
+    '<div id="record-conflict" class="record-conflict" hidden><p>這筆紀錄也在其他裝置更新過，請選擇要保留的內容。</p><p id="record-latest"></p><div><button type="button" class="record-cancel" data-record-action="latest">使用同步內容</button><button type="button" class="record-save" data-record-action="keep">保留這次輸入</button></div></div><div class="record-form-actions"><button type="button" class="record-cancel" data-record-action="cancel">取消</button><button type="submit" class="record-save">' + (fromFriend ? '儲存到我的圖鑑' : '儲存紀錄') + '</button></div></form>' +
+    '<div id="record-summary" hidden><div class="record-summary-heading"><span id="record-summary-label">' + detailRecordLabel('購買金額') + '</span><button type="button" class="record-edit" data-record-action="edit">' + icon('edit') + (fromFriend ? '編輯我的紀錄' : '編輯') + '</button></div><dl id="record-amounts" class="record-amounts"></dl><div id="record-note-summary" class="record-note-summary"><div id="record-note-caption">' + detailRecordLabel('購買備註') + '</div><p id="record-note-text"></p></div></div></div></section>';
+}
+function fillRecordEditor(record) {
+  const value = record || {twd:'',currency:'JPY',foreign:'',note:''};
+  $('record-twd').value = value.twd;
+  $('record-currency').value = value.currency;
+  $('record-foreign').value = value.foreign;
+  $('record-note').value = value.note;
+  recordBase = record ? {...record} : null;
+  $('record-error').hidden = true;
+  $('record-conflict').hidden = true;
+  updateRecordSymbol();
+}
+function updateRecordSymbol() {
+  const currency = purchaseCurrency($('record-currency').value);
+  $('record-foreign-symbol').textContent = currency.symbol;
+  $('record-foreign').setAttribute('aria-label',currency.name + '金額');
+}
+function resizeRecordNote() {
+  const note = $('record-note');
+  if (!note || !note.getClientRects().length) return;
+  note.style.height = '0px';
+  note.style.height = Math.max(44,note.scrollHeight + note.offsetHeight - note.clientHeight) + 'px';
+}
+function updateDetailRecord() {
+  if (!$('detail-record')) return;
+  const record = state.purchaseRecords[activeDetail] || null;
+  if (record && !recordExpanded) recordEditing = false;
+  if (!record && !recordEditing) { recordEditing = true; recordExpanded = false; fillRecordEditor(null); }
+  if (record) recordExpanded = true;
+  $('detail-record').classList.toggle('has-record',Boolean(record));
+  $('record-toggle').hidden = Boolean(record);
+  $('record-toggle').setAttribute('aria-expanded',String(recordExpanded));
+  $('record-toggle').setAttribute('aria-label',(recordExpanded ? '收合' : '展開') + detailRecordLabel('收藏紀錄'));
+  $('record-toggle-name').hidden = recordExpanded;
+  $('record-toggle-label').textContent = recordExpanded ? '收合' : '展開';
+  $('record-content').hidden = !recordExpanded;
+  $('purchase-record-form').hidden = !recordEditing;
+  $('record-summary').hidden = recordEditing || !record;
+  if (record) {
+    const amountRow = (label,symbol,value) => '<div><dt>' + escapeHTML(label) + '</dt><dd><span class="record-symbol">' + escapeHTML(symbol) + '</span><span class="record-number">' + escapeHTML(formatPurchaseAmount(value)) + '</span></dd></div>';
+    const hasMoney = record.twd !== '' || record.foreign !== '';
+    $('record-summary-label').textContent = detailRecordLabel(hasMoney ? '購買金額' : '購買備註');
+    const currency = purchaseCurrency(record.currency);
+    $('record-amounts').innerHTML = (record.twd !== '' ? amountRow('台幣 TWD','NT$',record.twd) : '') + (record.foreign !== '' ? amountRow(currency.name + ' ' + currency.code,currency.symbol,record.foreign) : '');
+    $('record-amounts').hidden = !hasMoney;
+    $('record-note-summary').hidden = !record.note;
+    $('record-note-summary').classList.toggle('note-only',!hasMoney);
+    $('record-note-caption').hidden = !hasMoney;
+    $('record-note-text').textContent = record.note;
+  }
+  resizeRecordNote();
+}
+function editDetailRecord() {
+  recordEditing = true; recordExpanded = true;
+  fillRecordEditor(state.purchaseRecords[activeDetail] || null);
+  updateDetailRecord();
+}
+function cancelDetailRecord() {
+  const record = state.purchaseRecords[activeDetail] || null;
+  recordEditing = !record; recordExpanded = Boolean(record);
+  fillRecordEditor(record); updateDetailRecord();
+}
+function saveDetailRecord(keepInput = false) {
+  const values = {twd:$('record-twd').value,currency:$('record-currency').value,foreign:$('record-foreign').value,note:$('record-note').value};
+  if (['twd','foreign'].some(key => values[key].trim() !== '' && normalizePurchaseAmount(values[key]) === '')) {
+    $('record-error').textContent = '請輸入 0 以上的金額，整數最多 10 位、小數最多 2 位。';
+    $('record-error').hidden = false; return;
+  }
+  const current = state.purchaseRecords[activeDetail] || null;
+  if (!keepInput && JSON.stringify(current) !== JSON.stringify(recordBase)) {
+    $('record-conflict').hidden = false;
+    $('record-latest').textContent = '同步內容：' + describePurchaseRecord(current);
+    return;
+  }
+  const record = normalizePurchaseRecord(values);
+  if (record) state.purchaseRecords[activeDetail] = record;
+  else delete state.purchaseRecords[activeDetail];
+  if (!persist()) {
+    recordBase = record;
+    $('record-error').textContent = '目前無法完成儲存，輸入內容仍保留。請先到資料管理匯出備份。';
+    $('record-error').hidden = false; return;
+  }
+  recordEditing = !record; recordExpanded = Boolean(record);
+  fillRecordEditor(record); updateDetailRecord();
+}
+window.addEventListener('resize',resizeRecordNote);
 function renderDetail(id) {
   const item = itemMap.get(id);
   if (!item) return;
   activeDetail = id;
   const url = safeURL(item.url);
+  const fromFriend = Boolean($('friends-dialog')?.open);
+  $('detail-content').classList.toggle('from-friend',fromFriend);
+  const ownContext = fromFriend ? '<div class="detail-own-context" role="note"><strong>我的收藏與紀錄</strong><p>這裡的操作是更新自己的圖鑑，不會更改好友的資料</p></div>' : '';
+  const productFacts = [
+    ['系列', seriesLabel(seriesKey(item))], ['角色', item.character], ['地區', item.region || '日本'],
+    ...(item.limitedLocation ? [['限定地點', item.limitedLocation]] : []),
+    ...(item.size ? [['尺寸', item.size]] : []),
+    ...(item.sku ? [['商品編號', item.sku]] : [])
+  ];
+  const productInformation = '<dl class="detail-product-facts" aria-label="商品資訊">' + productFacts.map(([label, value], index) => {
+    if (url && index === productFacts.length - 1) {
+      return '<dt class="detail-final-label">' + escapeHTML(label) + '</dt><dd class="detail-final-value"><span>' + escapeHTML(value) + '</span><a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">商品頁面' + icon('external') + '</a></dd>';
+    }
+    return '<dt>' + escapeHTML(label) + '</dt><dd>' + escapeHTML(value) + '</dd>';
+  }).join('') + '</dl>';
   $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2>' +
-    '<div class="detail-collection"><div id="detail-quantity-panel" class="quantity-panel" hidden><div class="quantity-row"><label for="detail-quantity">收藏數量</label><div class="quantity-stepper"><button id="quantity-minus" data-quantity-step="-1" aria-label="減少收藏數量">' + icon('minus') + '</button><input id="detail-quantity" type="number" inputmode="numeric" min="0" max="' + MAX_QUANTITY + '" step="1" aria-describedby="quantity-help"><button id="quantity-plus" data-quantity-step="1" aria-label="增加收藏數量">' + icon('plus') + '</button></div></div><span id="quantity-help" class="visually-hidden">數量變更會自動儲存，設為 0 會取消收藏</span></div>' +
+    productInformation + ownContext + '<div class="detail-collection"><div id="detail-quantity-panel" class="quantity-panel" hidden><div class="quantity-row"><label for="detail-quantity">收藏數量</label><div class="quantity-stepper"><button id="quantity-minus" data-quantity-step="-1" aria-label="減少收藏數量">' + icon('minus') + '</button><input id="detail-quantity" type="number" inputmode="numeric" min="0" max="' + MAX_QUANTITY + '" step="1" aria-describedby="quantity-help"><button id="quantity-plus" data-quantity-step="1" aria-label="增加收藏數量">' + icon('plus') + '</button></div></div><span id="quantity-help" class="visually-hidden">數量變更會自動儲存，設為 0 會取消收藏</span></div>' +
     '<button class="primary-button" id="detail-collect" data-collect="' + id + '"></button><button class="detail-wish-button" id="detail-wish" data-wish="' + id + '"></button></div>' +
-    '<dl><dt>系列</dt><dd>' + escapeHTML(seriesLabel(seriesKey(item))) + '</dd><dt>角色</dt><dd>' + escapeHTML(item.character) + '</dd><dt>地區</dt><dd>' + escapeHTML(item.region || '日本') + '</dd>' + (item.limitedLocation ? '<dt>限定地點</dt><dd>' + escapeHTML(item.limitedLocation) + '</dd>' : '') + (item.size ? '<dt>尺寸</dt><dd>' + escapeHTML(item.size) + '</dd>' : '') + (item.sku ? '<dt>商品編號</dt><dd>' + escapeHTML(item.sku) + '</dd>' : '') + '</dl>' + (url ? '<a class="detail-link" href="' + escapeHTML(url) + '" target="_blank" rel="noopener noreferrer">查看商品原始頁面' + icon('external') + '</a>' : '') + '</div></div>';
+    detailRecordMarkup() + '</div></div>';
   updateDetailCollection();
+  recordEditing = !state.purchaseRecords[id]; recordExpanded = !recordEditing;
+  fillRecordEditor(state.purchaseRecords[id] || null);
   openDialog('detail-dialog');
+  updateDetailRecord();
 }
 function closeSeries() {
   $('series-popover').hidden = true;
@@ -804,13 +932,27 @@ $('detail-content').addEventListener('click', event => {
   if (collect) requestCollectionChange(collect.dataset.collect);
   else if (wish) toggleWish(wish.dataset.wish, wish);
   else if (step) changeDetailQuantity(quantityOf(activeDetail) + Number(step.dataset.quantityStep));
+  else if (event.target.closest('#record-toggle')) { recordExpanded = !recordExpanded; updateDetailRecord(); }
+  else {
+    const action = event.target.closest('[data-record-action]')?.dataset.recordAction;
+    if (action === 'edit') editDetailRecord();
+    else if (action === 'cancel' || action === 'latest') cancelDetailRecord();
+    else if (action === 'keep') saveDetailRecord(true);
+  }
+});
+$('detail-content').addEventListener('submit',event => {
+  if (event.target.id !== 'purchase-record-form') return;
+  event.preventDefault(); saveDetailRecord();
 });
 $('detail-content').addEventListener('input', event => {
   const input = event.target;
   if (input.id === 'detail-quantity' && input.value.trim() !== '' && input.validity.valid) changeDetailQuantity(Number(input.value));
+  if (input.id === 'record-note') resizeRecordNote();
+  if (input.closest('#purchase-record-form')) { $('record-error').hidden = true; $('record-conflict').hidden = true; }
 });
 $('detail-content').addEventListener('change', event => {
   if (event.target.id === 'detail-quantity') changeDetailQuantity(event.target.value.trim() === '' ? NaN : Number(event.target.value));
+  if (event.target.id === 'record-currency') updateRecordSymbol();
 });
 $('detail-content').addEventListener('keydown', event => {
   if (event.target.id === 'detail-quantity' && event.key === 'Enter') event.target.blur();
@@ -914,7 +1056,7 @@ $('import-file').addEventListener('change', async event => {
 });
 $('ask-clear').addEventListener('click', () => {
   if(!state.owned.size) { $('data-message').textContent = '目前沒有收藏紀錄可以清除。'; return; }
-  $('clear-description').textContent = '將清除 ' + number(state.owned.size) + ' 款收藏（共 ' + number(totalQuantity()) + ' 個）。願望清單、商品圖鑑與角色順序會保留。你也可以先匯出備份。';
+  $('clear-description').textContent = '將清除 ' + number(state.owned.size) + ' 款收藏（共 ' + number(totalQuantity()) + ' 個）。購買金額與備註、願望清單、商品圖鑑與角色順序會保留。你也可以先匯出備份。';
   $('data-dialog').close();
   openDialog('clear-dialog');
 });
@@ -962,13 +1104,14 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=5d1e720644d72701');
+        const { createAccountHub } = await import('./account-hub.mjs?v=48303fd8caffd43a');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
           getSaved:savedValue, normalize,
           merge:(current,incoming) => mergeSaved(current,incoming,state.characters,new Set(itemMap.keys()),itemAliases),
           applySaved:applySyncedCollection,
+          onOpenDetail:renderDetail,
           onScope:userId => {
             collectionStorageKey = userId ? STORAGE_KEY + '-account-' + userId : STORAGE_KEY;
             lastClearKey = collectionStorageKey + '-last-clear';

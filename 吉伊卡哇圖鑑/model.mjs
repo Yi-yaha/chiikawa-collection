@@ -1,4 +1,5 @@
-import { seriesHierarchy } from './series-tree.mjs?v=5d1e720644d72701';
+import { seriesHierarchy } from './series-tree.mjs?v=48303fd8caffd43a';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=48303fd8caffd43a';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -184,7 +185,8 @@ export function normalizeSaved(value, characters, validIds, itemAliases = {}) {
     : [];
   const characterOrder = [...new Set([...givenOrder, ...characters])];
   const includedTypes = normalizeIncludedTypes(input.includedTypes, input.includeMetalTags);
-  return { version: 2, owned, quantities: Object.fromEntries(quantities), wishlist, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character', includedTypes, includeMetalTags: includedTypes['地方限定吊牌'] };
+  const purchaseRecords = normalizePurchaseRecords(input.purchaseRecords, validIds, resolveId);
+  return { version: 2, owned, quantities: Object.fromEntries(quantities), wishlist, purchaseRecords, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character', includedTypes, includeMetalTags: includedTypes['地方限定吊牌'] };
 }
 
 // A backup is a snapshot: repeated imports keep the larger quantity instead of
@@ -197,6 +199,8 @@ export function mergeSaved(current, incoming, characters, validIds, itemAliases 
     quantities.set(id, Math.max(quantities.get(id) || 0, quantity));
   }
   const includedTypes = { ...before.includedTypes };
+  const purchaseRecords = { ...before.purchaseRecords };
+  for (const [id, record] of Object.entries(added.purchaseRecords)) purchaseRecords[id] = mergePurchaseRecord(purchaseRecords[id], record);
   if (typeof incoming?.includeMetalTags === 'boolean') includedTypes['地方限定吊牌'] = incoming.includeMetalTags;
   for (const type of PROGRESS_TYPES) {
     if (typeof incoming?.includedTypes?.[type] === 'boolean') includedTypes[type] = incoming.includedTypes[type];
@@ -206,6 +210,7 @@ export function mergeSaved(current, incoming, characters, validIds, itemAliases 
     owned: [...quantities.keys()],
     quantities: Object.fromEntries(quantities),
     wishlist: [...before.wishlist, ...added.wishlist],
+    purchaseRecords,
     includedTypes
   }, characters, validIds, itemAliases);
 }
