@@ -1,11 +1,11 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=d4bf080ee23ef785';
-import { createDetailScrollGuard } from './dialog-scroll.mjs?v=d4bf080ee23ef785';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=d4bf080ee23ef785';
-import { createCatalogImageLoader } from './image-loader.mjs?v=d4bf080ee23ef785';
-import { createCharacterSorter } from './character-sorter.mjs?v=d4bf080ee23ef785';
-import { watchForSiteUpdates } from './site-updates.mjs?v=d4bf080ee23ef785';
-import { createReportHub } from './report-hub.mjs?v=d4bf080ee23ef785';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRecord, formatPurchaseAmount, purchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=d4bf080ee23ef785';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=c8aa55ad9b7e451c';
+import { createDetailScrollGuard } from './dialog-scroll.mjs?v=c8aa55ad9b7e451c';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=c8aa55ad9b7e451c';
+import { createCatalogImageLoader } from './image-loader.mjs?v=c8aa55ad9b7e451c';
+import { createCharacterSorter } from './character-sorter.mjs?v=c8aa55ad9b7e451c';
+import { watchForSiteUpdates } from './site-updates.mjs?v=c8aa55ad9b7e451c';
+import { createReportHub } from './report-hub.mjs?v=c8aa55ad9b7e451c';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=c8aa55ad9b7e451c';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -75,6 +75,7 @@ let characterTotals = new Map();
 let avatars = new Map();
 let toastTimer, undoAction, activeDetail, pendingRemoval;
 let recordEditing = false, recordExpanded = false, recordBase = null;
+let recordManualFields = [], recordCalculatedField = null;
 let storageOK = true;
 let accountHub = null;
 let accountScopeInitialized = false;
@@ -646,44 +647,75 @@ function detailRecordLabel(label) {
 }
 function detailRecordMarkup() {
   const fromFriend = $('detail-content').classList.contains('from-friend');
-  const field = (id,label,symbol) => '<div class="record-money-field"><span class="record-symbol"' + (id === 'record-foreign' ? ' id="record-foreign-symbol"' : '') + ' aria-hidden="true">' + symbol + '</span><input id="' + id + '" type="text" inputmode="decimal" autocomplete="off" maxlength="32" placeholder="金額" aria-label="' + label + '"></div>';
+  const field = (id,label,symbol) => '<div class="record-money-field' + (id === 'record-rate' ? ' record-rate-field' : '') + '"><span class="record-symbol"' + (id === 'record-foreign' ? ' id="record-foreign-symbol"' : '') + ' aria-hidden="true">' + symbol + '</span><input id="' + id + '" type="text" inputmode="decimal" autocomplete="off" maxlength="32" placeholder="' + (id === 'record-rate' ? '匯率' : '金額') + '" aria-label="' + label + '"></div>';
   return '<section id="detail-record" class="collection-record" aria-label="' + detailRecordLabel('收藏紀錄') + '"><button id="record-toggle" class="record-toggle" type="button" aria-expanded="false" aria-controls="record-content"><span id="record-toggle-name">' + detailRecordLabel('收藏紀錄') + '</span><span id="record-toggle-label">展開</span>' + icon('chevron') + '</button><div id="record-content" class="record-content" hidden>' +
-    '<form id="purchase-record-form" novalidate><div class="record-form-heading"><span>' + detailRecordLabel('購買金額') + '</span><span>皆為選填</span></div><div id="record-money-grid" class="record-money-grid"><label for="record-twd">台幣 TWD</label>' + field('record-twd','台幣金額','NT$') + '<select id="record-currency" aria-label="選擇外幣幣別">' + PURCHASE_CURRENCIES.map(currency => '<option value="' + currency.code + '">' + currency.name + ' ' + currency.code + '</option>').join('') + '</select>' + field('record-foreign','外幣金額','¥') + '<output id="record-rate-editor" class="record-exchange-rate" for="record-twd record-foreign record-currency" aria-label="依購買金額換算的匯率" aria-live="polite" hidden></output></div><label class="record-note-label" for="record-note">' + detailRecordLabel('購買備註') + '</label><textarea id="record-note" rows="1" maxlength="2000" placeholder="例如：日本店面購入，含代購費。"></textarea><p id="record-error" class="record-error" role="alert" hidden></p>' +
+    '<form id="purchase-record-form" novalidate><div class="record-form-heading"><span class="record-heading-title">' + detailRecordLabel('購買金額') + '<button class="record-help" type="button" data-record-action="help" aria-haspopup="dialog" aria-controls="record-help-dialog" aria-expanded="false">ⓘ 教學</button></span><span>皆為選填</span></div><div id="record-money-grid" class="record-money-grid"><label for="record-twd">台幣 TWD</label>' + field('record-twd','台幣金額','NT$') + '<select id="record-currency" aria-label="選擇外幣幣別"><option value="">請選幣別</option>' + PURCHASE_CURRENCIES.map(currency => '<option value="' + currency.code + '">' + currency.name + ' ' + currency.code + '</option>').join('') + '</select>' + field('record-foreign','外幣金額','¥') + '<label class="record-rate-label" for="record-rate">匯率<span id="record-rate-unit">台幣／外幣</span></label>' + field('record-rate','一單位外幣等於多少台幣','NT$') + '</div><output id="record-calculation-status" class="visually-hidden" aria-live="polite"></output><label class="record-note-label" for="record-note">' + detailRecordLabel('購買備註') + '</label><textarea id="record-note" rows="1" maxlength="2000" placeholder="例如：日本店面購入，含代購費。"></textarea><p id="record-error" class="record-error" role="alert" hidden></p>' +
     '<div id="record-conflict" class="record-conflict" hidden><p>這筆紀錄也在其他裝置更新過，請選擇要保留的內容。</p><p id="record-latest"></p><div><button type="button" class="record-cancel" data-record-action="latest">使用同步內容</button><button type="button" class="record-save" data-record-action="keep">保留這次輸入</button></div></div><div class="record-form-actions"><button type="button" class="record-cancel" data-record-action="cancel">取消</button><button type="submit" class="record-save">' + (fromFriend ? '儲存到我的圖鑑' : '儲存紀錄') + '</button></div></form>' +
-    '<div id="record-summary" hidden><div class="record-summary-heading"><span id="record-summary-label">' + detailRecordLabel('購買金額') + '</span><button type="button" class="record-edit" data-record-action="edit">' + icon('edit') + (fromFriend ? '編輯我的紀錄' : '編輯') + '</button></div><dl id="record-amounts" class="record-amounts"></dl><div id="record-note-summary" class="record-note-summary"><div id="record-note-caption">' + detailRecordLabel('購買備註') + '</div><p id="record-note-text"></p></div></div></div></section>';
+    '<div id="record-summary" hidden><div class="record-summary-heading"><span id="record-summary-label">' + detailRecordLabel('購買金額') + '</span><button type="button" class="record-edit" data-record-action="edit">' + icon('edit') + (fromFriend ? '編輯我的紀錄' : '編輯') + '</button></div><dl id="record-amounts" class="record-amounts"></dl><div id="record-summary-rate" class="record-summary-rate" hidden><span>換算匯率</span><output id="record-rate-summary"></output></div><div id="record-note-summary" class="record-note-summary"><div id="record-note-caption">' + detailRecordLabel('購買備註') + '</div><p id="record-note-text"></p></div></div></div></section>';
 }
 function fillRecordEditor(record) {
-  const value = record || {twd:'',currency:'JPY',foreign:'',note:''};
+  const value = record || {twd:'',currency:'',foreign:'',note:''};
   $('record-twd').value = value.twd;
   $('record-currency').value = value.currency;
   $('record-foreign').value = value.foreign;
+  $('record-rate').value = value.rate ?? calculatePurchaseField(value,'rate').value;
+  if (value.rate !== undefined) {
+    recordManualFields = [value.foreign !== '' ? 'foreign' : 'twd','rate'];
+    recordCalculatedField = value.foreign !== '' ? 'twd' : 'foreign';
+  } else { recordManualFields = ['twd','foreign']; recordCalculatedField = 'rate'; }
   $('record-note').value = value.note;
   recordBase = record ? {...record} : null;
   $('record-error').hidden = true;
   $('record-conflict').hidden = true;
+  $('record-calculation-status').textContent = '';
   updateRecordSymbol();
 }
 function updateRecordSymbol() {
   const currency = purchaseCurrency($('record-currency').value);
-  $('record-foreign-symbol').textContent = currency.symbol;
-  $('record-foreign').setAttribute('aria-label',currency.name + '金額');
-  updateRecordExchangeRate('record-rate-editor',{twd:$('record-twd').value,foreign:$('record-foreign').value,currency:currency.code});
+  $('record-foreign-symbol').textContent = currency?.symbol || '—';
+  $('record-foreign').setAttribute('aria-label',(currency?.name || '外幣') + '金額');
+  $('record-rate-unit').textContent = '台幣／' + (currency?.name || '外幣');
+  $('record-rate').setAttribute('aria-label','一' + (currency?.name || '單位外幣') + '等於多少台幣');
+  for (const key of ['twd','foreign','rate']) $('record-' + key).disabled = !currency;
+  updateRecordAmountLayout('record-money-grid',recordEditorValues());
 }
-function updateRecordExchangeRate(id, value) {
-  const rate = purchaseExchangeRate(value);
-  const container = $(id === 'record-rate-editor' ? 'record-money-grid' : 'record-amounts');
-  container.classList.toggle('has-exchange-rate',Boolean(rate));
+function recordEditorValues() {
+  return {twd:$('record-twd').value,currency:$('record-currency').value,foreign:$('record-foreign').value,rate:$('record-rate').value,note:$('record-note').value};
+}
+function updateRecordCalculation(key) {
+  if (key) {
+    if (recordCalculatedField === key) recordCalculatedField = null;
+    recordManualFields = recordManualFields.filter(field => field !== key);
+    if ($('record-' + key).value.trim()) recordManualFields.push(key);
+  }
+  const values = recordEditorValues();
+  const active = recordManualFields.filter(field => (field === 'rate' ? normalizePurchaseRate : normalizePurchaseAmount)(values[field]) !== '').slice(-2);
+  const target = active.length === 2 ? ['twd','foreign','rate'].find(field => !active.includes(field)) : recordCalculatedField;
+  const result = target ? calculatePurchaseField(values,target) : {value:'',error:''};
+  if (target) $('record-' + target).value = result.value;
+  recordCalculatedField = active.length === 2 ? target : null;
+  if (active.length === 2) recordManualFields = active;
+  $('record-error').textContent = result.error;
+  $('record-error').hidden = !result.error;
+  $('record-calculation-status').textContent = result.value !== '' ? '已自動計算' + ({twd:'台幣金額',foreign:'外幣金額',rate:'匯率'})[target] + '：' + result.value : '';
+  updateRecordSymbol();
+}
+function updateRecordAmountLayout(id, value) {
+  const container = $(id);
   const lengths = ['twd','foreign'].map(key => {
     const amount = normalizePurchaseAmount(value[key]);
     return (amount !== '' ? formatPurchaseAmount(amount) : String(value[key] || '')).length;
   });
-  container.classList.toggle('has-long-amount',Math.max(...lengths) > 6 || Boolean(rate && window.matchMedia('(max-width:330px)').matches));
+  container.classList.toggle('has-long-amount',Math.max(...lengths) > 6);
   container.classList.toggle('has-extra-long-amount',Math.max(...lengths) > 12);
-  const output = $(id);
-  if (!output) return;
-  output.hidden = !rate;
-  output.innerHTML = rate ? '<span class="record-rate-value">' + escapeHTML(rate.amount) + '</span><span class="record-rate-unit"><span>台幣／</span><span>' + escapeHTML(rate.foreignCurrency) + '</span></span>' : '';
-  output.setAttribute('aria-label',rate ? '1 ' + rate.foreignCurrency + '約等於台幣 ' + rate.amount + ' 元' : '');
+  container.classList.toggle('has-long-rate',String(value.rate || '').length > 8);
+  container.classList.toggle('has-extra-long-rate',String(value.rate || '').length > 18);
+}
+function updateRecordExchangeRate(_id, value) {
+  updateRecordAmountLayout('record-amounts',value);
+  const text = formatPurchaseExchangeRate(value);
+  $('record-summary-rate').hidden = !text;
+  $('record-rate-summary').textContent = text;
 }
 function resizeRecordNote() {
   const note = $('record-note');
@@ -707,12 +739,13 @@ function updateDetailRecord() {
   $('purchase-record-form').hidden = !recordEditing;
   $('record-summary').hidden = recordEditing || !record;
   if (record) {
-    const amountRow = (label,symbol,value,foreign = false) => '<div><dt>' + escapeHTML(label) + '</dt><dd class="record-amount-value"><span class="record-symbol">' + escapeHTML(symbol) + '</span><span class="record-number">' + escapeHTML(formatPurchaseAmount(value)) + '</span></dd>' + (foreign ? '<dd id="record-rate-summary" class="record-exchange-rate" hidden></dd>' : '') + '</div>';
-    const hasMoney = record.twd !== '' || record.foreign !== '';
+    const amountRow = (label,symbol,value) => '<div><dt>' + escapeHTML(label) + '</dt><dd class="record-amount-value"><span class="record-symbol">' + escapeHTML(symbol) + '</span><span class="record-number">' + escapeHTML(formatPurchaseAmount(value)) + '</span></dd></div>';
+    const hasAmounts = record.twd !== '' || record.foreign !== '';
+    const hasMoney = hasAmounts || record.rate !== undefined;
     $('record-summary-label').textContent = detailRecordLabel(hasMoney ? '購買金額' : '購買備註');
     const currency = purchaseCurrency(record.currency);
     $('record-amounts').innerHTML = (record.twd !== '' ? amountRow('台幣 TWD','NT$',record.twd) : '') + (record.foreign !== '' ? amountRow(currency.name + ' ' + currency.code,currency.symbol,record.foreign,true) : '');
-    $('record-amounts').hidden = !hasMoney;
+    $('record-amounts').hidden = !hasAmounts;
     updateRecordExchangeRate('record-rate-summary',record);
     $('record-note-summary').hidden = !record.note;
     $('record-note-summary').classList.toggle('note-only',!hasMoney);
@@ -732,11 +765,21 @@ function cancelDetailRecord() {
   fillRecordEditor(record); updateDetailRecord();
 }
 function saveDetailRecord(keepInput = false) {
-  const values = {twd:$('record-twd').value,currency:$('record-currency').value,foreign:$('record-foreign').value,note:$('record-note').value};
+  const values = recordEditorValues();
   if (['twd','foreign'].some(key => values[key].trim() !== '' && normalizePurchaseAmount(values[key]) === '')) {
     $('record-error').textContent = '請輸入 0 以上的金額，整數最多 10 位、小數最多 2 位。';
     $('record-error').hidden = false; return;
   }
+  if (values.rate.trim() !== '' && normalizePurchaseRate(values.rate) === '') {
+    $('record-error').textContent = '請輸入 0 以上的匯率，整數與小數各最多 12 位。';
+    $('record-error').hidden = false; return;
+  }
+  if (['twd','foreign','rate'].some(key => values[key].trim() !== '') && !purchaseCurrency(values.currency)) {
+    $('record-error').textContent = '請先選好幣別。'; $('record-error').hidden = false; return;
+  }
+  const calculationError = recordCalculatedField ? calculatePurchaseField(values,recordCalculatedField).error : '';
+  if (calculationError) { $('record-error').textContent = calculationError; $('record-error').hidden = false; return; }
+  if (!$('record-error').hidden) return;
   const current = state.purchaseRecords[activeDetail] || null;
   if (!keepInput && JSON.stringify(current) !== JSON.stringify(recordBase)) {
     $('record-conflict').hidden = false;
@@ -965,6 +1008,7 @@ $('detail-content').addEventListener('click', event => {
   else {
     const action = event.target.closest('[data-record-action]')?.dataset.recordAction;
     if (action === 'edit') editDetailRecord();
+    else if (action === 'help') { event.target.closest('button').setAttribute('aria-expanded','true'); openDialog('record-help-dialog'); }
     else if (action === 'cancel' || action === 'latest') cancelDetailRecord();
     else if (action === 'keep') saveDetailRecord(true);
   }
@@ -977,17 +1021,29 @@ $('detail-content').addEventListener('input', event => {
   const input = event.target;
   if (input.id === 'detail-quantity' && input.value.trim() !== '' && input.validity.valid) changeDetailQuantity(Number(input.value));
   if (input.id === 'record-note') resizeRecordNote();
-  if (input.id === 'record-twd' || input.id === 'record-foreign') updateRecordSymbol();
   if (input.closest('#purchase-record-form')) { $('record-error').hidden = true; $('record-conflict').hidden = true; }
+  if (['record-twd','record-foreign','record-rate'].includes(input.id)) updateRecordCalculation(input.id.slice(7));
 });
 $('detail-content').addEventListener('change', event => {
   if (event.target.id === 'detail-quantity') changeDetailQuantity(event.target.value.trim() === '' ? NaN : Number(event.target.value));
-  if (event.target.id === 'record-currency') updateRecordSymbol();
+  if (event.target.id === 'record-currency') {
+    $('record-foreign').value = ''; $('record-rate').value = '';
+    recordManualFields = $('record-twd').value.trim() ? ['twd'] : []; recordCalculatedField = null;
+    $('record-error').hidden = true; $('record-conflict').hidden = true;
+    $('record-calculation-status').textContent = '已更換幣別，請重新填寫外幣金額或匯率。';
+    updateRecordSymbol();
+  }
 });
 $('detail-content').addEventListener('keydown', event => {
   if (event.target.id === 'detail-quantity' && event.key === 'Enter') event.target.blur();
 });
 $('remove-dialog').addEventListener('close', () => { pendingRemoval = null; });
+$('record-help-dialog').addEventListener('close', () => {
+  const help = $('detail-content').querySelector('.record-help');
+  help?.setAttribute('aria-expanded','false');
+  if ($('detail-dialog').open) help?.focus({preventScroll:true});
+});
+$('detail-dialog').addEventListener('close', () => { if ($('record-help-dialog').open) $('record-help-dialog').close(); });
 $('confirm-remove').addEventListener('click', () => {
   const removal = pendingRemoval;
   if (!removal) return;
@@ -1134,7 +1190,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=d4bf080ee23ef785');
+        const { createAccountHub } = await import('./account-hub.mjs?v=c8aa55ad9b7e451c');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
