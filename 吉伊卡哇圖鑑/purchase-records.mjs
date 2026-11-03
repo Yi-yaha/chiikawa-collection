@@ -52,6 +52,18 @@ export function normalizePurchaseRecords(value, validIds, resolveId = id => id) 
 export function formatPurchaseAmount(value) {
   return new Intl.NumberFormat('zh-TW',{maximumFractionDigits:2}).format(Number(value));
 }
+export function purchaseExchangeRate(value) {
+  const currency = purchaseCurrency(value?.currency);
+  const twd = normalizePurchaseAmount(value?.twd), foreign = normalizePurchaseAmount(value?.foreign);
+  if (!currency || twd === '' || foreign === '' || Number(foreign) === 0) return null;
+  const rate = Number(twd) / Number(foreign);
+  const precision = rate > 0 && rate < 0.0001 ? {maximumSignificantDigits:4} : {maximumFractionDigits:4};
+  return {amount:new Intl.NumberFormat('zh-TW',precision).format(rate),foreignCurrency:currency.name};
+}
+export function formatPurchaseExchangeRate(value) {
+  const rate = purchaseExchangeRate(value);
+  return rate ? '1 ' + rate.foreignCurrency + ' ≈ NT$ ' + rate.amount : '';
+}
 export function describePurchaseRecord(value) {
   const record = normalizePurchaseRecord(value);
   if (!record) return '未填寫金額與備註';

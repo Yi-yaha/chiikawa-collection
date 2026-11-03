@@ -1,10 +1,10 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=48303fd8caffd43a';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=48303fd8caffd43a';
-import { createCatalogImageLoader } from './image-loader.mjs?v=48303fd8caffd43a';
-import { createCharacterSorter } from './character-sorter.mjs?v=48303fd8caffd43a';
-import { watchForSiteUpdates } from './site-updates.mjs?v=48303fd8caffd43a';
-import { createReportHub } from './report-hub.mjs?v=48303fd8caffd43a';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRecord, formatPurchaseAmount, describePurchaseRecord } from './purchase-records.mjs?v=48303fd8caffd43a';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=a49b7a5457338c85';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=a49b7a5457338c85';
+import { createCatalogImageLoader } from './image-loader.mjs?v=a49b7a5457338c85';
+import { createCharacterSorter } from './character-sorter.mjs?v=a49b7a5457338c85';
+import { watchForSiteUpdates } from './site-updates.mjs?v=a49b7a5457338c85';
+import { createReportHub } from './report-hub.mjs?v=a49b7a5457338c85';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRecord, formatPurchaseAmount, purchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=a49b7a5457338c85';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -643,7 +643,7 @@ function detailRecordMarkup() {
   const fromFriend = $('detail-content').classList.contains('from-friend');
   const field = (id,label,symbol) => '<div class="record-money-field"><span class="record-symbol"' + (id === 'record-foreign' ? ' id="record-foreign-symbol"' : '') + ' aria-hidden="true">' + symbol + '</span><input id="' + id + '" type="text" inputmode="decimal" autocomplete="off" maxlength="32" placeholder="金額" aria-label="' + label + '"></div>';
   return '<section id="detail-record" class="collection-record" aria-label="' + detailRecordLabel('收藏紀錄') + '"><button id="record-toggle" class="record-toggle" type="button" aria-expanded="false" aria-controls="record-content"><span id="record-toggle-name">' + detailRecordLabel('收藏紀錄') + '</span><span id="record-toggle-label">展開</span>' + icon('chevron') + '</button><div id="record-content" class="record-content" hidden>' +
-    '<form id="purchase-record-form" novalidate><div class="record-form-heading"><span>' + detailRecordLabel('購買金額') + '</span><span>皆為選填</span></div><div class="record-money-grid"><label for="record-twd">台幣 TWD</label>' + field('record-twd','台幣金額','NT$') + '<select id="record-currency" aria-label="選擇外幣幣別">' + PURCHASE_CURRENCIES.map(currency => '<option value="' + currency.code + '">' + currency.name + ' ' + currency.code + '</option>').join('') + '</select>' + field('record-foreign','外幣金額','¥') + '</div><label class="record-note-label" for="record-note">' + detailRecordLabel('購買備註') + '</label><textarea id="record-note" rows="1" maxlength="2000" placeholder="例如：日本店面購入，含代購費。"></textarea><p id="record-error" class="record-error" role="alert" hidden></p>' +
+    '<form id="purchase-record-form" novalidate><div class="record-form-heading"><span>' + detailRecordLabel('購買金額') + '</span><span>皆為選填</span></div><div id="record-money-grid" class="record-money-grid"><label for="record-twd">台幣 TWD</label>' + field('record-twd','台幣金額','NT$') + '<select id="record-currency" aria-label="選擇外幣幣別">' + PURCHASE_CURRENCIES.map(currency => '<option value="' + currency.code + '">' + currency.name + ' ' + currency.code + '</option>').join('') + '</select>' + field('record-foreign','外幣金額','¥') + '<output id="record-rate-editor" class="record-exchange-rate" for="record-twd record-foreign record-currency" aria-label="依購買金額換算的匯率" aria-live="polite" hidden></output></div><label class="record-note-label" for="record-note">' + detailRecordLabel('購買備註') + '</label><textarea id="record-note" rows="1" maxlength="2000" placeholder="例如：日本店面購入，含代購費。"></textarea><p id="record-error" class="record-error" role="alert" hidden></p>' +
     '<div id="record-conflict" class="record-conflict" hidden><p>這筆紀錄也在其他裝置更新過，請選擇要保留的內容。</p><p id="record-latest"></p><div><button type="button" class="record-cancel" data-record-action="latest">使用同步內容</button><button type="button" class="record-save" data-record-action="keep">保留這次輸入</button></div></div><div class="record-form-actions"><button type="button" class="record-cancel" data-record-action="cancel">取消</button><button type="submit" class="record-save">' + (fromFriend ? '儲存到我的圖鑑' : '儲存紀錄') + '</button></div></form>' +
     '<div id="record-summary" hidden><div class="record-summary-heading"><span id="record-summary-label">' + detailRecordLabel('購買金額') + '</span><button type="button" class="record-edit" data-record-action="edit">' + icon('edit') + (fromFriend ? '編輯我的紀錄' : '編輯') + '</button></div><dl id="record-amounts" class="record-amounts"></dl><div id="record-note-summary" class="record-note-summary"><div id="record-note-caption">' + detailRecordLabel('購買備註') + '</div><p id="record-note-text"></p></div></div></div></section>';
 }
@@ -662,6 +662,23 @@ function updateRecordSymbol() {
   const currency = purchaseCurrency($('record-currency').value);
   $('record-foreign-symbol').textContent = currency.symbol;
   $('record-foreign').setAttribute('aria-label',currency.name + '金額');
+  updateRecordExchangeRate('record-rate-editor',{twd:$('record-twd').value,foreign:$('record-foreign').value,currency:currency.code});
+}
+function updateRecordExchangeRate(id, value) {
+  const rate = purchaseExchangeRate(value);
+  const container = $(id === 'record-rate-editor' ? 'record-money-grid' : 'record-amounts');
+  container.classList.toggle('has-exchange-rate',Boolean(rate));
+  const lengths = ['twd','foreign'].map(key => {
+    const amount = normalizePurchaseAmount(value[key]);
+    return (amount !== '' ? formatPurchaseAmount(amount) : String(value[key] || '')).length;
+  });
+  container.classList.toggle('has-long-amount',Math.max(...lengths) > 6 || Boolean(rate && window.matchMedia('(max-width:330px)').matches));
+  container.classList.toggle('has-extra-long-amount',Math.max(...lengths) > 12);
+  const output = $(id);
+  if (!output) return;
+  output.hidden = !rate;
+  output.innerHTML = rate ? '<span class="record-rate-value">' + escapeHTML(rate.amount) + '</span><span class="record-rate-unit"><span>台幣／</span><span>' + escapeHTML(rate.foreignCurrency) + '</span></span>' : '';
+  output.setAttribute('aria-label',rate ? '1 ' + rate.foreignCurrency + '約等於台幣 ' + rate.amount + ' 元' : '');
 }
 function resizeRecordNote() {
   const note = $('record-note');
@@ -685,12 +702,13 @@ function updateDetailRecord() {
   $('purchase-record-form').hidden = !recordEditing;
   $('record-summary').hidden = recordEditing || !record;
   if (record) {
-    const amountRow = (label,symbol,value) => '<div><dt>' + escapeHTML(label) + '</dt><dd><span class="record-symbol">' + escapeHTML(symbol) + '</span><span class="record-number">' + escapeHTML(formatPurchaseAmount(value)) + '</span></dd></div>';
+    const amountRow = (label,symbol,value,foreign = false) => '<div><dt>' + escapeHTML(label) + '</dt><dd class="record-amount-value"><span class="record-symbol">' + escapeHTML(symbol) + '</span><span class="record-number">' + escapeHTML(formatPurchaseAmount(value)) + '</span></dd>' + (foreign ? '<dd id="record-rate-summary" class="record-exchange-rate" hidden></dd>' : '') + '</div>';
     const hasMoney = record.twd !== '' || record.foreign !== '';
     $('record-summary-label').textContent = detailRecordLabel(hasMoney ? '購買金額' : '購買備註');
     const currency = purchaseCurrency(record.currency);
-    $('record-amounts').innerHTML = (record.twd !== '' ? amountRow('台幣 TWD','NT$',record.twd) : '') + (record.foreign !== '' ? amountRow(currency.name + ' ' + currency.code,currency.symbol,record.foreign) : '');
+    $('record-amounts').innerHTML = (record.twd !== '' ? amountRow('台幣 TWD','NT$',record.twd) : '') + (record.foreign !== '' ? amountRow(currency.name + ' ' + currency.code,currency.symbol,record.foreign,true) : '');
     $('record-amounts').hidden = !hasMoney;
+    updateRecordExchangeRate('record-rate-summary',record);
     $('record-note-summary').hidden = !record.note;
     $('record-note-summary').classList.toggle('note-only',!hasMoney);
     $('record-note-caption').hidden = !hasMoney;
@@ -731,7 +749,13 @@ function saveDetailRecord(keepInput = false) {
   recordEditing = !record; recordExpanded = Boolean(record);
   fillRecordEditor(record); updateDetailRecord();
 }
-window.addEventListener('resize',resizeRecordNote);
+window.addEventListener('resize',() => {
+  resizeRecordNote();
+  if (!$('record-money-grid')) return;
+  updateRecordSymbol();
+  const record = state.purchaseRecords[activeDetail];
+  if (record) updateRecordExchangeRate('record-rate-summary',record);
+});
 function renderDetail(id) {
   const item = itemMap.get(id);
   if (!item) return;
@@ -948,6 +972,7 @@ $('detail-content').addEventListener('input', event => {
   const input = event.target;
   if (input.id === 'detail-quantity' && input.value.trim() !== '' && input.validity.valid) changeDetailQuantity(Number(input.value));
   if (input.id === 'record-note') resizeRecordNote();
+  if (input.id === 'record-twd' || input.id === 'record-foreign') updateRecordSymbol();
   if (input.closest('#purchase-record-form')) { $('record-error').hidden = true; $('record-conflict').hidden = true; }
 });
 $('detail-content').addEventListener('change', event => {
@@ -1104,7 +1129,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=48303fd8caffd43a');
+        const { createAccountHub } = await import('./account-hub.mjs?v=a49b7a5457338c85');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
