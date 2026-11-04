@@ -1,9 +1,9 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=0de63fa6f5e9938f';
-import { createPurchaseBook } from './purchase-book.mjs?v=0de63fa6f5e9938f';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=0de63fa6f5e9938f';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=1c9eee9eeb75c170';
+import { createPurchaseBook } from './purchase-book.mjs?v=1c9eee9eeb75c170';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=1c9eee9eeb75c170';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
-export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope }) {
+export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog }) {
   let book = createPurchaseBook(), records = book.records, fingerprint = '', scope = getScope();
   let editorBase = null, editorScope = null;
   const n = value => new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 }).format(value);
@@ -36,7 +36,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   $('purchase-stats-info').addEventListener('click', () => {
     if (!$('purchase-stats').open || $('purchase-stats-help').open) return;
     $('purchase-stats-info').setAttribute('aria-expanded', 'true');
-    $('purchase-stats-help').showModal();
+    openDialog('purchase-stats-help');
     $('purchase-stats-help-close').focus();
   });
   $('purchase-stats-help').addEventListener('close', () => {
@@ -51,7 +51,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     $('purchase-confirm-accept').textContent = action;
     $('purchase-confirm').returnValue = 'cancel';
     const answer = new Promise(resolve => { confirmationResolver = resolve; });
-    $('purchase-confirm').showModal();
+    openDialog('purchase-confirm');
     $('purchase-confirm-cancel').focus();
     return answer;
   }
@@ -212,7 +212,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     calculatedField = edited?.rate ? (edited.foreign !== '' ? 'twd' : 'foreign') : 'rate';
     updateCurrency();
     syncNoteLayout();
-    if (!$('purchase-editor').open) $('purchase-editor').showModal();
+    openDialog('purchase-editor');
   }
   function syncNoteLayout() {
     // 由瀏覽器排版決定高度；舊版瀏覽器共用同一格的隱藏文字負責撐高。
@@ -317,13 +317,13 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
       </section>`;
   }
   function showStats() {
-    closeOverlays(); renderStats(); $('purchase-stats').showModal();
+    closeOverlays(); renderStats(); openDialog('purchase-stats');
   }
   function showLedger(title, rows) {
     rows = rows.filter(record => record.twd !== '' || record.foreign !== '');
     $('purchase-ledger-title').textContent = title;
     $('purchase-ledger-content').innerHTML = `<div class="purchase-ledger-total"><span>${rows.length} 筆紀錄</span><strong>${money(total(rows))}</strong></div>${rows.length ? rows.map(record => recordMarkup(record, true)).join('') : '<p class="purchase-helper">這個範圍尚無購入紀錄</p>'}`;
-    $('purchase-ledger').showModal();
+    openDialog('purchase-ledger');
   }
   document.addEventListener('click', event => {
     const button = event.target.closest('button');

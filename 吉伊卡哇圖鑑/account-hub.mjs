@@ -1,11 +1,11 @@
-import { createClient } from './supabase-client.mjs?v=0de63fa6f5e9938f';
-import { cloudConfig } from './cloud-config.mjs?v=0de63fa6f5e9938f';
-import { createCloudStore } from './cloud-store.mjs?v=0de63fa6f5e9938f';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=0de63fa6f5e9938f';
-import { createFriendInviteURL } from './friend-invite.mjs?v=0de63fa6f5e9938f';
-import { describePurchaseRecord } from './purchase-records.mjs?v=0de63fa6f5e9938f';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=0de63fa6f5e9938f';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=0de63fa6f5e9938f';
+import { createClient } from './supabase-client.mjs?v=1c9eee9eeb75c170';
+import { cloudConfig } from './cloud-config.mjs?v=1c9eee9eeb75c170';
+import { createCloudStore } from './cloud-store.mjs?v=1c9eee9eeb75c170';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=1c9eee9eeb75c170';
+import { createFriendInviteURL } from './friend-invite.mjs?v=1c9eee9eeb75c170';
+import { describePurchaseRecord } from './purchase-records.mjs?v=1c9eee9eeb75c170';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=1c9eee9eeb75c170';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=1c9eee9eeb75c170';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -24,7 +24,7 @@ function errorText(error) {
   return '操作暫時未完成，請稍後再試。';
 }
 
-export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, onOpenDetail, toast, client:clientOverride, initialView = null }) {
+export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, onOpenDetail, toast, openDialog, client:clientOverride, initialView = null }) {
   const client = clientOverride || createClient(cloudConfig.url, cloudConfig.publishableKey, {
     auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'chiikawa-account-session' },
   });
@@ -58,7 +58,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
   const canonicalURL = () => new URL('./',location.href).href;
   const rpc = async (name, args = {}) => { const result = await client.rpc(name, args); if (result.error) throw result.error; return result.data; };
   const message = (id, text, error = false) => { const target = $(id); if (target) { target.textContent = text; target.classList.toggle('error', error); } };
-  const open = id => { const dialog = $(id); if (!dialog.open) dialog.showModal(); };
+  const open = id => openDialog(id);
   const closeMenu = () => { $('more-menu').hidden = true; $('more-button').setAttribute('aria-expanded','false'); };
 
   document.body.insertAdjacentHTML('beforeend', `

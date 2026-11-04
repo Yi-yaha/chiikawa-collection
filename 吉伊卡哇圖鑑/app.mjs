@@ -1,13 +1,13 @@
-import './focus-visibility.mjs?v=0de63fa6f5e9938f';
-import { createPurchaseHub } from './purchase-hub.mjs?v=0de63fa6f5e9938f';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=0de63fa6f5e9938f';
-import { createDetailScrollGuard } from './dialog-scroll.mjs?v=0de63fa6f5e9938f';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=0de63fa6f5e9938f';
-import { createCatalogImageLoader } from './image-loader.mjs?v=0de63fa6f5e9938f';
-import { createCharacterSorter } from './character-sorter.mjs?v=0de63fa6f5e9938f';
-import { watchForSiteUpdates } from './site-updates.mjs?v=0de63fa6f5e9938f';
-import { createReportHub } from './report-hub.mjs?v=0de63fa6f5e9938f';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=0de63fa6f5e9938f';
+import './focus-visibility.mjs?v=1c9eee9eeb75c170';
+import { createPurchaseHub } from './purchase-hub.mjs?v=1c9eee9eeb75c170';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=1c9eee9eeb75c170';
+import { createDialogController } from './dialog-scroll.mjs?v=1c9eee9eeb75c170';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=1c9eee9eeb75c170';
+import { createCatalogImageLoader } from './image-loader.mjs?v=1c9eee9eeb75c170';
+import { createCharacterSorter } from './character-sorter.mjs?v=1c9eee9eeb75c170';
+import { watchForSiteUpdates } from './site-updates.mjs?v=1c9eee9eeb75c170';
+import { createReportHub } from './report-hub.mjs?v=1c9eee9eeb75c170';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=1c9eee9eeb75c170';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -91,13 +91,15 @@ const openSeriesSubcategories = new Set();
 try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
 try { history.scrollRestoration = 'manual'; } catch {}
 let initialPositionPending = true;
-const detailScroll = createDetailScrollGuard($('detail-dialog'), $('catalog-content'));
+const dialogController = createDialogController($('catalog-content'), {
+  getPosition:() => initialPositionPending && browseState.saved?.position || capturePosition($('catalog-content')),
+});
 for (const event of ['pointerdown','touchstart','wheel','keydown']) window.addEventListener(event, () => { initialPositionPending = false; }, { passive:true, once:true });
 const browseState = createViewState({ key:STORAGE_KEY + '-browse', read:() => ({
   scope:state.scope, type:state.type, region:state.region, series:state.series,
   query:$('catalog-search').value, groupBy:state.groupBy, filtersExpanded, charactersExpanded,
   tabs:{ x:$('character-tabs').scrollLeft, y:$('character-tabs').scrollTop },
-  position:detailScroll.position || initialPositionPending && browseState.saved?.position || capturePosition($('catalog-content')),
+  position:dialogController.position || initialPositionPending && browseState.saved?.position || capturePosition($('catalog-content')),
   detail:$('detail-dialog').open ? activeDetail : null,
   dialogs:['guide-dialog','settings-dialog','data-dialog','selling-dialog'].filter(id => $(id).open).map(id => ({ id, y:$(id).scrollTop })),
   social:accountHub?.getViewState() ?? browseState.saved?.social ?? null,
@@ -518,7 +520,7 @@ function applySyncedCollection(saved) {
     .filter(id => JSON.stringify(state.saleRecords[id]) !== JSON.stringify(saved.saleRecords?.[id]));
   const salesChanged = changedSales.length > 0;
   if (!changed.length && !orderChanged && !goalsChanged && !recordsChanged && !salesChanged) return;
-  const position = detailScroll.position || capturePosition($('catalog-content'));
+  const position = dialogController.position || capturePosition($('catalog-content'));
   const grouping = state.groupBy;
   applySaved(saved); state.groupBy = grouping;
   if (goalsChanged) { characterTotals = progressTotals(state.items,state.includedTypes); updateProgressSetting(); updateGoalBadges(); }
@@ -534,7 +536,7 @@ function applySyncedCollection(saved) {
     for (const id of changed) if (itemMap.has(id)) updateCollectionCatalog(id, batch);
     if (orderChanged) for (const group of groups) { const section = sections.get(group.name); if (section) $('catalog-content').append(section); }
     observeCatalogSize(); catalogImages.update();
-    if (!detailScroll.position) restorePosition(position, $('catalog-content'));
+    if (!dialogController.position) restorePosition(position, $('catalog-content'));
   }
   for (const id of changedSales) updateSaleCard(id);
   updateDataSummary();
@@ -654,8 +656,7 @@ function safeURL(value) {
   try { const url = new URL(value); return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : ''; } catch { return ''; }
 }
 function openDialog(id) {
-  if (['detail-dialog','selling-dialog','selling-help'].includes(id)) { detailScroll.open($(id)); return; }
-  const dialog = $(id); if(!dialog.open) dialog.showModal();
+  dialogController.open($(id));
 }
 function updateDetailCollection() {
   const owned = state.owned.has(activeDetail);
@@ -1131,14 +1132,14 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=0de63fa6f5e9938f');
+        const { createAccountHub } = await import('./account-hub.mjs?v=1c9eee9eeb75c170');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
           getSaved:savedValue, normalize,
           merge:(current,incoming) => mergeSaved(current,incoming,state.characters,new Set(itemMap.keys()),itemAliases),
           applySaved:applySyncedCollection,
-          onOpenDetail:renderDetail,
+          onOpenDetail:renderDetail, openDialog,
           onScope:userId => {
             collectionStorageKey = userId ? STORAGE_KEY + '-account-' + userId : STORAGE_KEY;
             lastClearKey = collectionStorageKey + '-last-clear';
@@ -1177,7 +1178,7 @@ async function init() {
     initialPositionPending = false;
     browseState.enable();
     if (!document.getElementById('open-report')) {
-      const reports = createReportHub({items:state.items,client:accountHub?.client,getUserId:() => accountHub?.userId || null,toast});
+      const reports = createReportHub({items:state.items,client:accountHub?.client,getUserId:() => accountHub?.userId || null,toast,openDialog});
       if (accountHub) void accountHub.ready.then(() => reports.showIntro());else reports.showIntro();
     }
     if(!storageOK) toast('無法讀取原有收藏，可到資料管理匯入備份');
@@ -1188,6 +1189,6 @@ async function init() {
     $('retry-load').addEventListener('click',init);
   }
 }
-const purchaseHub = createPurchaseHub({state,getItem:id => itemMap.get(id),icon,persist,getScope:() => collectionStorageKey,
+const purchaseHub = createPurchaseHub({state,getItem:id => itemMap.get(id),icon,persist,openDialog,getScope:() => collectionStorageKey,
   updateCollection:() => {if (activeDetail && $('detail-dialog').open) updateDetailCollection();},toast});
 init().then(() => purchaseHub.onReady()).finally(() => watchForSiteUpdates());

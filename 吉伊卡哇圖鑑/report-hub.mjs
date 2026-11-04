@@ -1,11 +1,11 @@
-import {createClient} from './supabase-client.mjs?v=0de63fa6f5e9938f';
-import {cloudConfig} from './cloud-config.mjs?v=0de63fa6f5e9938f';
-import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=0de63fa6f5e9938f';
+import {createClient} from './supabase-client.mjs?v=1c9eee9eeb75c170';
+import {cloudConfig} from './cloud-config.mjs?v=1c9eee9eeb75c170';
+import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=1c9eee9eeb75c170';
 const h = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const paths = {message:'<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM12 7v6M9 10h6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',image:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m21 15-5-5L5 21"/>',link:'<path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',heart:'<path d="M20 5a5 5 0 0 0-7 0l-1 1-1-1a5 5 0 0 0-7 7l8 8 8-8a5 5 0 0 0 0-7Z"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + paths[name] + '</svg>';
 
-export function createReportHub({items,getUserId = () => null,client:override,toast = () => {}}) {
+export function createReportHub({items,getUserId = () => null,client:override,toast = () => {},openDialog}) {
   const client = override || createClient(cloudConfig.url,cloudConfig.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce',storageKey:'chiikawa-account-session'}});
   const store = createReportStore({client,storage:localStorage,getUserId});
   const $ = id => document.getElementById(id);
@@ -85,7 +85,7 @@ export function createReportHub({items,getUserId = () => null,client:override,to
     $('more-menu').hidden = true;$('more-button').setAttribute('aria-expanded','false');
     if (intro.open) intro.close();
     if (store.scope !== scope && !busy) {persist();scope = store.scope;restoreDraft();updates = [];}
-    if (!dialog.open) dialog.showModal();void refresh(true);
+    openDialog(dialog.id);void refresh(true);
   }
   menu.addEventListener('click',open);
   $('report-open-history').addEventListener('click',async () => {
@@ -139,7 +139,7 @@ export function createReportHub({items,getUserId = () => null,client:override,to
     const url = new URL(location.href);
     const authCallback = url.searchParams.has('code') || url.searchParams.has('error') || /(?:^#|&)(?:access_token|refresh_token|error)=/.test(url.hash);
     if (document.hidden || document.querySelector('dialog[open]') || document.activeElement?.matches('input,textarea,select,[contenteditable]') || authCallback) {introTimer = setTimeout(tryIntro,1500);return;}
-    intro.showModal();introShown = true;
+    openDialog(intro.id);introShown = true;
     try {localStorage.setItem(introKey,'1');} catch {try {sessionStorage.setItem(introKey,'1');} catch {}}
   }
   window.addEventListener('pagehide',() => {if (!busy && !$('report-success').hidden) return;persist();});
