@@ -146,7 +146,7 @@
 .purchase-record-date input::-webkit-datetime-edit{display:block;width:100%;padding:0}
 .purchase-record-date input::-webkit-datetime-edit-fields-wrapper{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0}
 .purchase-record-date input::-webkit-datetime-edit-year-field,.purchase-record-date input::-webkit-datetime-edit-month-field,.purchase-record-date input::-webkit-datetime-edit-day-field,.purchase-record-date input::-webkit-datetime-edit-text{padding:0}
-#purchase-stats{width:560px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);margin:8px auto auto;padding:14px 16px 16px}
+#purchase-stats{width:560px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);margin:auto;padding:14px 16px 16px}
 #purchase-stats>.dialog-heading{align-items:center;margin-bottom:6px;gap:8px}
 #purchase-stats .purchase-stats-title-line{display:flex;align-items:center;gap:10px;min-width:0}
 #purchase-stats .dialog-heading h2{font-size:20px;line-height:1.4;white-space:nowrap}
@@ -198,8 +198,6 @@
 #purchase-stats-help-message p+p{margin-top:12px}
 .purchase-stats-help-actions{display:flex;justify-content:flex-end;margin-top:16px}
 #purchase-stats-help-close{min-height:44px;padding:8px 18px;border:0;border-radius:10px;background:var(--action-pink-soft);color:var(--action-pink-ink);font-size:13px;font-weight:500}
-@media(max-width:700px){#purchase-stats{--purchase-stats-top:clamp(24px,6dvh,48px);margin:var(--purchase-stats-top) auto auto;max-height:calc(100dvh - var(--purchase-stats-top) - 12px)}
-}
 .purchase-unit-price-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12px;color:var(--muted)}
 .purchase-unit-price-heading>output{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink)}
 .purchase-row-top .purchase-unit-label{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}
