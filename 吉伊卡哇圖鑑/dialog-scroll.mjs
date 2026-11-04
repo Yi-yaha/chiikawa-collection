@@ -1,4 +1,4 @@
-import { capturePosition, restorePosition } from './view-state.mjs?v=5966a3f574a69774';
+import { capturePosition, restorePosition } from './view-state.mjs?v=092c1a4c8b247422';
 
 // 商品資訊有自己的捲動範圍；輸入、鍵盤及滑到邊界都不能帶動後方清單。
 export function createDetailScrollGuard(dialog, catalog) {

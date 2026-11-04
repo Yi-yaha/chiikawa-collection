@@ -26,12 +26,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=5966a3f574a69774">
-  <link rel="stylesheet" href="./purchase.css?v=5966a3f574a69774">
-  <link rel="stylesheet" href="./account.css?v=5966a3f574a69774">
-  <link rel="stylesheet" href="./report.css?v=5966a3f574a69774">
-  <script type="module" src="./app.mjs?v=5966a3f574a69774"></script>
-  <meta name="chiikawa-site-version" content="5966a3f574a69774">
+  <link rel="stylesheet" href="./styles.css?v=092c1a4c8b247422">
+  <link rel="stylesheet" href="./purchase.css?v=092c1a4c8b247422">
+  <link rel="stylesheet" href="./account.css?v=092c1a4c8b247422">
+  <link rel="stylesheet" href="./report.css?v=092c1a4c8b247422">
+  <script type="module" src="./app.mjs?v=092c1a4c8b247422"></script>
+  <meta name="chiikawa-site-version" content="092c1a4c8b247422">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -68,7 +68,7 @@
       <div class="filters">
         <div class="filter-controls">
           <div class="search-filter-row">
-            <label class="search-control"><span data-icon="search"></span><input id="catalog-search" type="search" placeholder="搜尋娃娃名稱" aria-label="搜尋商品名稱或角色" autocomplete="off"></label>
+            <label class="search-control"><span data-icon="search"></span><input id="catalog-search" type="search" placeholder="搜尋品名、系列或角色" aria-label="搜尋品名、系列名稱或角色" autocomplete="off"></label>
             <button class="filter-toggle" id="filter-toggle" aria-label="展開地區、種類與系列篩選" aria-expanded="false" aria-controls="filter-options"><span data-icon="sliders"></span><span id="filter-toggle-label">篩選</span><span class="filter-count" id="filter-count" hidden>0</span><span class="filter-toggle-chevron" data-icon="chevron"></span></button>
           </div>
           <div id="filter-options" class="filter-options" hidden>
@@ -136,7 +136,8 @@
         <div class="guide-copy">
           <p>未登入時，紀錄儲存在目前使用的瀏覽器；登入後可與帳號同步，在不同裝置接續使用。</p>
           <p>商品詳細頁的「收藏紀錄」可填寫數量、購入日期、單價與備註，皆可自由記錄。金額填每隻單價，同筆購入多個時由系統乘上數量；右上角「⋯ → 收藏統計」可查看花費，僅供本人查看。</p>
-          <p>「資料管理」可以匯出或匯入備份，保留收藏數量、購買金額與備註、願望清單、角色順序與收藏設定。同一份備份重複匯入，數量不會累加；同款會保留較大的數量，購買紀錄保留目前內容，同筆不重複累加。</p>
+          <p>商品詳細頁可開啟「想要賣」，填寫台幣售價，圖片左上角會顯示紅色 FOR SALE 斜標。設定與售價自動儲存，僅供本人查看；關閉時會保留上次售價，與購買金額分開記錄。</p>
+          <p>「資料管理」可以匯出或匯入備份，保留收藏數量、購買金額與備註、販售設定與售價、願望清單、角色順序與收藏設定。同一份備份重複匯入，數量不會累加；同款會保留較大的數量，購買紀錄保留目前內容，同筆不重複累加，販售設定保留目前已有的內容。</p>
         </div>
       </details>
     </div>

@@ -1,11 +1,11 @@
-import { createClient } from './supabase-client.mjs?v=5966a3f574a69774';
-import { cloudConfig } from './cloud-config.mjs?v=5966a3f574a69774';
-import { createCloudStore } from './cloud-store.mjs?v=5966a3f574a69774';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=5966a3f574a69774';
-import { createFriendInviteURL } from './friend-invite.mjs?v=5966a3f574a69774';
-import { describePurchaseRecord } from './purchase-records.mjs?v=5966a3f574a69774';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=5966a3f574a69774';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=5966a3f574a69774';
+import { createClient } from './supabase-client.mjs?v=092c1a4c8b247422';
+import { cloudConfig } from './cloud-config.mjs?v=092c1a4c8b247422';
+import { createCloudStore } from './cloud-store.mjs?v=092c1a4c8b247422';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=092c1a4c8b247422';
+import { createFriendInviteURL } from './friend-invite.mjs?v=092c1a4c8b247422';
+import { describePurchaseRecord } from './purchase-records.mjs?v=092c1a4c8b247422';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=092c1a4c8b247422';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=092c1a4c8b247422';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -225,7 +225,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     const guest = readGuest();
     let handled = false;
     try { handled = storage.getItem(accountStorageKeyForMigration(user.id)) === 'handled'; } catch {}
-    if ((!guest.owned.length && !guest.wishlist.length && !Object.keys(guest.purchaseRecords || {}).length) || handled) return;
+    if ((!guest.owned.length && !guest.wishlist.length && !Object.keys(guest.purchaseRecords || {}).length && !Object.keys(guest.saleRecords || {}).length) || handled) return;
     prompted.add(user.id); showMigration(); return true;
   }
   const accountStorageKeyForMigration = uid => STORAGE_KEY + '-migration-' + uid;
@@ -258,8 +258,12 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     const describe = value => value.quantity ? '收藏 ' + n(value.quantity) + ' 個' : value.wished ? '願望清單' : '未收藏';
     $('sync-conflict-content').innerHTML = conflicts.map(conflict => {
       const item = items.find(item => item.id === (conflict.itemId || conflict.id));
-      const detail = value => conflict.kind === 'record' ? h(describePurchaseRecord(value)) : describe(value);
-      return '<section class="conflict-row"><h3>' + (conflict.id === '__settings' ? '角色順序與收藏設定' : h(item ? item.character + '・' + item.name : '收藏紀錄')) + (conflict.kind === 'record' ? '的收藏紀錄' : '') + '</h3><div class="conflict-choices"><button class="secondary-button" data-conflict="' + h(conflict.id) + '" data-choice="local">保留這台裝置' + (item ? '<small>' + detail(conflict.local) + '</small>' : '') + '</button><button class="secondary-button" data-conflict="' + h(conflict.id) + '" data-choice="remote">保留帳號版本' + (item ? '<small>' + detail(conflict.remote) + '</small>' : '') + '</button></div></section>';
+      const saleIds = conflict.id === '__settings' ? [...new Set([...Object.keys(conflict.local.saleRecords || {}),...Object.keys(conflict.remote.saleRecords || {})])].filter(id => JSON.stringify(conflict.local.saleRecords?.[id]) !== JSON.stringify(conflict.remote.saleRecords?.[id])) : [];
+      const detail = value => conflict.kind === 'record' ? h(describePurchaseRecord(value)) : conflict.id === '__settings' ? saleIds.map(id => {
+        const item = items.find(item => item.id === id), record = value.saleRecords?.[id];
+        return h((item ? item.character + '・' + item.name : '商品') + '：' + (record?.enabled ? '想要賣' : '未販售') + (record?.price ? '，NT$ ' + record.price : ''));
+      }).join('<br>') : describe(value);
+      return '<section class="conflict-row"><h3>' + (conflict.id === '__settings' ? '角色順序、收藏與販售設定' : h(item ? item.character + '・' + item.name : '收藏紀錄')) + (conflict.kind === 'record' ? '的收藏紀錄' : '') + '</h3><div class="conflict-choices"><button class="secondary-button" data-conflict="' + h(conflict.id) + '" data-choice="local">保留這台裝置' + (item || saleIds.length ? '<small>' + detail(conflict.local) + '</small>' : '') + '</button><button class="secondary-button" data-conflict="' + h(conflict.id) + '" data-choice="remote">保留帳號版本' + (item || saleIds.length ? '<small>' + detail(conflict.remote) + '</small>' : '') + '</button></div></section>';
     }).join('');
   }
   $('sync-conflict-content').addEventListener('click',event => { const button = event.target.closest('[data-conflict]'); if (button) store.resolve(button.dataset.conflict,button.dataset.choice); });
@@ -399,7 +403,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       (stats.styles ? '<button id="open-friend-analysis" class="text-button friend-analysis-link" data-action="open-friend-analysis" aria-controls="friend-analysis-view">查看分析<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>' : '') + '</div>' +
       '<div class="friend-view-tabs" role="group" aria-label="好友收藏檢視"><button data-friend-tab="collection" aria-pressed="' + (friendTab === 'collection') + '">他的收藏</button><button data-friend-tab="compare" aria-pressed="' + (friendTab === 'compare') + '">收藏比較</button><button data-friend-tab="wishlist" aria-pressed="' + (friendTab === 'wishlist') + '">他的願望清單</button></div>' +
       (friendTab === 'compare' ? '<div class="comparison-intro"><p>你們共同收藏了 <strong>' + n(differences.both.length) + '</strong> 款。</p>' + (myCharacter && character ? '<p class="social-note">你最常收' + h(myCharacter.label) + '，對方最常收' + h(character.label) + '。</p>' : '') + '<div class="comparison-counts"><span>你：' + n(myStats.styles) + ' 款／' + n(myStats.pieces) + ' 個</span><span>對方：' + n(stats.styles) + ' 款／' + n(stats.pieces) + ' 個</span></div></div><div class="comparison-tabs" role="group" aria-label="比較收藏差異">' + [['both','我們都有'],['theirsOnly','他有，我還沒有'],['mineOnly','我有，他還沒有']].map(([key,label]) => '<button data-compare-tab="' + key + '" aria-pressed="' + (compareTab === key) + '">' + label + '<strong>' + n(differences[key].length) + '</strong></button>').join('') + '</div>' : '') +
-      '<div class="friend-product-filters"><div class="search-filter-row friend-search-row"><label class="visually-hidden" for="friend-search">' + (friendTab === 'wishlist' ? '搜尋好友願望清單' : '搜尋好友收藏') + '</label><input id="friend-search" type="search" placeholder="搜尋娃娃名稱或角色"><button id="friend-filter-toggle" class="filter-toggle" type="button" aria-label="展開角色、種類與系列篩選" aria-expanded="false" aria-controls="friend-filter-options"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6m4 0h8M3 12h12m4 0h2M3 18h2m4 0h12M9 3v6m6 0v6M5 15v6"/></svg><span id="friend-filter-toggle-label">篩選</span><span id="friend-filter-count" class="filter-count" hidden>0</span><svg class="filter-toggle-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>' +
+      '<div class="friend-product-filters"><div class="search-filter-row friend-search-row"><label class="visually-hidden" for="friend-search">' + (friendTab === 'wishlist' ? '搜尋好友願望清單的品名、系列名稱或角色' : '搜尋好友收藏的品名、系列名稱或角色') + '</label><input id="friend-search" type="search" placeholder="搜尋品名、系列或角色"><button id="friend-filter-toggle" class="filter-toggle" type="button" aria-label="展開角色、種類與系列篩選" aria-expanded="false" aria-controls="friend-filter-options"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6m4 0h8M3 12h12m4 0h2M3 18h2m4 0h12M9 3v6m6 0v6M5 15v6"/></svg><span id="friend-filter-toggle-label">篩選</span><span id="friend-filter-count" class="filter-count" hidden>0</span><svg class="filter-toggle-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>' +
       '<div id="friend-filter-options" class="friend-filter-options" hidden><label class="visually-hidden" for="friend-character">篩選角色</label><select id="friend-character"><option value="">全部角色</option>' + characters.map(character => '<option value="' + h(character) + '">' + h(character) + '</option>').join('') + '</select><label class="visually-hidden" for="friend-type">篩選種類</label><select id="friend-type"><option value="">全部種類</option>' + ITEM_TYPES.map(type => '<option value="' + h(type) + '">' + h(typeLabel(type)) + '</option>').join('') + '</select><label class="visually-hidden" for="friend-series">篩選系列</label><select id="friend-series"><option value="">全部系列</option>' + [...new Set(productScope.map(seriesKey))].sort((a,b) => a.localeCompare(b,'zh-TW')).map(name => '<option value="' + h(name) + '">' + h(seriesLabel(name)) + '</option>').join('') + '</select></div></div><p id="friend-results-count" class="friend-results-count" role="status" aria-live="polite"></p><div id="friend-products" class="friend-products"></div></div><section id="friend-analysis-view" class="friend-analysis"' + (friendAnalysisOpen ? '' : ' hidden') + ' aria-label="收藏分析"></section>';
     for (const [id,value] of Object.entries(previousFilters)) { $(id).value = value; if ($(id).value !== value) $(id).value = ''; }
     renderFriendProducts();

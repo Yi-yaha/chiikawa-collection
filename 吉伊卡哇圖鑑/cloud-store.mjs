@@ -1,10 +1,10 @@
-import { STORAGE_KEY } from './model.mjs?v=5966a3f574a69774';
-import { normalizePurchaseRecord } from './purchase-records.mjs?v=5966a3f574a69774';
+import { STORAGE_KEY } from './model.mjs?v=092c1a4c8b247422';
+import { normalizePurchaseRecord } from './purchase-records.mjs?v=092c1a4c8b247422';
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const valueOf = row => ({ quantity:row?.quantity || 0, wished:row?.quantity > 0 ? false : Boolean(row?.wished) });
 const recordOf = row => normalizePurchaseRecord(row?.record);
-const preferences = saved => ({ characterOrder:saved.characterOrder, groupBy:saved.groupBy, includedTypes:saved.includedTypes });
+const preferences = saved => ({ characterOrder:saved.characterOrder, groupBy:saved.groupBy, includedTypes:saved.includedTypes, saleRecords:saved.saleRecords || {} });
 export const accountStorageKey = uid => uid ? STORAGE_KEY + '-account-' + uid : STORAGE_KEY;
 
 /** Local pending edits survive reloads. Server versions prevent stale devices overwriting edits. */

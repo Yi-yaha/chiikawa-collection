@@ -290,6 +290,9 @@ html{scroll-padding-top:118px}
 @media(hover:hover) and (pointer:fine){.wish-button:hover{color:var(--wish)}}
 .wish-button.wished{color:var(--wish)}
 .wish-button.wished svg{fill:currentColor}
+.product-sale-ribbon{position:absolute;top:0;left:0;z-index:1;width:72px;height:72px;overflow:hidden;pointer-events:none}
+.product-sale-ribbon span{position:absolute;top:15px;left:-26px;width:112px;padding:3px 0;background:#C64246;color:#fff;text-align:center;transform:rotate(-45deg);font-size:8px;font-weight:750;line-height:12px;letter-spacing:.7px}
+.product-card.is-selling .wish-button{top:44px}
 .product-card.wished{border-color:#DEC68F;outline:2px solid #DEC68F;outline-offset:-2px}
 .character-tab.wish-tab .avatar{background:var(--paper);color:var(--wish)}
 .character-tab.wish-tab .avatar svg{fill:currentColor}
@@ -323,6 +326,25 @@ html{scroll-padding-top:118px}
 }
 @media(pointer:coarse){.collection-overview .segmented button{min-height:44px}}
 .detail-info h2{overflow-wrap:anywhere}
+.detail-visual{position:relative;overflow:hidden;isolation:isolate}
+.detail-sale-ribbon{position:absolute;top:0;left:0;width:130px;height:130px;overflow:hidden;pointer-events:none;z-index:1}
+.detail-sale-ribbon span{position:absolute;top:28px;left:-43px;width:190px;padding:7px 0;background:#C64246;color:#fff;text-align:center;transform:rotate(-45deg);font-size:13px;font-weight:750;line-height:20px;letter-spacing:1.6px}
+.detail-overview{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;width:100%;margin-bottom:18px}
+.detail-overview .detail-eyebrow{flex:1;flex-wrap:wrap;align-items:flex-start;margin:0;gap:6px}
+.detail-sale{position:relative;flex:0 0 auto;min-width:0;display:flex;align-items:center}
+#detail-sale-price-field{position:absolute;right:0;bottom:calc(100% + 12px);z-index:2;width:calc(58px + var(--sale-price-ch,3)*1ch);max-width:min(300px,calc(100vw - 76px));font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.detail-sale label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.detail-sale-money{display:flex;align-items:center;gap:6px;min-height:38px;padding:4px 10px;border:1px solid var(--control-line);border-radius:10px;background:var(--paper);box-shadow:0 3px 12px rgba(60,45,35,.06)}
+.detail-sale-money>span{flex:0 0 28px;font-size:12px;color:var(--muted)}
+.detail-sale-money input{width:100%;min-width:0;height:28px;padding:0;border:0;outline:none;background:transparent;color:var(--ink);font-size:22px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;line-height:28px}
+.detail-sale-money input::placeholder{font-size:14px;font-weight:400;line-height:28px;color:var(--muted)}
+.detail-sale-toggle{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;min-height:24px;padding:3px 9px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font-size:11px;font-weight:600;line-height:16px;color:var(--muted);white-space:nowrap}
+.detail-sale-toggle::before{content:"";position:absolute;inset:-10px 0}
+.detail-sale-toggle svg{width:15px;height:15px;stroke-width:1.8}
+.detail-sale-toggle.is-selling{background:var(--coral);border-color:var(--coral);color:#fff}
+.detail-sale-error{position:absolute;right:0;bottom:calc(100% + 6px);width:180px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);font-size:11px;line-height:1.5;color:#B9363C;box-shadow:var(--shadow)}
+@media(min-width:701px){.detail-info:has(.detail-sale){padding-top:104px}}
+@media(hover:hover) and (pointer:fine){.detail-sale-toggle:hover{border-color:var(--coral);color:var(--coral)}.detail-sale-toggle.is-selling:hover{background:var(--coral-dark);color:#fff}}
 .detail-own-context{width:100%;margin-top:16px;padding:11px 13px;border:1px solid var(--owned-line);border-radius:12px;background:var(--action-pink-soft)}
 .detail-own-context strong{display:block;font-size:14px;font-weight:600;color:var(--action-pink-ink)}
 .detail-own-context p{margin-top:3px;font-size:12px;line-height:1.6;color:var(--action-pink-ink)}
@@ -337,7 +359,7 @@ html{scroll-padding-top:118px}
 @media(hover:hover) and (pointer:fine){.quantity-stepper button:hover{background:var(--bg);color:var(--coral)}}
 .quantity-stepper button:active{background:var(--bg)}
 .quantity-stepper svg{width:15px;height:15px}
-.quantity-stepper input{appearance:textfield;-moz-appearance:textfield;width:calc(4ch + 4px);min-width:0;height:44px;padding:0 2px;border:0;background:transparent;color:var(--ink);text-align:center;font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;border-radius:4px}
+.quantity-stepper input{appearance:textfield;-moz-appearance:textfield;width:calc(4ch + 4px);min-width:0;height:44px;padding:0 2px;border:0;background:transparent;color:var(--ink);text-align:center;font-size:22px;font-weight:500;line-height:44px;font-variant-numeric:tabular-nums;border-radius:4px}
 .quantity-stepper input::-webkit-inner-spin-button,.quantity-stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .detail-wish-button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;margin-top:10px;padding:10px 12px;border:1px solid #E8D9B9;background:var(--paper);color:var(--wish);border-radius:var(--control-radius);font-size:13px;font-weight:600}
 .detail-wish-button.wished{background:var(--wish-bg)}@media(hover:hover) and (pointer:fine){.detail-wish-button:hover{background:var(--wish-bg)}}
@@ -370,18 +392,27 @@ html{scroll-padding-top:118px}
 .record-help-dialog strong{font-weight:500}
 .record-help-example{padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
 .record-help-actions{display:flex;justify-content:flex-end;margin-top:20px}
-.record-money-grid,.detail-info .record-amounts>div{display:grid;grid-template-columns:118px minmax(0,156px);align-items:center;gap:10px}
+.record-money-grid,.detail-info .record-amounts>div{display:grid;grid-template-columns:minmax(118px,1fr) minmax(0,156px);align-items:center;gap:10px}
+.record-money-grid{width:100%}
 .record-money-grid>label,.detail-info .record-amounts dt{font-size:14px;color:var(--ink);padding-left:11px;white-space:nowrap}
 .record-money-field,.record-money-grid select{width:100%;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:12px;padding:7px 10px;background:var(--paper)}
 .record-money-field,.detail-info .record-amounts .record-amount-value{display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;gap:6px}
 .record-symbol{display:block;width:32px;text-align:left;font-size:13px;color:var(--ink)}
-.record-money-field input{width:100%;min-width:0;padding:0;border:0;background:transparent;font-size:22px;font-weight:500;line-height:1.2;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
-.record-money-field input::placeholder{font-size:14px;font-weight:400;color:var(--muted)}
+.record-money-field input{width:100%;min-width:0;height:28px;padding:0;border:0;background:transparent;font-size:22px;font-weight:500;line-height:28px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.record-money-field input::placeholder{font-size:14px;font-weight:400;line-height:28px;color:var(--muted)}
 .record-money-grid select{font-family:inherit;font-size:14px;color:var(--ink)}
 .record-note-label{display:block;margin:20px 0 8px;font-size:13px;font-weight:500}
-#record-note{display:block;resize:none;overflow:hidden;overflow-wrap:anywhere;width:100%;min-height:44px;height:44px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--paper);color:var(--ink);font-family:inherit;font-size:16px;line-height:1.5}
-#record-note::placeholder{font-size:14px;color:var(--muted)}
-:where(html:not([data-focus-mode="pointer"])) .record-money-field:focus-within,:where(html:not([data-focus-mode="pointer"])) .record-money-grid select:focus,:where(html:not([data-focus-mode="pointer"])) #record-note:focus{border-color:var(--action-pink);background:var(--action-pink-soft)}
+#record-note{display:block;resize:none;overflow:hidden;overflow-wrap:anywhere;width:100%;min-height:44px;height:44px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--paper);color:var(--ink);font-family:inherit;font-size:16px;line-height:24px}
+#record-note::placeholder{font-size:14px;line-height:24px;color:var(--muted)}
+:where(html:not([data-focus-mode="pointer"])) .record-money-grid select:focus,:where(html:not([data-focus-mode="pointer"])) #record-note:focus{border-color:var(--action-pink);background:var(--action-pink-soft)}
+/* 數字欄位共用同一個圓角外框，焦點只標示在外層。 */
+.detail-sale-money,.record-money-field,.quantity-stepper{border:1px solid var(--control-line);border-radius:10px;background:var(--paper);box-shadow:0 3px 12px rgba(60,45,35,.06)}
+:where(html:not([data-focus-mode="pointer"])) .detail-sale-money:focus-within,:where(html:not([data-focus-mode="pointer"])) .record-money-field:focus-within,:where(html:not([data-focus-mode="pointer"])) .quantity-stepper:focus-within{border-color:var(--coral);background:var(--paper);box-shadow:var(--focus-ring)}
+.detail-sale-money input,.record-money-field input,.quantity-stepper input,
+.detail-sale-money input:focus-visible,.record-money-field input:focus-visible,.quantity-stepper input:focus-visible{outline:none;box-shadow:none}
+/* 空白時以提示文字的字級排版，避免小字沿用大數字的基準而偏下。 */
+.detail-sale-money input:placeholder-shown,.record-money-grid .record-money-field input:placeholder-shown{font-size:14px;font-weight:400}
+#record-note:placeholder-shown{font-size:14px}
 .record-form-actions,.record-conflict>div{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:16px}
 .record-save,.record-cancel{min-height:44px;border-radius:12px;padding:9px 18px;font-size:14px}
 .record-save{background:var(--action-pink);color:#fff;font-weight:500}
@@ -422,7 +453,7 @@ html{scroll-padding-top:118px}
 .record-note-summary p{margin-top:7px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.7}
 .record-note-summary.note-only{margin-top:0;padding-top:0;border:0}
 .record-note-summary.note-only p{margin-top:2px}
-@media(max-width:380px){.record-money-grid:not(.has-long-amount),.detail-info .record-amounts:not(.has-long-amount)>div{grid-template-columns:108px minmax(0,156px);gap:10px 8px}}
+@media(max-width:380px){.record-money-grid:not(.has-long-amount),.detail-info .record-amounts:not(.has-long-amount)>div{grid-template-columns:minmax(108px,1fr) minmax(0,156px);gap:10px 8px}}
 @media(pointer:coarse){.record-help{min-height:44px}}
 @media(max-width:700px){
   .product-meta{padding:6px 8px 10px}
