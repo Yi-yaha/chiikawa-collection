@@ -1,6 +1,6 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=9e47fea71da128d5';
-import { createPurchaseBook } from './purchase-book.mjs?v=9e47fea71da128d5';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=9e47fea71da128d5';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=107334a8f2f880fd';
+import { createPurchaseBook } from './purchase-book.mjs?v=107334a8f2f880fd';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=107334a8f2f880fd';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope }) {

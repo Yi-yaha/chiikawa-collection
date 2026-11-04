@@ -1,3 +1,8 @@
+// 搜尋只在比對時忽略空白，保留欄位輸入、商品名稱與系列資料原文。
+export function normalizeSearchText(value) {
+  return String(value ?? '').normalize('NFKC').toLocaleLowerCase('zh-TW').replace(/\s+/gu, '');
+}
+
 // 小工具與網站共用同一份系列階層；名稱、母分類與同層順序皆取自資料。
 export function seriesHierarchy(nodes, items, { query = '', includeEmpty = false, excluded = new Set() } = {}) {
   const direct = new Map(), children = new Map(), byId = new Map(nodes.map(node => [node.id, node]));
@@ -10,14 +15,13 @@ export function seriesHierarchy(nodes, items, { query = '', includeEmpty = false
     if (!children.has(parent)) children.set(parent, []);
     children.get(parent).push(node);
   }
-  const normalize = value => value.normalize('NFKC').toLocaleLowerCase('zh-TW');
-  const needle = normalize(query.trim());
+  const needle = normalizeSearchText(query);
   const aliases = { '抽賞':'抽獎 一番賞' };
   function branch(node, path = []) {
     if (excluded.has(node.id)) return null;
     const names = [...path, node.name + ' ' + (aliases[node.name] || '')];
     const ownCount = direct.get(node.name) || 0;
-    const matches = !needle || normalize(names.join(' ')).includes(needle);
+    const matches = !needle || normalizeSearchText(names.join(' ')).includes(needle);
     const descendants = children.get(node.id) || [];
     const nested = descendants.map(child => branch(child, names)).filter(Boolean);
     const ownOptions = ownCount && matches ? [{ key:node.name, label:node.name, count:ownCount }] : [];

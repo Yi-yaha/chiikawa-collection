@@ -1,6 +1,6 @@
-import { seriesHierarchy } from './series-tree.mjs?v=9e47fea71da128d5';
-import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=9e47fea71da128d5';
-import { normalizeSaleRecords } from './sale-records.mjs?v=9e47fea71da128d5';
+import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=107334a8f2f880fd';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=107334a8f2f880fd';
+import { normalizeSaleRecords } from './sale-records.mjs?v=107334a8f2f880fd';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -72,16 +72,15 @@ function groupSeriesTreeOptions(items, tree, query) {
     const key = seriesKey(item);
     counts.set(key, (counts.get(key) || 0) + 1);
   }
-  const normalize = value => value.normalize('NFKC').toLocaleLowerCase('zh-TW');
-  const needle = normalize(query.trim());
+  const needle = normalizeSearchText(query);
   const groups = seriesHierarchy(tree, items, { query });
   // 新系列尚未加入階層時仍可選取；未設定系列固定放在最後。
   const knownNames = new Set(tree.map(node => node.name));
   const remaining = [...counts].filter(([key]) => key !== UNASSIGNED_SERIES && !knownNames.has(key))
-    .filter(([key]) => !needle || normalize('其他系列 ' + key).includes(needle))
+    .filter(([key]) => !needle || normalizeSearchText('其他系列 ' + key).includes(needle))
     .map(([key, count]) => ({ key, label:seriesLabel(key), count }));
   if (remaining.length) groups.push({ id:'other-series', label:'其他系列', options:remaining.sort((a, b) => compareSeries(a.key, b.key)) });
-  if (counts.has(UNASSIGNED_SERIES) && (!needle || normalize('未設定系列').includes(needle))) {
+  if (counts.has(UNASSIGNED_SERIES) && (!needle || normalizeSearchText('未設定系列').includes(needle))) {
     groups.push({ id:'unassigned', label:'未設定系列', options:[{ key:UNASSIGNED_SERIES, label:'未設定系列', count:counts.get(UNASSIGNED_SERIES) }] });
   }
   return groups;
@@ -103,12 +102,12 @@ export function groupSeriesOptions(items, { query = '', catalog = items, seriesT
   }
   const categories = SERIES_CATEGORIES.map(category => ({ ...category, options:[] }));
   const byId = new Map(categories.map(category => [category.id, category]));
-  const needle = query.trim().toLocaleLowerCase('zh-TW');
+  const needle = normalizeSearchText(query);
   for (const [key, count] of counts) {
     // 用完整圖鑑決定分區，避免改變角色、地區或種類後，同系列突然搬家。
     const category = byId.get(seriesCategory(key, catalogSeries.get(key) || items.filter(item => seriesKey(item) === key)));
     const sectionLabel = category.id === 'lottery' ? lotterySectionLabels[lotterySection(key, characters)] : '';
-    if (needle && !`${category.label} ${category.keywords} ${sectionLabel}`.toLocaleLowerCase('zh-TW').includes(needle) && !seriesLabel(key).toLocaleLowerCase('zh-TW').includes(needle)) continue;
+    if (needle && !normalizeSearchText(`${category.label} ${category.keywords} ${sectionLabel}`).includes(needle) && !normalizeSearchText(seriesLabel(key)).includes(needle)) continue;
     category.options.push({ key, label:seriesLabel(key), count });
   }
   return categories.filter(category => category.options.length).map(category => {
@@ -236,8 +235,8 @@ export function scopeItems(items, scope, owned, wishlist = new Set()) {
 }
 
 export function filterItems(items, { type = '', region = '', series = '', query = '' } = {}) {
-  const needle = query.trim().toLocaleLowerCase('zh-TW');
-  return items.filter(item => (!type || item.type === type) && (!region || (item.region || '日本') === region) && (!series || seriesKey(item) === series) && (!needle || `${item.name} ${item.series || ''} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`.toLocaleLowerCase('zh-TW').includes(needle)));
+  const needle = normalizeSearchText(query);
+  return items.filter(item => (!type || item.type === type) && (!region || (item.region || '日本') === region) && (!series || seriesKey(item) === series) && (!needle || normalizeSearchText(`${item.name} ${item.series || ''} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`).includes(needle)));
 }
 
 export function collectionStats(items, owned, quantities = {}, includedTypes = {}) {
