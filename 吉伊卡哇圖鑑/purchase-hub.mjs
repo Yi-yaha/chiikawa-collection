@@ -1,7 +1,8 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=12794b0d778393c6';
-import { createPurchaseBook } from './purchase-book.mjs?v=12794b0d778393c6';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=12794b0d778393c6';
-import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=12794b0d778393c6';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=44871cec291f60ab';
+import { createPurchaseBook } from './purchase-book.mjs?v=44871cec291f60ab';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=44871cec291f60ab';
+import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=44871cec291f60ab';
+import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=44871cec291f60ab';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog }) {
@@ -18,6 +19,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   let selectedMonth = null, selectedGroup = null;
   let confirmationResolver = null, manualFields = [], calculatedField = null;
   const clearedFields = new Set();
+  let rateRequest = null;
 
   document.body.insertAdjacentHTML('beforeend', `
     <dialog id="purchase-editor" class="panel-dialog purchase-editor" aria-label="編輯收藏紀錄">
@@ -27,6 +29,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
         <div class="purchase-record-date"><label for="purchase-date">購入日期 <small>選填</small></label><input id="purchase-date" type="date" lang="zh-TW" aria-label="購入日期，選填"></div>
         <div class="purchase-unit-price-heading"><span>單價</span><output id="purchase-editor-total" aria-live="polite"></output></div>
         <div class="record-money-grid"><label for="purchase-twd">台幣 TWD</label><div class="record-money-field"><span class="record-symbol">NT$</span><input id="purchase-twd" type="text" inputmode="decimal" maxlength="32" aria-label="台幣單價"></div><select id="purchase-currency" aria-label="外幣幣別"><option value="">請選幣別</option>${PURCHASE_CURRENCIES.map(currency => `<option value="${currency.code}">${currency.name} ${currency.code}</option>`).join('')}</select><div class="record-money-field"><span class="record-symbol" id="purchase-symbol">—</span><input id="purchase-foreign" type="text" inputmode="decimal" maxlength="32" aria-label="外幣單價"></div><label for="purchase-rate" class="record-rate-label">匯率<span id="purchase-rate-unit">（台幣／外幣）</span></label><div class="record-money-field"><span class="record-symbol">NT$</span><input id="purchase-rate" type="text" inputmode="decimal" placeholder="匯率" maxlength="32" aria-label="換算匯率"></div></div>
+        <div class="purchase-current-rate-action"><button type="button" id="purchase-current-rate" class="purchase-current-rate">帶入目前匯率</button></div>
         <label class="record-note-label" for="purchase-note">備註 <small>選填</small></label><div class="purchase-note-field"><textarea id="purchase-note" class="purchase-note" rows="1" maxlength="2000" placeholder="想記什麼都可以"></textarea><div id="purchase-note-size" class="purchase-note-size" aria-hidden="true"></div></div>
         <p id="purchase-form-error" class="record-error" role="alert" hidden></p><div class="record-form-actions"><button type="button" class="purchase-delete" id="purchase-delete-record">刪除紀錄</button><button type="button" class="record-cancel" data-purchase-close="purchase-editor">取消</button><button type="submit" class="record-save" id="purchase-save-record">儲存</button></div>
       </form>
@@ -202,6 +205,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     showEditor(id, book.recordFor(unit.id)?.id || null, unit.id);
   }
   function showEditor(id, recordId = null, unitId = null) {
+    cancelRateRequest();
     syncBook();
     activeId = id;
     editorScope = getScope(); editorBase = JSON.stringify(state.purchaseRecords[id] || null);
@@ -282,6 +286,53 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     $('purchase-form-error').textContent = result.error; $('purchase-form-error').hidden = !result.error;
     updateEditorTotal();
   }
+  function setRateLoading(loading) {
+    const button = $('purchase-current-rate');
+    button.disabled = loading;
+    button.textContent = loading ? '取得匯率中…' : '帶入目前匯率';
+    button.setAttribute('aria-busy', String(loading));
+  }
+  function cancelRateRequest() {
+    if (!rateRequest) return;
+    rateRequest.abort();
+    rateRequest = null;
+    setRateLoading(false);
+  }
+  $('purchase-editor').addEventListener('close', cancelRateRequest);
+  $('purchase-current-rate').addEventListener('click', async () => {
+    if (!$('purchase-editor').open || rateRequest) return;
+    const currency = $('purchase-currency').value;
+    if (!purchaseCurrency(currency)) {
+      $('purchase-form-error').textContent = '請先選擇外幣幣別。';
+      $('purchase-form-error').hidden = false;
+      return;
+    }
+    const request = new AbortController(), itemId = activeId, recordId = edited?.id, requestScope = getScope();
+    const before = JSON.stringify(['twd','foreign','rate'].map(key => $('purchase-' + key).value));
+    rateRequest = request;
+    setRateLoading(true);
+    $('purchase-form-error').hidden = true;
+    try {
+      const result = await fetchPurchaseExchangeRate(currency, { signal:request.signal });
+      if (request.signal.aborted || rateRequest !== request || !$('purchase-editor').open || activeId !== itemId
+        || edited?.id !== recordId || getScope() !== requestScope || $('purchase-currency').value !== currency
+        || before !== JSON.stringify(['twd','foreign','rate'].map(key => $('purchase-' + key).value))) return;
+      // 以最近手動填寫的有效金額換算；只有一種金額時就沿用該格。
+      const validAmount = key => ['twd','foreign'].includes(key) && normalizePurchaseAmount($('purchase-' + key).value) !== '';
+      const source = [...manualFields].reverse().find(validAmount) || ['foreign','twd'].find(validAmount);
+      manualFields = source ? [source] : [];
+      $('purchase-rate').value = result.rate;
+      calculate('rate');
+      toast('已帶入 ' + result.date.replaceAll('-', '/') + ' 參考匯率，可自行修改');
+    } catch (error) {
+      if (!request.signal.aborted && rateRequest === request) {
+        $('purchase-form-error').textContent = error.message;
+        $('purchase-form-error').hidden = false;
+      }
+    } finally {
+      if (rateRequest === request) { rateRequest = null; setRateLoading(false); }
+    }
+  });
   function filteredRecords() {
     return recordsInPeriod(records, statsPeriod || purchasePeriod(records, range, periodEnd));
   }
@@ -432,8 +483,8 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     renderStats();
     $('purchase-stats-range').focus({preventScroll:true});
   });
-  $('purchase-currency').addEventListener('change', () => {manualFields = ['twd','foreign','rate'].filter(key => $('purchase-' + key).value.trim()); calculatedField = null; updateCurrency(); if (manualFields.length === 2) calculate();});
-  for (const key of ['twd', 'foreign', 'rate']) $('purchase-' + key).addEventListener('input', () => calculate(key));
+  $('purchase-currency').addEventListener('change', () => {cancelRateRequest();manualFields = ['twd','foreign','rate'].filter(key => $('purchase-' + key).value.trim()); calculatedField = null; updateCurrency(); if (manualFields.length === 2) calculate();});
+  for (const key of ['twd', 'foreign', 'rate']) $('purchase-' + key).addEventListener('input', () => {cancelRateRequest();calculate(key);});
   $('purchase-delete-record').addEventListener('click', async () => {
     if (!$('purchase-editor').open || !edited) return;
     try { editorUnchanged(); } catch (cause) { $('purchase-form-error').textContent = cause.message; $('purchase-form-error').hidden = false; return; }
