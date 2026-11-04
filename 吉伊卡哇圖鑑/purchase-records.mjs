@@ -47,6 +47,7 @@ export function calculatePurchaseField(value, field) {
 }
 export function normalizePurchaseRecord(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (value.version === 2) return normalizePurchaseBook(value);
   const currency = purchaseCurrency(value.currency);
   const record = {
     twd:normalizePurchaseAmount(value.twd), currency:currency?.code || 'JPY',
@@ -57,10 +58,11 @@ export function normalizePurchaseRecord(value) {
   if (rate !== '') record.rate = rate;
   return record.twd !== '' || record.foreign !== '' || record.rate !== undefined || record.note ? record : null;
 }
-export function mergePurchaseRecord(current, incoming) {
+export function mergePurchaseRecord(current, incoming, itemId = 'legacy') {
   const before = normalizePurchaseRecord(current), added = normalizePurchaseRecord(incoming);
   if (!before) return added;
   if (!added) return before;
+  if (before.version === 2 || added.version === 2) return mergePurchaseBooks(before,added,itemId);
   const currency = before.foreign !== '' || before.rate !== undefined ? before.currency : added.currency;
   const record = {
     twd:before.twd || added.twd,
@@ -80,7 +82,7 @@ export function normalizePurchaseRecords(value, validIds, resolveId = id => id) 
   for (const [rawId, value] of entries) {
     const id = resolveId(rawId);
     if (validIds && !validIds.has(id)) continue;
-    const record = mergePurchaseRecord(result[id], value);
+    const record = mergePurchaseRecord(result[id], value, id);
     if (record) Object.defineProperty(result,id,{value:record,enumerable:true,configurable:true,writable:true});
   }
   return result;
@@ -104,6 +106,7 @@ export function formatPurchaseExchangeRate(value) {
 export function describePurchaseRecord(value) {
   const record = normalizePurchaseRecord(value);
   if (!record) return '未填寫金額與備註';
+  if (record.version === 2) return record.records.length + ' 筆紀錄，合計 NT$ ' + formatPurchaseAmount(purchaseTotal(record.records)) + '；' + record.records.map((entry,index) => '第 ' + (index+1) + ' 筆：' + entry.qty + ' 個' + (entry.date ? '，' + entry.date : '') + '，' + describePurchaseRecord({...entry,version:undefined})).join('；');
   const parts = [];
   if (record.twd !== '') parts.push('台幣 NT$ ' + formatPurchaseAmount(record.twd));
   if (record.foreign !== '') {
@@ -114,3 +117,77 @@ export function describePurchaseRecord(value) {
   if (record.note) parts.push('購買備註：' + record.note);
   return parts.join('；');
 }
+
+export function validPurchaseDate(value) {
+  if (value === '') return true;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value < '0001-01-01') return false;
+  const date = new Date(value + 'T00:00:00Z');
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value;
+}
+export function normalizePurchaseEntry(value) {
+  if (!value || value.version !== undefined) return null;
+  const details = normalizePurchaseRecord(value) || {twd:'',currency:'JPY',foreign:'',note:''};
+  const date = typeof value.date === 'string' && validPurchaseDate(value.date) ? value.date : '';
+  return {...details,date};
+}
+const purchaseIdentifier = value => typeof value === 'string' && /^[A-Za-z0-9:_-]{1,160}$/.test(value);
+export function normalizePurchaseBook(value) {
+  if (value?.version !== 2 || !Array.isArray(value.units) || !Array.isArray(value.records) || !Array.isArray(value.deletedIds)
+    || value.units.length > 100000 || value.records.length > 10000 || value.deletedIds.length > 10000) return null;
+  const units = [], records = [], seenUnits = new Set(), used = new Set(), ids = new Set();
+  const deletedIds = [...new Set(value.deletedIds.filter(purchaseIdentifier))];
+  for (const unit of value.units) {
+    if (!purchaseIdentifier(unit?.id) || typeof unit.held !== 'boolean' || seenUnits.has(unit.id)) return null;
+    seenUnits.add(unit.id); units.push({id:unit.id,held:unit.held});
+  }
+  if (units.filter(unit => unit.held).length > 9999) return null;
+  for (const entry of value.records) {
+    if (!purchaseIdentifier(entry?.id) || ids.has(entry.id) || deletedIds.includes(entry.id) || !Array.isArray(entry.unitIds)
+      || !Number.isInteger(entry.qty) || entry.qty < 1 || entry.qty > 9999 || entry.unitIds.length !== entry.qty) return null;
+    const unitIds = [...new Set(entry.unitIds)];
+    if (unitIds.length !== entry.qty || unitIds.some(id => !seenUnits.has(id) || used.has(id))) return null;
+    const details = normalizePurchaseEntry(entry);
+    if (!details) return null;
+    ids.add(entry.id); unitIds.forEach(id => used.add(id));
+    records.push({id:entry.id,qty:unitIds.length,unitIds,...details});
+  }
+  return {version:2,units,records,deletedIds};
+}
+export function purchaseBookValue(value, itemId, quantity = 0) {
+  const saved = normalizePurchaseRecord(value);
+  if (saved?.version === 2) return structuredClone(saved);
+  const units = Array.from({length:Math.max(quantity,saved ? 1 : 0)},(_,i) => ({id:itemId + ':copy:' + (i+1),held:i < quantity}));
+  const records = saved ? [{id:itemId + ':legacy',qty:1,unitIds:[units[0].id],...normalizePurchaseEntry(saved)}] : [];
+  return {version:2,units,records,deletedIds:[]};
+}
+export function mergePurchaseBooks(current, incoming, itemId) {
+  const before = purchaseBookValue(current,itemId), added = purchaseBookValue(incoming,itemId);
+  const result = structuredClone(before), used = new Set(result.records.flatMap(entry => entry.unitIds));
+  const unitMap = new Map(result.units.map(unit => [unit.id,unit]));
+  // 同一份備份重複匯入不累加；目前的內容、刪除及持有狀態優先。
+  for (const entry of added.records) {
+    if (result.deletedIds.includes(entry.id)) continue;
+    const existing = result.records.find(row => row.id === entry.id);
+    if (existing) {
+      const details = mergePurchaseRecord(normalizePurchaseRecord(existing),normalizePurchaseRecord(entry));
+      Object.assign(existing,details || {},{date:existing.date || entry.date});
+    } else if (!entry.unitIds.some(id => used.has(id))) {
+      for (const id of entry.unitIds) if (!unitMap.has(id)) {
+        const unit = added.units.find(unit => unit.id === id);
+        // 匯入價格不自行增加目前的收藏數量。
+        const copy = {id,held:false}; result.units.push(copy); unitMap.set(id,copy);
+      }
+      result.records.push(structuredClone(entry)); entry.unitIds.forEach(id => used.add(id));
+    }
+  }
+  return normalizePurchaseBook(result);
+}
+const purchaseCents = (record, field = 'twd') => {
+  const amount = normalizePurchaseAmount(record?.[field]);
+  const qty = record?.qty ?? 1;
+  if (amount === '' || !Number.isInteger(qty) || qty < 1) return 0n;
+  const [whole,fraction = ''] = amount.split('.');
+  return (BigInt(whole)*100n + BigInt(fraction.padEnd(2,'0'))) * BigInt(qty);
+};
+export const purchaseRecordTotal = (record, field = 'twd') => Number(purchaseCents(record,field))/100;
+export const purchaseTotal = records => Number(records.reduce((sum,record) => sum + purchaseCents(record),0n))/100;

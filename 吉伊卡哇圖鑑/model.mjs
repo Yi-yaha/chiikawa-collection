@@ -1,5 +1,5 @@
-import { seriesHierarchy } from './series-tree.mjs?v=ee78973efd6c5b9f';
-import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=ee78973efd6c5b9f';
+import { seriesHierarchy } from './series-tree.mjs?v=091c886be77bdf6f';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=091c886be77bdf6f';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -200,7 +200,7 @@ export function mergeSaved(current, incoming, characters, validIds, itemAliases 
   }
   const includedTypes = { ...before.includedTypes };
   const purchaseRecords = { ...before.purchaseRecords };
-  for (const [id, record] of Object.entries(added.purchaseRecords)) purchaseRecords[id] = mergePurchaseRecord(purchaseRecords[id], record);
+  for (const [id, record] of Object.entries(added.purchaseRecords)) purchaseRecords[id] = mergePurchaseRecord(purchaseRecords[id], record, id);
   if (typeof incoming?.includeMetalTags === 'boolean') includedTypes['地方限定吊牌'] = incoming.includeMetalTags;
   for (const type of PROGRESS_TYPES) {
     if (typeof incoming?.includedTypes?.[type] === 'boolean') includedTypes[type] = incoming.includedTypes[type];

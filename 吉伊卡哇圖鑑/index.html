@@ -26,11 +26,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=ee78973efd6c5b9f">
-  <link rel="stylesheet" href="./account.css?v=ee78973efd6c5b9f">
-  <link rel="stylesheet" href="./report.css?v=ee78973efd6c5b9f">
-  <script type="module" src="./app.mjs?v=ee78973efd6c5b9f"></script>
-  <meta name="chiikawa-site-version" content="ee78973efd6c5b9f">
+  <link rel="stylesheet" href="./styles.css?v=091c886be77bdf6f">
+  <link rel="stylesheet" href="./purchase.css?v=091c886be77bdf6f">
+  <link rel="stylesheet" href="./account.css?v=091c886be77bdf6f">
+  <link rel="stylesheet" href="./report.css?v=091c886be77bdf6f">
+  <script type="module" src="./app.mjs?v=091c886be77bdf6f"></script>
+  <meta name="chiikawa-site-version" content="091c886be77bdf6f">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -98,13 +99,6 @@
   <footer class="privacy-footer"><a href="./privacy.html">隱私權與資料說明</a></footer>
 
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
-  <dialog id="record-help-dialog" class="panel-dialog record-help-dialog" aria-labelledby="record-help-title">
-    <h2 id="record-help-title">使用匯率自動計算</h2>
-    <p><strong>Step 1：先選好幣別</strong><br>在幣別選單選擇使用的外幣。</p>
-    <p><strong>Step 2：任填兩個數字</strong><br>台幣金額、外幣金額與匯率，任填兩格，會自動計算出第三個數字。</p>
-    <p class="record-help-example">例如：日圓 1,000、匯率 0.22，<br>會自動算出台幣 220 元。</p>
-    <div class="record-help-actions"><button type="button" class="record-save" data-close="record-help-dialog" autofocus>關閉</button></div>
-  </dialog>
   <dialog id="guide-dialog" class="panel-dialog guide-dialog" aria-labelledby="guide-title" aria-describedby="guide-description">
     <div class="dialog-heading"><h2 id="guide-title">使用說明</h2><button class="icon-button" data-close="guide-dialog" aria-label="關閉使用說明" autofocus><span data-icon="close"></span></button></div>
     <p id="guide-description" class="dialog-description">記下已經有的，也留住想收藏的。</p>
@@ -141,8 +135,8 @@
         <summary>紀錄會存在哪裡？<span data-icon="chevron"></span></summary>
         <div class="guide-copy">
           <p>未登入時，紀錄儲存在目前使用的瀏覽器；登入後可與帳號同步，在不同裝置接續使用。</p>
-          <p>商品詳細頁底部可展開「收藏紀錄」，填寫台幣、一種自選外幣及購買備註。任一欄有內容時會直接展開，往下滑即可查看；購買金額與備註僅供本人查看。</p>
-          <p>「資料管理」可以匯出或匯入備份，保留收藏數量、購買金額與備註、願望清單、角色順序與收藏設定。同一份備份重複匯入，數量不會累加；同款會保留較大的數量，購買紀錄只補入空白欄位。</p>
+          <p>商品詳細頁的「收藏紀錄」可填寫數量、購入日期、單價與備註，皆可自由記錄。金額填每隻單價，同筆購入多個時由系統乘上數量；右上角「⋯ → 收藏統計」可查看花費，僅供本人查看。</p>
+          <p>「資料管理」可以匯出或匯入備份，保留收藏數量、購買金額與備註、願望清單、角色順序與收藏設定。同一份備份重複匯入，數量不會累加；同款會保留較大的數量，購買紀錄保留目前內容，同筆不重複累加。</p>
         </div>
       </details>
     </div>

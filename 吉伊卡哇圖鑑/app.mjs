@@ -1,11 +1,12 @@
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=ee78973efd6c5b9f';
-import { createDetailScrollGuard } from './dialog-scroll.mjs?v=ee78973efd6c5b9f';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=ee78973efd6c5b9f';
-import { createCatalogImageLoader } from './image-loader.mjs?v=ee78973efd6c5b9f';
-import { createCharacterSorter } from './character-sorter.mjs?v=ee78973efd6c5b9f';
-import { watchForSiteUpdates } from './site-updates.mjs?v=ee78973efd6c5b9f';
-import { createReportHub } from './report-hub.mjs?v=ee78973efd6c5b9f';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=ee78973efd6c5b9f';
+import { createPurchaseHub } from './purchase-hub.mjs?v=091c886be77bdf6f';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=091c886be77bdf6f';
+import { createDetailScrollGuard } from './dialog-scroll.mjs?v=091c886be77bdf6f';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=091c886be77bdf6f';
+import { createCatalogImageLoader } from './image-loader.mjs?v=091c886be77bdf6f';
+import { createCharacterSorter } from './character-sorter.mjs?v=091c886be77bdf6f';
+import { watchForSiteUpdates } from './site-updates.mjs?v=091c886be77bdf6f';
+import { createReportHub } from './report-hub.mjs?v=091c886be77bdf6f';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=091c886be77bdf6f';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -74,8 +75,6 @@ let itemAliases = {};
 let characterTotals = new Map();
 let avatars = new Map();
 let toastTimer, undoAction, activeDetail, pendingRemoval;
-let recordEditing = false, recordExpanded = false, recordBase = null;
-let recordManualFields = [], recordCalculatedField = null;
 let storageOK = true;
 let accountHub = null;
 let accountScopeInitialized = false;
@@ -119,15 +118,16 @@ function observeCatalogSize() {
   if (sample) catalogSizeObserver.observe(sample);
 }
 
-function savedValue() { return {version:2, owned:[...state.owned], quantities:{...state.quantities}, wishlist:[...state.wishlist], purchaseRecords:Object.fromEntries(Object.entries(state.purchaseRecords).map(([id,record]) => [id,{...record}])), characterOrder:state.characterOrder, groupBy:state.groupBy, includedTypes:{...state.includedTypes}, includeMetalTags:state.includedTypes['地方限定吊牌'] !== false}; }
+function savedValue() { return {version:2, owned:[...state.owned], quantities:{...state.quantities}, wishlist:[...state.wishlist], purchaseRecords:structuredClone(state.purchaseRecords), characterOrder:state.characterOrder, groupBy:state.groupBy, includedTypes:{...state.includedTypes}, includeMetalTags:state.includedTypes['地方限定吊牌'] !== false}; }
 function applySaved(saved) {
   state.owned = new Set(saved.owned);
   state.quantities = {...saved.quantities};
   state.wishlist = new Set(saved.wishlist);
-  state.purchaseRecords = Object.fromEntries(Object.entries(saved.purchaseRecords || {}).map(([id,record]) => [id,{...record}]));
+  state.purchaseRecords = structuredClone(saved.purchaseRecords || {});
   state.characterOrder = [...saved.characterOrder];
   state.groupBy = saved.groupBy;
   state.includedTypes = {...saved.includedTypes};
+  purchaseHub.sync();
 }
 function quantityOf(id) { return state.quantities[id] || 0; }
 function totalQuantity(items = state.items) { return items.reduce((sum, item) => sum + quantityOf(item.id), 0); }
@@ -552,8 +552,8 @@ function requestCollectionChange(id) {
   }
   toggleOwned(id);
 }
-function toggleOwned(id, {showUndo = state.scope === 'mine', origin = document.activeElement} = {}) {
-  setQuantity(id, state.owned.has(id) ? 0 : 1, {showUndo, origin});
+function toggleOwned(id, {showUndo = state.scope === 'mine', origin = document.activeElement, confirmed = false} = {}) {
+  setQuantity(id, state.owned.has(id) ? 0 : 1, {showUndo, origin, confirmed});
 }
 function restoreItem(id, quantity, wished) {
   if (quantity > 0) {
@@ -571,11 +571,16 @@ function focusAfterRemoval(origin, neighbor) {
   if (target.tagName === 'H1') target.tabIndex = -1;
   target.focus({preventScroll:true});
 }
-function setQuantity(id, quantity, {showUndo = false, origin = document.activeElement} = {}) {
+function setQuantity(id, quantity, {showUndo = false, origin = document.activeElement, confirmed = false} = {}) {
   const item = itemMap.get(id);
   if (!item || !Number.isInteger(quantity) || quantity < 0 || quantity > MAX_QUANTITY) return;
   const before = quantityOf(id);
   if (before === quantity) return;
+  if (!confirmed && purchaseHub.requestQuantityChange(id,quantity,() => setQuantity(id,quantity,{showUndo:true,origin,confirmed:true}))) {
+    if (activeDetail === id && $('detail-dialog').open) updateDetailCollection();
+    return;
+  }
+  const previousHeld = purchaseHub.quantityChanged(id,quantity);
   const wished = state.wishlist.has(id);
   dismissToast();
   const card = origin?.closest('.product-card');
@@ -585,6 +590,7 @@ function setQuantity(id, quantity, {showUndo = false, origin = document.activeEl
   focusAfterRemoval(origin, neighbor);
   if (!showUndo) return;
   toast(quantity === 0 ? '已移出我的娃' : '已更新收藏數量', () => {
+    purchaseHub.restoreQuantity(id,previousHeld);
     restoreItem(id, before, wished);
     refreshCollection(id);
     toast('已復原收藏變更');
@@ -641,169 +647,15 @@ function updateDetailCollection() {
   wish.classList.toggle('wished', wished);
   wish.setAttribute('aria-pressed', String(wished));
   wish.innerHTML = icon('star') + (fromFriend ? (wished ? '移出我的願望清單' : '加入我的願望清單') : (wished ? '移出願望清單' : '加入願望清單'));
+  updateDetailRecord();
 }
 function detailRecordLabel(label) {
   return ($('detail-content').classList.contains('from-friend') ? '我的' : '') + label;
 }
 function detailRecordMarkup() {
-  const fromFriend = $('detail-content').classList.contains('from-friend');
-  const field = (id,label,symbol) => '<div class="record-money-field' + (id === 'record-rate' ? ' record-rate-field' : '') + '"><span class="record-symbol"' + (id === 'record-foreign' ? ' id="record-foreign-symbol"' : '') + ' aria-hidden="true">' + symbol + '</span><input id="' + id + '" type="text" inputmode="decimal" autocomplete="off" maxlength="32" placeholder="' + (id === 'record-rate' ? '匯率' : '金額') + '" aria-label="' + label + '"></div>';
-  return '<section id="detail-record" class="collection-record" aria-label="' + detailRecordLabel('收藏紀錄') + '"><button id="record-toggle" class="record-toggle" type="button" aria-expanded="false" aria-controls="record-content"><span id="record-toggle-name">' + detailRecordLabel('收藏紀錄') + '</span><span id="record-toggle-label">展開</span>' + icon('chevron') + '</button><div id="record-content" class="record-content" hidden>' +
-    '<form id="purchase-record-form" novalidate><div class="record-form-heading"><span class="record-heading-title">' + detailRecordLabel('購買金額') + '<button class="record-help" type="button" data-record-action="help" aria-haspopup="dialog" aria-controls="record-help-dialog" aria-expanded="false">ⓘ 教學</button></span><span>皆為選填</span></div><div id="record-money-grid" class="record-money-grid"><label for="record-twd">台幣 TWD</label>' + field('record-twd','台幣金額','NT$') + '<select id="record-currency" aria-label="選擇外幣幣別"><option value="">請選幣別</option>' + PURCHASE_CURRENCIES.map(currency => '<option value="' + currency.code + '">' + currency.name + ' ' + currency.code + '</option>').join('') + '</select>' + field('record-foreign','外幣金額','¥') + '<label class="record-rate-label" for="record-rate">匯率<span id="record-rate-unit">台幣／外幣</span></label>' + field('record-rate','一單位外幣等於多少台幣','NT$') + '</div><output id="record-calculation-status" class="visually-hidden" aria-live="polite"></output><label class="record-note-label" for="record-note">' + detailRecordLabel('購買備註') + '</label><textarea id="record-note" rows="1" maxlength="2000" placeholder="例如：日本店面購入，含代購費。"></textarea><p id="record-error" class="record-error" role="alert" hidden></p>' +
-    '<div id="record-conflict" class="record-conflict" hidden><p>這筆紀錄也在其他裝置更新過，請選擇要保留的內容。</p><p id="record-latest"></p><div><button type="button" class="record-cancel" data-record-action="latest">使用同步內容</button><button type="button" class="record-save" data-record-action="keep">保留這次輸入</button></div></div><div class="record-form-actions"><button type="button" class="record-cancel" data-record-action="cancel">取消</button><button type="submit" class="record-save">' + (fromFriend ? '儲存到我的圖鑑' : '儲存紀錄') + '</button></div></form>' +
-    '<div id="record-summary" hidden><div class="record-summary-heading"><span id="record-summary-label">' + detailRecordLabel('購買金額') + '</span><button type="button" class="record-edit" data-record-action="edit">' + icon('edit') + (fromFriend ? '編輯我的紀錄' : '編輯') + '</button></div><dl id="record-amounts" class="record-amounts"></dl><div id="record-summary-rate" class="record-summary-rate" hidden><span>換算匯率</span><output id="record-rate-summary"></output></div><div id="record-note-summary" class="record-note-summary"><div id="record-note-caption">' + detailRecordLabel('購買備註') + '</div><p id="record-note-text"></p></div></div></div></section>';
+  return '<section id="detail-record" class="collection-record" aria-label="' + detailRecordLabel('收藏紀錄') + '"></section>';
 }
-function fillRecordEditor(record) {
-  const value = record || {twd:'',currency:'',foreign:'',note:''};
-  $('record-twd').value = value.twd;
-  $('record-currency').value = value.currency;
-  $('record-foreign').value = value.foreign;
-  $('record-rate').value = value.rate ?? calculatePurchaseField(value,'rate').value;
-  if (value.rate !== undefined) {
-    recordManualFields = [value.foreign !== '' ? 'foreign' : 'twd','rate'];
-    recordCalculatedField = value.foreign !== '' ? 'twd' : 'foreign';
-  } else { recordManualFields = ['twd','foreign']; recordCalculatedField = 'rate'; }
-  $('record-note').value = value.note;
-  recordBase = record ? {...record} : null;
-  $('record-error').hidden = true;
-  $('record-conflict').hidden = true;
-  $('record-calculation-status').textContent = '';
-  updateRecordSymbol();
-}
-function updateRecordSymbol() {
-  const currency = purchaseCurrency($('record-currency').value);
-  $('record-foreign-symbol').textContent = currency?.symbol || '—';
-  $('record-foreign').setAttribute('aria-label',(currency?.name || '外幣') + '金額');
-  $('record-rate-unit').textContent = '台幣／' + (currency?.name || '外幣');
-  $('record-rate').setAttribute('aria-label','一' + (currency?.name || '單位外幣') + '等於多少台幣');
-  for (const key of ['twd','foreign','rate']) $('record-' + key).disabled = !currency;
-  updateRecordAmountLayout('record-money-grid',recordEditorValues());
-}
-function recordEditorValues() {
-  return {twd:$('record-twd').value,currency:$('record-currency').value,foreign:$('record-foreign').value,rate:$('record-rate').value,note:$('record-note').value};
-}
-function updateRecordCalculation(key) {
-  if (key) {
-    if (recordCalculatedField === key) recordCalculatedField = null;
-    recordManualFields = recordManualFields.filter(field => field !== key);
-    if ($('record-' + key).value.trim()) recordManualFields.push(key);
-  }
-  const values = recordEditorValues();
-  const active = recordManualFields.filter(field => (field === 'rate' ? normalizePurchaseRate : normalizePurchaseAmount)(values[field]) !== '').slice(-2);
-  const target = active.length === 2 ? ['twd','foreign','rate'].find(field => !active.includes(field)) : recordCalculatedField;
-  const result = target ? calculatePurchaseField(values,target) : {value:'',error:''};
-  if (target) $('record-' + target).value = result.value;
-  recordCalculatedField = active.length === 2 ? target : null;
-  if (active.length === 2) recordManualFields = active;
-  $('record-error').textContent = result.error;
-  $('record-error').hidden = !result.error;
-  $('record-calculation-status').textContent = result.value !== '' ? '已自動計算' + ({twd:'台幣金額',foreign:'外幣金額',rate:'匯率'})[target] + '：' + result.value : '';
-  updateRecordSymbol();
-}
-function updateRecordAmountLayout(id, value) {
-  const container = $(id);
-  const lengths = ['twd','foreign'].map(key => {
-    const amount = normalizePurchaseAmount(value[key]);
-    return (amount !== '' ? formatPurchaseAmount(amount) : String(value[key] || '')).length;
-  });
-  container.classList.toggle('has-long-amount',Math.max(...lengths) > 6 || window.matchMedia('(max-width:330px)').matches && Math.max(...lengths) > 5);
-  container.classList.toggle('has-extra-long-amount',Math.max(...lengths) > 12);
-  container.classList.toggle('has-long-rate',String(value.rate || '').length > 8);
-  container.classList.toggle('has-extra-long-rate',String(value.rate || '').length > 18);
-}
-function updateRecordExchangeRate(_id, value) {
-  updateRecordAmountLayout('record-amounts',value);
-  const text = formatPurchaseExchangeRate(value);
-  $('record-summary-rate').hidden = !text;
-  $('record-rate-summary').textContent = text;
-}
-function resizeRecordNote() {
-  const note = $('record-note');
-  if (!note || !note.getClientRects().length) return;
-  note.style.height = '0px';
-  note.style.height = Math.max(44,note.scrollHeight + note.offsetHeight - note.clientHeight) + 'px';
-}
-function updateDetailRecord() {
-  if (!$('detail-record')) return;
-  const record = state.purchaseRecords[activeDetail] || null;
-  if (record && !recordExpanded) recordEditing = false;
-  if (!record && !recordEditing) { recordEditing = true; recordExpanded = false; fillRecordEditor(null); }
-  if (record) recordExpanded = true;
-  $('detail-record').classList.toggle('has-record',Boolean(record));
-  $('record-toggle').hidden = Boolean(record);
-  $('record-toggle').setAttribute('aria-expanded',String(recordExpanded));
-  $('record-toggle').setAttribute('aria-label',(recordExpanded ? '收合' : '展開') + detailRecordLabel('收藏紀錄'));
-  $('record-toggle-name').hidden = recordExpanded;
-  $('record-toggle-label').textContent = recordExpanded ? '收合' : '展開';
-  $('record-content').hidden = !recordExpanded;
-  $('purchase-record-form').hidden = !recordEditing;
-  $('record-summary').hidden = recordEditing || !record;
-  if (record) {
-    const amountRow = (label,symbol,value) => '<div><dt>' + escapeHTML(label) + '</dt><dd class="record-amount-value"><span class="record-symbol">' + escapeHTML(symbol) + '</span><span class="record-number">' + escapeHTML(formatPurchaseAmount(value)) + '</span></dd></div>';
-    const hasAmounts = record.twd !== '' || record.foreign !== '';
-    const hasMoney = hasAmounts || record.rate !== undefined;
-    $('record-summary-label').textContent = detailRecordLabel(hasMoney ? '購買金額' : '購買備註');
-    const currency = purchaseCurrency(record.currency);
-    $('record-amounts').innerHTML = (record.twd !== '' ? amountRow('台幣 TWD','NT$',record.twd) : '') + (record.foreign !== '' ? amountRow(currency.name + ' ' + currency.code,currency.symbol,record.foreign,true) : '');
-    $('record-amounts').hidden = !hasAmounts;
-    updateRecordExchangeRate('record-rate-summary',record);
-    $('record-note-summary').hidden = !record.note;
-    $('record-note-summary').classList.toggle('note-only',!hasMoney);
-    $('record-note-caption').hidden = !hasMoney;
-    $('record-note-text').textContent = record.note;
-  }
-  resizeRecordNote();
-}
-function editDetailRecord() {
-  recordEditing = true; recordExpanded = true;
-  fillRecordEditor(state.purchaseRecords[activeDetail] || null);
-  updateDetailRecord();
-}
-function cancelDetailRecord() {
-  const record = state.purchaseRecords[activeDetail] || null;
-  recordEditing = !record; recordExpanded = Boolean(record);
-  fillRecordEditor(record); updateDetailRecord();
-}
-function saveDetailRecord(keepInput = false) {
-  const values = recordEditorValues();
-  if (['twd','foreign'].some(key => values[key].trim() !== '' && normalizePurchaseAmount(values[key]) === '')) {
-    $('record-error').textContent = '請輸入 0 以上的金額，整數最多 10 位、小數最多 2 位。';
-    $('record-error').hidden = false; return;
-  }
-  if (values.rate.trim() !== '' && normalizePurchaseRate(values.rate) === '') {
-    $('record-error').textContent = '請輸入 0 以上的匯率，整數與小數各最多 12 位。';
-    $('record-error').hidden = false; return;
-  }
-  if (['twd','foreign','rate'].some(key => values[key].trim() !== '') && !purchaseCurrency(values.currency)) {
-    $('record-error').textContent = '請先選好幣別。'; $('record-error').hidden = false; return;
-  }
-  const calculationError = recordCalculatedField ? calculatePurchaseField(values,recordCalculatedField).error : '';
-  if (calculationError) { $('record-error').textContent = calculationError; $('record-error').hidden = false; return; }
-  if (!$('record-error').hidden) return;
-  const current = state.purchaseRecords[activeDetail] || null;
-  if (!keepInput && JSON.stringify(current) !== JSON.stringify(recordBase)) {
-    $('record-conflict').hidden = false;
-    $('record-latest').textContent = '同步內容：' + describePurchaseRecord(current);
-    return;
-  }
-  const record = normalizePurchaseRecord(values);
-  if (record) state.purchaseRecords[activeDetail] = record;
-  else delete state.purchaseRecords[activeDetail];
-  if (!persist()) {
-    recordBase = record;
-    $('record-error').textContent = '目前無法完成儲存，輸入內容仍保留。請先到資料管理匯出備份。';
-    $('record-error').hidden = false; return;
-  }
-  recordEditing = !record; recordExpanded = Boolean(record);
-  fillRecordEditor(record); updateDetailRecord();
-}
-window.addEventListener('resize',() => {
-  resizeRecordNote();
-  if (!$('record-money-grid')) return;
-  updateRecordSymbol();
-  const record = state.purchaseRecords[activeDetail];
-  if (record) updateRecordExchangeRate('record-rate-summary',record);
-});
+function updateDetailRecord() { if (activeDetail && $('detail-dialog').open) purchaseHub.renderDetail(activeDetail); }
 function renderDetail(id) {
   const item = itemMap.get(id);
   if (!item) return;
@@ -813,7 +665,7 @@ function renderDetail(id) {
   $('detail-content').classList.toggle('from-friend',fromFriend);
   const ownContext = fromFriend ? '<div class="detail-own-context" role="note"><strong>我的收藏與紀錄</strong><p>這裡的操作是更新自己的圖鑑，不會更改好友的資料</p></div>' : '';
   const productFacts = [
-    ['系列', seriesLabel(seriesKey(item))], ['角色', item.character], ['地區', item.region || '日本'],
+    ['系列', seriesLabel(seriesKey(item))],
     ...(item.limitedLocation ? [['限定地點', item.limitedLocation]] : []),
     ...(item.size ? [['尺寸', item.size]] : []),
     ...(item.sku ? [['商品編號', item.sku]] : [])
@@ -824,13 +676,11 @@ function renderDetail(id) {
     }
     return '<dt>' + escapeHTML(label) + '</dt><dd>' + escapeHTML(value) + '</dd>';
   }).join('') + '</dl>';
-  $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2>' +
+  $('detail-content').innerHTML = '<div class="detail-layout"><button class="icon-button detail-close" data-close="detail-dialog" aria-label="關閉商品詳情">' + icon('close') + '</button><div class="detail-visual"><img src="' + escapeHTML(item.image) + '" alt="' + escapeHTML(item.character + '・' + item.name) + '" width="340" height="340"></div><div class="detail-info"><div class="detail-eyebrow"><span>' + escapeHTML(item.character) + '</span><span>' + escapeHTML(typeLabel(item.type)) + '</span><span>' + escapeHTML(item.region || '日本') + '</span></div><h2 id="detail-title">' + escapeHTML(item.name) + '</h2>' +
     productInformation + ownContext + '<div class="detail-collection"><div id="detail-quantity-panel" class="quantity-panel" hidden><div class="quantity-row"><label for="detail-quantity">收藏數量</label><div class="quantity-stepper"><button id="quantity-minus" data-quantity-step="-1" aria-label="減少收藏數量">' + icon('minus') + '</button><input id="detail-quantity" type="number" inputmode="numeric" min="0" max="' + MAX_QUANTITY + '" step="1" aria-describedby="quantity-help"><button id="quantity-plus" data-quantity-step="1" aria-label="增加收藏數量">' + icon('plus') + '</button></div></div><span id="quantity-help" class="visually-hidden">數量變更會自動儲存，設為 0 會取消收藏</span></div>' +
     '<button class="primary-button" id="detail-collect" data-collect="' + id + '"></button><button class="detail-wish-button" id="detail-wish" data-wish="' + id + '"></button></div>' +
     detailRecordMarkup() + '</div></div>';
   updateDetailCollection();
-  recordEditing = !state.purchaseRecords[id]; recordExpanded = !recordEditing;
-  fillRecordEditor(state.purchaseRecords[id] || null);
   openDialog('detail-dialog');
   updateDetailRecord();
 }
@@ -1004,51 +854,23 @@ $('detail-content').addEventListener('click', event => {
   if (collect) requestCollectionChange(collect.dataset.collect);
   else if (wish) toggleWish(wish.dataset.wish, wish);
   else if (step) changeDetailQuantity(quantityOf(activeDetail) + Number(step.dataset.quantityStep));
-  else if (event.target.closest('#record-toggle')) { recordExpanded = !recordExpanded; updateDetailRecord(); }
-  else {
-    const action = event.target.closest('[data-record-action]')?.dataset.recordAction;
-    if (action === 'edit') editDetailRecord();
-    else if (action === 'help') { event.target.closest('button').setAttribute('aria-expanded','true'); openDialog('record-help-dialog'); }
-    else if (action === 'cancel' || action === 'latest') cancelDetailRecord();
-    else if (action === 'keep') saveDetailRecord(true);
-  }
-});
-$('detail-content').addEventListener('submit',event => {
-  if (event.target.id !== 'purchase-record-form') return;
-  event.preventDefault(); saveDetailRecord();
 });
 $('detail-content').addEventListener('input', event => {
   const input = event.target;
   if (input.id === 'detail-quantity' && input.value.trim() !== '' && input.validity.valid) changeDetailQuantity(Number(input.value));
-  if (input.id === 'record-note') resizeRecordNote();
-  if (input.closest('#purchase-record-form')) { $('record-error').hidden = true; $('record-conflict').hidden = true; }
-  if (['record-twd','record-foreign','record-rate'].includes(input.id)) updateRecordCalculation(input.id.slice(7));
 });
 $('detail-content').addEventListener('change', event => {
   if (event.target.id === 'detail-quantity') changeDetailQuantity(event.target.value.trim() === '' ? NaN : Number(event.target.value));
-  if (event.target.id === 'record-currency') {
-    $('record-foreign').value = ''; $('record-rate').value = '';
-    recordManualFields = $('record-twd').value.trim() ? ['twd'] : []; recordCalculatedField = null;
-    $('record-error').hidden = true; $('record-conflict').hidden = true;
-    $('record-calculation-status').textContent = '已更換幣別，請重新填寫外幣金額或匯率。';
-    updateRecordSymbol();
-  }
 });
 $('detail-content').addEventListener('keydown', event => {
   if (event.target.id === 'detail-quantity' && event.key === 'Enter') event.target.blur();
 });
 $('remove-dialog').addEventListener('close', () => { pendingRemoval = null; });
-$('record-help-dialog').addEventListener('close', () => {
-  const help = $('detail-content').querySelector('.record-help');
-  help?.setAttribute('aria-expanded','false');
-  if ($('detail-dialog').open) help?.focus({preventScroll:true});
-});
-$('detail-dialog').addEventListener('close', () => { if ($('record-help-dialog').open) $('record-help-dialog').close(); });
 $('confirm-remove').addEventListener('click', () => {
   const removal = pendingRemoval;
   if (!removal) return;
   $('remove-dialog').close();
-  if (state.owned.has(removal.id)) toggleOwned(removal.id, {showUndo:true, origin:removal.origin});
+  if (state.owned.has(removal.id)) toggleOwned(removal.id, {showUndo:true, origin:removal.origin, confirmed:true});
 });
 $('more-button').addEventListener('click', () => {
   $('more-menu').hidden = !$('more-menu').hidden;
@@ -1190,7 +1012,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=ee78973efd6c5b9f');
+        const { createAccountHub } = await import('./account-hub.mjs?v=091c886be77bdf6f');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
@@ -1245,4 +1067,6 @@ async function init() {
     $('retry-load').addEventListener('click',init);
   }
 }
-init().finally(() => watchForSiteUpdates());
+const purchaseHub = createPurchaseHub({state,getItem:id => itemMap.get(id),icon,persist,getScope:() => collectionStorageKey,
+  updateCollection:() => {if (activeDetail && $('detail-dialog').open) updateDetailCollection();},toast});
+init().then(() => purchaseHub.onReady()).finally(() => watchForSiteUpdates());
