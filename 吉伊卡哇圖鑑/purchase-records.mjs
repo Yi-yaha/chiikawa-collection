@@ -24,7 +24,7 @@ export function normalizePurchaseRate(value) {
   const fraction = decimal.replace(/0+$/,'');
   return String(Number(whole)) + (fraction ? '.' + fraction : '');
 }
-// 以整數處理小數，金額四捨五入至小數兩位，避免 1.005 被算成 1.00。
+// 以整數精確換算；自動換算的金額無條件進位至整數，匯率仍保留小數。
 export function calculatePurchaseField(value, field) {
   if (!purchaseCurrency(value?.currency) || !['twd','foreign','rate'].includes(field)) return {value:'',error:''};
   const keys = ['twd','foreign','rate'].filter(key => key !== field);
@@ -38,10 +38,14 @@ export function calculatePurchaseField(value, field) {
   const numerator = field === 'twd' ? a*b : a*bs;
   const denominator = field === 'twd' ? as*bs : as*b;
   if (denominator === 0n) return {value:'',error:field === 'foreign' ? '要計算外幣金額，匯率必須大於 0。' : '要計算匯率，外幣金額必須大於 0。'};
-  const digits = field === 'rate' ? 12 : 2;
-  const scale = 10n ** BigInt(digits);
-  const rounded = (2n*numerator*scale + denominator)/(2n*denominator);
-  const text = (rounded/scale).toString() + '.' + (rounded%scale).toString().padStart(digits,'0');
+  let text;
+  if (field === 'rate') {
+    const scale = 10n ** 12n;
+    const rounded = (2n*numerator*scale + denominator)/(2n*denominator);
+    text = (rounded/scale).toString() + '.' + (rounded%scale).toString().padStart(12,'0');
+  } else {
+    text = ((numerator + denominator - 1n) / denominator).toString();
+  }
   const result = (field === 'rate' ? normalizePurchaseRate : normalizePurchaseAmount)(text);
   return result !== '' ? {value:result,error:''} : {value:'',error:field === 'rate' ? '計算出的匯率過大，請確認填寫的金額。' : '計算出的金額超過 9,999,999,999.99 元，請確認填寫的數字。'};
 }
