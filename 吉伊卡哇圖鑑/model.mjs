@@ -1,5 +1,5 @@
-import { seriesHierarchy } from './series-tree.mjs?v=091c886be77bdf6f';
-import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=091c886be77bdf6f';
+import { seriesHierarchy } from './series-tree.mjs?v=5966a3f574a69774';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=5966a3f574a69774';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;

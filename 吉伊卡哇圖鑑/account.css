@@ -10,7 +10,7 @@
 .social-form{display:flex;flex-direction:column;gap:8px}
 .social-form label,.find-friend-form>label{font-size:12px;font-weight:600;margin-top:8px}
 .social-form input,.social-form select,.find-friend-form input,.friend-product-filters input,.friend-product-filters select{width:100%;min-width:0;min-height:44px;background:var(--paper);border:1px solid var(--line);border-radius:var(--control-radius);padding:10px 12px;font-size:16px;color:var(--ink)}
-.social-form input:focus,.social-form select:focus,.find-friend-form input:focus,.friend-product-filters input:focus,.friend-product-filters select:focus{border-color:var(--coral);box-shadow:var(--focus-ring)}
+:where(html:not([data-focus-mode="pointer"])) .social-form input:focus,:where(html:not([data-focus-mode="pointer"])) .social-form select:focus,:where(html:not([data-focus-mode="pointer"])) .find-friend-form input:focus,:where(html:not([data-focus-mode="pointer"])) .friend-product-filters input:focus,:where(html:not([data-focus-mode="pointer"])) .friend-product-filters select:focus{border-color:var(--coral);box-shadow:var(--focus-ring)}
 .social-form>.primary-button{margin-top:12px;min-height:44px;font-size:13px}
 .full-width{width:100%}
 .google-signin{width:100%;display:flex;align-items:center;justify-content:center;gap:12px;border:1px solid var(--line);border-radius:var(--control-radius);min-height:46px;font-weight:600;font-size:13px;background:var(--paper)}
@@ -49,7 +49,7 @@
 .profile-field-label{font-size:12px;font-weight:600;margin-top:8px}
 .avatar-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .avatar-upload-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin-top:0!important;cursor:pointer}
-.avatar-upload-button:focus-visible{outline:2px solid var(--coral);outline-offset:3px}
+:where(html:not([data-focus-mode="pointer"])) .avatar-upload-button:focus-visible{outline:2px solid var(--coral);outline-offset:3px}
 .social-avatar.large{width:64px;height:64px;flex-basis:64px}
 .profile-section{border-top:1px solid var(--line);padding-top:18px;margin-top:20px}
 .profile-section h3,.friends-section>h3{font-size:13px;font-weight:650;margin:0 0 10px}

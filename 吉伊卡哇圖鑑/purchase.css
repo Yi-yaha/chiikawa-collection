@@ -117,7 +117,7 @@
 .purchase-record-date label{font-size:13px;white-space:nowrap}
 .purchase-record-date small{font-size:11px;color:var(--muted);font-weight:400}
 .purchase-record-date input{appearance:none;width:100%;min-width:0;height:44px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--control-line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit;font-size:17px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2;box-shadow:0 3px 12px rgba(60,45,35,.06)}
-.purchase-record-date input:focus-visible{outline:none;border-color:var(--coral);box-shadow:var(--focus-ring)}
+:where(html:not([data-focus-mode="pointer"])) .purchase-record-date input:focus-visible{outline:none;border-color:var(--coral);box-shadow:var(--focus-ring)}
 .purchase-editor .record-money-grid{row-gap:8px}
 .purchase-editor .record-note-label{margin-top:12px;margin-bottom:6px}
 .purchase-editor .record-form-actions{margin-top:10px}
