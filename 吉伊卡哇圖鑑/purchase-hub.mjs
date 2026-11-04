@@ -1,6 +1,7 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=1c9eee9eeb75c170';
-import { createPurchaseBook } from './purchase-book.mjs?v=1c9eee9eeb75c170';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=1c9eee9eeb75c170';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=7bb26bb1d520e61e';
+import { createPurchaseBook } from './purchase-book.mjs?v=7bb26bb1d520e61e';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=7bb26bb1d520e61e';
+import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=7bb26bb1d520e61e';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog }) {
@@ -10,7 +11,9 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   const money = value => 'NT$ ' + n(value);
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
   const $ = id => document.getElementById(id);
-  let activeId = null, edited = null, range = 'all', group = 'character';
+  let activeId = null, edited = null, range = 6, group = 'character', periodEnd = null;
+  let statsPeriod = null, monthlyAmounts = new Map(), chartMaximum = 1;
+  let timelineCleanup = null, ignoreChartClick = false;
   let selectedUnits = new Set();
   let selectedMonth = null, selectedGroup = null;
   let confirmationResolver = null, manualFields = [], calculatedField = null;
@@ -28,7 +31,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
       </form>
     </dialog>
     <dialog id="purchase-stats" class="panel-dialog purchase-stats" aria-labelledby="purchase-stats-title"><div class="dialog-heading"><div class="purchase-stats-title-line"><h2 id="purchase-stats-title">收藏統計</h2><button type="button" id="purchase-stats-info" class="icon-button purchase-stats-info" aria-label="統計說明" aria-haspopup="dialog" aria-controls="purchase-stats-help" aria-expanded="false">${icon('info')}</button></div><button class="icon-button" data-purchase-close="purchase-stats" aria-label="關閉收藏統計">${icon('close')}</button></div><div id="purchase-stats-content"></div></dialog>
-    <dialog id="purchase-stats-help" class="panel-dialog purchase-stats-help" aria-labelledby="purchase-stats-help-title" aria-describedby="purchase-stats-help-message"><h2 id="purchase-stats-help-title">統計說明</h2><div id="purchase-stats-help-message"><p>這裡只統計已記帳的收藏紀錄，未填寫金額的收藏不會計入。金額依單價 × 數量計算。</p><p>記帳內容與統計結果僅自己可見。</p></div><div class="purchase-stats-help-actions"><button type="button" id="purchase-stats-help-close" data-purchase-close="purchase-stats-help">知道了</button></div></dialog>
+    <dialog id="purchase-stats-help" class="panel-dialog purchase-stats-help" aria-labelledby="purchase-stats-help-title" aria-describedby="purchase-stats-help-message"><h2 id="purchase-stats-help-title">統計說明</h2><div id="purchase-stats-help-message"><p>選擇 3、6 或 12 個月，再左右滑動查看其他時段。金額、花費分布及明細會一起更新。</p><p>依購入日期統計，金額以單價 × 數量計算。未填購入日期或台幣金額的紀錄不列入花費合計。</p><p>滑動時維持相同的長條比例，方便比較不同月份。記帳內容與統計結果僅自己可見。</p></div><div class="purchase-stats-help-actions"><button type="button" id="purchase-stats-help-close" data-purchase-close="purchase-stats-help">知道了</button></div></dialog>
     <dialog id="purchase-ledger" class="panel-dialog purchase-ledger" aria-labelledby="purchase-ledger-title"><div class="dialog-heading"><h2 id="purchase-ledger-title">購入明細</h2><button class="icon-button" data-purchase-close="purchase-ledger" aria-label="關閉購入明細">${icon('close')}</button></div><div id="purchase-ledger-content"></div></dialog>
     <dialog id="purchase-confirm" class="panel-dialog compact-dialog purchase-confirm" aria-labelledby="purchase-confirm-title" aria-describedby="purchase-confirm-message"><h2 id="purchase-confirm-title"></h2><p id="purchase-confirm-message"></p><div class="confirm-actions"><button type="button" class="secondary-button" id="purchase-confirm-cancel">取消</button><button type="button" class="danger-button" id="purchase-confirm-accept"></button></div></dialog>
   `);
@@ -73,7 +76,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     const stamp = JSON.stringify([state.purchaseRecords,state.quantities]);
     if (scope !== currentScope) {
       for (const id of ['purchase-editor','purchase-ledger','purchase-stats','purchase-stats-help','purchase-confirm']) if ($(id).open) $(id).close();
-      edited = null; scope = currentScope;
+      edited = null; scope = currentScope; periodEnd = null; range = 6;
     }
     if (fingerprint !== stamp) {
       book = createPurchaseBook(state.quantities,state.purchaseRecords);
@@ -276,8 +279,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     updateEditorTotal();
   }
   function filteredRecords() {
-    const now = new Date(), prefix = range === 'year' ? String(now.getFullYear()) + '-' : `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-`;
-    return records.filter(record => range === 'all' || record.date?.startsWith(prefix));
+    return recordsInPeriod(records, statsPeriod || purchasePeriod(records, range, periodEnd));
   }
   function groupValue(item) {
     if (!item) return '其他';
@@ -293,28 +295,110 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     return [...sums].sort((a, b) => b[1] - a[1]);
   }
   function renderStats() {
+    timelineCleanup?.();
     syncBook();
-    const rows = filteredRecords(), priced = rows.filter(record => record.twd !== '');
-    const sum = total(priced), sumLabel = money(sum);
-    const now = new Date();
-    const months = Array.from({length:6},(_,index) => {const date = new Date(now.getFullYear(),now.getMonth()-5+index,1);return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;});
-    const monthly = months.map(month => total(priced.filter(record => record.date?.startsWith(month + '-'))));
-    const max = Math.max(...monthly, 1), grouped = groupedRows(priced);
-    $('purchase-stats').classList.toggle('is-month', range === 'month');
+    statsPeriod = purchasePeriod(records, range, periodEnd);
+    periodEnd = statsPeriod.end;
+    const buckets = new Map();
+    for (const record of records) {
+      const month = record.date ? monthNumber(record.date) : null;
+      if (month === null || record.twd === '') continue;
+      if (!buckets.has(month)) buckets.set(month, []);
+      buckets.get(month).push(record);
+    }
+    monthlyAmounts = new Map([...buckets].map(([month, rows]) => [month, total(rows)]));
+    chartMaximum = 1;
+    for (const amount of monthlyAmounts.values()) chartMaximum = Math.max(chartMaximum, amount);
+    $('purchase-stats').classList.remove('is-month');
     $('purchase-stats-content').innerHTML = `
-      <section class="purchase-stats-summary${sumLabel.length > 12 ? ' is-long-total' : ''}" aria-label="購買金額合計">
-        <select id="purchase-stats-range" aria-label="統計期間">${[['all', '全部紀錄'], ['year', '今年'], ['month', '本月']].map(([key, label]) => `<option value="${key}"${range === key ? ' selected' : ''}>${label}</option>`).join('')}</select>
-        <strong aria-live="polite">${sumLabel}</strong>
+      <section class="purchase-stats-summary purchase-period-summary" aria-label="購買金額合計">
+        <div class="purchase-period-controls"><select id="purchase-stats-range" aria-label="統計時間長度">${[3,6,12].map(length => `<option value="${length}"${range === length ? ' selected' : ''}>${length} 個月</option>`).join('')}</select><div class="purchase-period-navigation"><button type="button" id="purchase-period-current">回到本月</button></div></div>
+        <div class="purchase-period-total" aria-live="polite" aria-atomic="true"><span id="purchase-stats-period"></span><strong id="purchase-stats-total"></strong></div>
         <button class="purchase-summary-details" data-purchase-all-records aria-label="查看金額明細">明細</button>
       </section>
-      ${range === 'month' ? '' : `<section class="purchase-monthly">
-        <div class="purchase-section-heading"><h3>每月花費</h3><span>近 6 個月・台幣</span></div>
-        <div class="purchase-month-chart" role="group" aria-label="近六個月購入花費，台幣">${months.map((month, index) => `<button data-purchase-month="${month}" aria-label="${month} ${money(monthly[index])}"><span class="purchase-bar-value">${monthly[index] ? n(monthly[index]) : '—'}</span><span class="purchase-bar-area"><span style="height:${Math.max(monthly[index] ? 5 : 0, monthly[index] / max * 100)}%"></span></span><span>${Number(month.slice(5))} 月</span></button>`).join('')}</div>
-      </section>`}
+      <section class="purchase-monthly"><div class="purchase-section-heading"><h3>每月花費</h3><span>台幣</span></div><div id="purchase-timeline" class="purchase-timeline" tabindex="0" role="group" aria-label="月份花費圖表，可左右滑動，點月份查看明細"><div id="purchase-timeline-track" class="purchase-month-chart purchase-timeline-track${range === 12 ? ' is-twelve-months' : ''}"></div></div></section>
       <section class="purchase-breakdown">
         <div class="purchase-section-heading"><h3>花費分布</h3><div class="purchase-breakdown-tabs" role="group" aria-label="花費分布方式">${[['character', '角色'], ['type', '種類']].map(([key, label]) => `<button data-purchase-group="${key}" aria-pressed="${group === key}">${label}</button>`).join('')}</div></div>
-        <div class="purchase-distribution">${grouped.map(([label, amount]) => `<button class="purchase-stat-row" data-purchase-group-label="${h(label)}"><span class="purchase-stat-row-top"><span>${h(label)}</span><span><strong>${money(amount)}</strong><small>${sum ? Math.round(amount / sum * 100) : 0}%</small>${icon('chevron')}</span></span></button>`).join('') || '<p class="purchase-helper">這段期間尚無已填金額的紀錄</p>'}</div>
+        <div class="purchase-distribution" id="purchase-stats-distribution"></div>
       </section>`;
+    updatePeriodSummary();
+    connectTimeline();
+  }
+  function updatePeriodSummary() {
+    const priced = filteredRecords().filter(record => record.twd !== '');
+    const sum = total(priced), label = money(sum);
+    $('purchase-stats-period').textContent = periodDates(statsPeriod);
+    $('purchase-stats-total').textContent = label;
+    $('purchase-stats-total').classList.toggle('is-long-amount', label.length > 16);
+    $('purchase-period-current').disabled = statsPeriod.end === statsPeriod.current;
+    $('purchase-stats-distribution').innerHTML = groupedRows(priced).map(([label, amount]) => `<button class="purchase-stat-row" data-purchase-group-label="${h(label)}"><span class="purchase-stat-row-top"><span>${h(label)}</span><span><strong>${money(amount)}</strong><small>${sum ? Math.round(amount / sum * 100) : 0}%</small>${icon('chevron')}</span></span></button>`).join('') || '<p class="purchase-helper">這段期間尚無已填金額的紀錄</p>';
+  }
+  function connectTimeline() {
+    const scroller = $('purchase-timeline'), track = $('purchase-timeline-track');
+    let slot = 0, frame = 0, paintedStart = -1, paintedEnd = -1, pointer = null;
+    function paint(force = false) {
+      if (!slot) return;
+      const from = Math.max(0, statsPeriod.offset - range * 2), to = Math.min(statsPeriod.count - 1, statsPeriod.offset + range * 3);
+      if (!force && paintedStart <= statsPeriod.offset && paintedEnd >= statsPeriod.offset + range - 1) return;
+      paintedStart = from; paintedEnd = to;
+      track.innerHTML = Array.from({length:to-from+1}, (_, index) => {
+        const offset = from + index, month = statsPeriod.first + offset, key = monthKey(month), amount = monthlyAmounts.get(month) || 0;
+        return `<button type="button" data-purchase-month="${key}" class="${month === statsPeriod.current ? 'is-current-month' : ''}" style="left:${offset*slot}px;width:${slot}px" aria-label="${key.replace('-', ' 年 ')} 月，${money(amount)}"><span class="purchase-bar-value">${n(amount)}</span><span class="purchase-bar-area"><span style="height:${Math.max(amount ? 2 : 0, amount/chartMaximum*100)}%"></span></span><span class="purchase-month-label">${month%12+1}${range === 12 ? '' : ' '}月<small>${month%12 === 0 ? Math.floor(month/12) : ''}</small></span></button>`;
+      }).join('');
+    }
+    function measure() {
+      const width = scroller.getBoundingClientRect().width;
+      if (!width) return;
+      slot = width / range;
+      track.style.width = statsPeriod.count * slot + 'px';
+      paint(true);
+      scroller.scrollLeft = statsPeriod.offset * slot;
+    }
+    function positionChanged() {
+      frame = 0;
+      if (!slot) return;
+      const offset = Math.max(0, Math.min(statsPeriod.count-range, Math.round(scroller.scrollLeft/slot)));
+      if (offset !== statsPeriod.offset) {
+        statsPeriod.offset = offset; statsPeriod.start = statsPeriod.first + offset;
+        statsPeriod.end = statsPeriod.start + range - 1; periodEnd = statsPeriod.end;
+        updatePeriodSummary();
+      }
+      paint();
+    }
+    scroller.addEventListener('scroll', () => {if(!frame)frame=requestAnimationFrame(positionChanged);}, {passive:true});
+    scroller.addEventListener('keydown', event => {
+      if (event.target !== scroller || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+      event.preventDefault();
+      const offset = event.key === 'Home' ? 0 : event.key === 'End' ? statsPeriod.count-range : statsPeriod.offset + (event.key === 'ArrowLeft' ? -1 : 1);
+      scroller.scrollLeft = Math.max(0, Math.min(statsPeriod.count-range, offset)) * slot;
+    });
+    scroller.addEventListener('pointerdown', event => {
+      ignoreChartClick = false;
+      if (event.pointerType !== 'mouse' || event.button !== 0) return;
+      pointer = {id:event.pointerId,x:event.clientX,y:event.clientY,left:scroller.scrollLeft,dragging:false};
+    });
+    scroller.addEventListener('pointermove', event => {
+      if (!pointer || pointer.id !== event.pointerId) return;
+      const dx = event.clientX-pointer.x, dy = event.clientY-pointer.y;
+      if (!pointer.dragging && Math.abs(dx)>8 && Math.abs(dx)>Math.abs(dy)) {
+        pointer.dragging = true; ignoreChartClick = true; scroller.setPointerCapture(event.pointerId);
+        scroller.classList.add('is-dragging');
+      }
+      if (pointer.dragging) {event.preventDefault();scroller.scrollLeft=pointer.left-dx;}
+    });
+    const finish = () => {pointer=null;scroller.classList.remove('is-dragging');};
+    scroller.addEventListener('pointerup', finish);
+    scroller.addEventListener('pointercancel', finish);
+    const observer = new ResizeObserver(measure);
+    observer.observe(scroller);
+    frame = requestAnimationFrame(() => {frame=0;measure();});
+    timelineCleanup = () => {observer.disconnect();cancelAnimationFrame(frame);};
+  }
+  function movePeriod(end) {
+    if (!statsPeriod) return;
+    const target = Math.max(statsPeriod.first+range-1, Math.min(statsPeriod.last,end));
+    const scroller = $('purchase-timeline');
+    scroller.scrollLeft = (target-range+1-statsPeriod.first)*scroller.getBoundingClientRect().width/range;
   }
   function showStats() {
     closeOverlays(); renderStats(); openDialog('purchase-stats');
@@ -328,17 +412,19 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   document.addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button) return;
+    if (button.dataset.purchaseMonth && ignoreChartClick) {ignoreChartClick=false;event.preventDefault();return;}
     if (button.dataset.purchaseClose) $(button.dataset.purchaseClose).close();
     if (button.dataset.purchaseUnitEdit) editUnit(button.dataset.purchaseItem, button.dataset.purchaseUnitEdit);
     if (button.hasAttribute('data-purchase-edit')) { const record = records.find(value => value.id === button.dataset.purchaseEdit); if (record) showEditor(record.itemId, record.id); }
     if (button.dataset.purchaseGroup) { group = button.dataset.purchaseGroup; renderStats(); }
-    if (button.dataset.purchaseMonth) { selectedMonth = button.dataset.purchaseMonth; showLedger(`${selectedMonth.replace('-', '/')} 購入明細`, filteredRecords().filter(record => record.date?.startsWith(selectedMonth + '-'))); }
+    if (button.id === 'purchase-period-current') movePeriod(statsPeriod.current);
+    if (button.dataset.purchaseMonth) { selectedMonth = button.dataset.purchaseMonth; showLedger(`${selectedMonth.replace('-', '/')} 購入明細`, records.filter(record => record.date?.startsWith(selectedMonth + '-'))); }
     if (button.dataset.purchaseGroupLabel) { selectedGroup = button.dataset.purchaseGroupLabel; showLedger(selectedGroup + '・購入明細', filteredRecords().filter(record => groupValue(getItem(record.itemId)) === selectedGroup)); }
-    if (button.hasAttribute('data-purchase-all-records')) showLedger('金額明細', filteredRecords());
+    if (button.hasAttribute('data-purchase-all-records')) showLedger(periodLabel(statsPeriod) + ' 金額明細', filteredRecords());
   });
   document.addEventListener('change', event => {
-    if (event.target.id !== 'purchase-stats-range' || !['all', 'year', 'month'].includes(event.target.value)) return;
-    range = event.target.value;
+    if (event.target.id !== 'purchase-stats-range' || !['3','6','12'].includes(event.target.value)) return;
+    range = Number(event.target.value);
     renderStats();
     $('purchase-stats-range').focus({preventScroll:true});
   });

@@ -152,22 +152,25 @@
 #purchase-stats .dialog-heading h2{font-size:20px;line-height:1.4;white-space:nowrap}
 #purchase-stats .dialog-heading>.icon-button{flex:0 0 34px;width:34px;height:34px}
 #purchase-stats #purchase-stats-content{display:block}
-#purchase-stats .purchase-stats-summary{display:grid;grid-template-columns:92px minmax(0,1fr) 44px;align-items:center;gap:6px;min-height:44px;margin-bottom:12px}
-#purchase-stats-range{width:100%;min-width:0;height:40px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:inherit;font-size:12px}
+#purchase-stats .purchase-stats-summary{display:grid;grid-template-columns:92px minmax(0,1fr) 48px;align-items:center;gap:8px;min-height:44px;margin-bottom:20px}
+#purchase-stats-range{appearance:none;-webkit-appearance:none;width:100%;min-width:0;height:32px;padding:4px 28px 4px 10px;border:1px solid var(--line);border-radius:9px;background-color:var(--paper);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238F867E' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:12px 12px;color:var(--ink);font:inherit;font-size:12px}
 #purchase-stats .purchase-stats-summary>strong{min-width:0;font-size:28px;font-weight:500;line-height:1.2;letter-spacing:-.6px;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
-#purchase-stats .purchase-summary-details{min-height:44px;padding:6px 0;font-size:12px;color:var(--coral);white-space:nowrap}
-#purchase-stats .purchase-stats-summary.is-long-total{grid-template-columns:minmax(0,1fr) 44px;row-gap:4px}
+#purchase-stats .purchase-summary-details{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:6px 10px;border-radius:8px;background:var(--coral);color:#fff;font-size:12px;font-weight:500;line-height:20px;white-space:nowrap}
+#purchase-stats .purchase-summary-details::before{content:"";position:absolute;inset:-6px 0}
+#purchase-stats .purchase-summary-details:active{background:var(--coral-dark);transform:scale(.97)}
+@media(hover:hover) and (pointer:fine){#purchase-stats .purchase-summary-details:hover{background:var(--coral-dark)}}
+#purchase-stats .purchase-stats-summary.is-long-total{grid-template-columns:minmax(0,1fr) 48px;row-gap:4px}
 #purchase-stats .is-long-total>select{grid-row:1;grid-column:1;width:100px}
-#purchase-stats .is-long-total>strong{grid-row:2;grid-column:1;text-align:left}
+#purchase-stats .is-long-total>strong{grid-row:2;grid-column:1;text-align:left;white-space:normal;overflow-wrap:anywhere}
 #purchase-stats .is-long-total>.purchase-summary-details{grid-row:2;grid-column:2}
 #purchase-stats .purchase-monthly{padding:0;margin:0;border:0;grid-column:auto;grid-row:auto}
 #purchase-stats .purchase-section-heading{min-height:22px;gap:8px}
 #purchase-stats .purchase-section-heading h3{font-size:14px;line-height:22px;white-space:nowrap}
 #purchase-stats .purchase-section-heading>span{font-size:11px;line-height:20px;white-space:nowrap}
-#purchase-stats .purchase-month-chart{gap:8px;margin-top:6px}
-#purchase-stats .purchase-month-chart>button{grid-template-rows:16px 48px 18px;gap:4px;min-width:0;padding:0;font-size:11px;line-height:16px}
+#purchase-stats .purchase-month-chart{gap:8px;margin-top:14px}
+#purchase-stats .purchase-month-chart>button{grid-template-rows:16px 96px 20px;gap:8px;min-width:0;padding:0;font-size:11px;line-height:16px}
 #purchase-stats .purchase-bar-area>span{width:22px}
-#purchase-stats .purchase-breakdown{grid-column:auto;grid-row:auto;margin-top:12px;padding-top:8px;border-top:1px solid var(--line)}
+#purchase-stats .purchase-breakdown{grid-column:auto;grid-row:auto;margin-top:20px;padding-top:12px;border-top:1px solid var(--line)}
 #purchase-stats .purchase-breakdown>.purchase-section-heading{min-height:36px}
 #purchase-stats .purchase-breakdown-tabs{margin:0;padding:2px;gap:2px;flex:0 0 auto}
 #purchase-stats .purchase-breakdown-tabs>button{min-height:32px;padding:4px 13px;font-size:12px}
@@ -182,13 +185,18 @@
 #purchase-stats #purchase-stats-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px}
 #purchase-stats .purchase-stats-summary{grid-column:1 / -1;margin-bottom:0}
 #purchase-stats .purchase-monthly{grid-column:1;grid-row:2}
-#purchase-stats .purchase-month-chart>button{grid-template-rows:16px 140px 18px}
+#purchase-stats .purchase-month-chart>button{grid-template-rows:16px 160px 20px}
 #purchase-stats .purchase-breakdown{grid-column:2;grid-row:2;margin:0;padding:0;border:0}
 #purchase-stats.is-month .purchase-breakdown{grid-column:1 / -1;padding-top:0}
 }
-@media(max-width:340px){#purchase-stats .purchase-stats-summary{grid-template-columns:82px minmax(0,1fr) 38px;gap:4px}
+@media(max-width:380px){#purchase-stats .purchase-stats-summary{grid-template-columns:minmax(0,1fr) 48px;row-gap:10px}
+#purchase-stats .purchase-stats-summary>select{grid-row:1;grid-column:1;width:100px}
+#purchase-stats .purchase-stats-summary>strong{grid-row:2;grid-column:1;text-align:left}
+#purchase-stats .purchase-stats-summary>.purchase-summary-details{grid-row:2;grid-column:2}
+}
+@media(max-width:340px){#purchase-stats .purchase-stats-summary{grid-template-columns:minmax(0,1fr) 44px}
 #purchase-stats .purchase-stats-summary>strong{font-size:24px}
-#purchase-stats .purchase-stats-summary.is-long-total{grid-template-columns:minmax(0,1fr) 38px}
+#purchase-stats .purchase-stats-summary.is-long-total{grid-template-columns:minmax(0,1fr) 44px}
 }
 #purchase-stats .purchase-stats-info{display:inline-flex;align-items:center;justify-content:center;flex:0 0 32px;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted)}
 #purchase-stats .purchase-stats-info svg{width:18px;height:18px;stroke-width:1.8}
@@ -212,3 +220,42 @@
 #purchase-editor .purchase-long-amount>.record-money-field{margin-bottom:5px}
 #purchase-editor .purchase-long-amount>select{max-width:160px}
 #purchase-editor .purchase-unit-price-heading{flex-wrap:wrap}
+
+/* 待確認：時間長度與可自由左右滑動的月份圖表。 */
+#purchase-stats .purchase-stats-summary.purchase-period-summary{grid-template-columns:minmax(0,1fr) 48px;gap:12px 10px;margin-bottom:20px}
+#purchase-stats .purchase-period-controls{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+#purchase-stats .purchase-period-controls #purchase-stats-range{width:88px;flex:0 0 88px}
+#purchase-stats .purchase-period-navigation{display:flex;align-items:center;gap:4px}
+#purchase-stats .purchase-period-navigation button{min-height:32px;border-radius:8px;color:var(--coral);font-size:11px}
+#purchase-stats #purchase-period-current{padding:4px 8px;white-space:nowrap}
+#purchase-stats .purchase-period-navigation button:disabled{color:#b9b1ab;cursor:default}
+#purchase-stats .purchase-period-total{grid-column:1;grid-row:2;display:grid;gap:5px;min-width:0}
+#purchase-stats #purchase-stats-period{font-size:11px;line-height:18px;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#purchase-stats #purchase-stats-total{font-size:28px;font-weight:500;line-height:1.2;letter-spacing:-.6px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#purchase-stats #purchase-stats-total.is-long-amount{font-size:22px}
+#purchase-stats .purchase-period-summary>.purchase-summary-details{grid-column:2;grid-row:2;align-self:end;margin-bottom:2px}
+#purchase-stats .purchase-monthly{min-width:0}
+#purchase-stats .purchase-timeline{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;margin-top:14px;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--line) transparent;cursor:grab;-webkit-overflow-scrolling:touch}
+#purchase-stats .purchase-timeline.is-dragging{cursor:grabbing;scroll-snap-type:none}
+@media(max-width:700px),(hover:none) and (pointer:coarse){#purchase-stats .purchase-timeline{scrollbar-width:none}
+#purchase-stats .purchase-timeline::-webkit-scrollbar{display:none;width:0;height:0}
+}
+#purchase-stats .purchase-month-chart.purchase-timeline-track{position:relative;display:block;height:160px;margin:0;gap:0;user-select:none;-webkit-user-select:none}
+#purchase-stats .purchase-timeline-track>button{position:absolute;top:0;display:grid;grid-template-rows:16px 96px 32px;gap:8px;height:160px;min-width:0;padding:0 4px;font-size:11px;line-height:16px;scroll-snap-align:start;cursor:inherit}
+#purchase-stats .purchase-timeline-track .purchase-bar-value{font-size:10px;line-height:16px}
+#purchase-stats .purchase-timeline-track .purchase-bar-area>span{width:22px;max-width:85%;opacity:.7}
+#purchase-stats .purchase-timeline-track>.is-current-month .purchase-bar-area>span{opacity:1}
+#purchase-stats .purchase-month-label{display:flex;flex-direction:column;align-items:center;gap:0;font-size:10px;white-space:nowrap}
+#purchase-stats .purchase-month-label small{font-size:9px;line-height:14px;color:var(--muted)}
+#purchase-stats .is-twelve-months .purchase-bar-value{visibility:hidden}
+#purchase-stats .purchase-timeline-track.is-twelve-months>button{padding:0 1px}
+#purchase-stats .is-twelve-months .purchase-month-label{letter-spacing:-.5px}
+@media(max-width:340px){#purchase-stats .purchase-stats-summary.purchase-period-summary{grid-template-columns:minmax(0,1fr) 44px}
+#purchase-stats #purchase-stats-total{font-size:26px}
+#purchase-stats .purchase-period-navigation{gap:2px}
+#purchase-stats #purchase-period-current{padding:4px 5px}
+}
+@media(min-width:701px){#purchase-stats .purchase-period-summary{margin-bottom:0}
+#purchase-stats .purchase-month-chart.purchase-timeline-track{height:224px}
+#purchase-stats .purchase-timeline-track>button{grid-template-rows:16px 160px 32px;height:224px}
+}
