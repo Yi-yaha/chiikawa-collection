@@ -1,13 +1,13 @@
-import './focus-visibility.mjs?v=52691a026c25b635';
-import { createPurchaseHub } from './purchase-hub.mjs?v=52691a026c25b635';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=52691a026c25b635';
-import { createDetailScrollGuard } from './dialog-scroll.mjs?v=52691a026c25b635';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=52691a026c25b635';
-import { createCatalogImageLoader } from './image-loader.mjs?v=52691a026c25b635';
-import { createCharacterSorter } from './character-sorter.mjs?v=52691a026c25b635';
-import { watchForSiteUpdates } from './site-updates.mjs?v=52691a026c25b635';
-import { createReportHub } from './report-hub.mjs?v=52691a026c25b635';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=52691a026c25b635';
+import './focus-visibility.mjs?v=8bc3fec47353e72d';
+import { createPurchaseHub } from './purchase-hub.mjs?v=8bc3fec47353e72d';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=8bc3fec47353e72d';
+import { createDetailScrollGuard } from './dialog-scroll.mjs?v=8bc3fec47353e72d';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=8bc3fec47353e72d';
+import { createCatalogImageLoader } from './image-loader.mjs?v=8bc3fec47353e72d';
+import { createCharacterSorter } from './character-sorter.mjs?v=8bc3fec47353e72d';
+import { watchForSiteUpdates } from './site-updates.mjs?v=8bc3fec47353e72d';
+import { createReportHub } from './report-hub.mjs?v=8bc3fec47353e72d';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=8bc3fec47353e72d';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1118,7 +1118,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=52691a026c25b635');
+        const { createAccountHub } = await import('./account-hub.mjs?v=8bc3fec47353e72d');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

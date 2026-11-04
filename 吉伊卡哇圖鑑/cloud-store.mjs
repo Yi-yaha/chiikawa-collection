@@ -1,5 +1,5 @@
-import { STORAGE_KEY } from './model.mjs?v=52691a026c25b635';
-import { normalizePurchaseRecord } from './purchase-records.mjs?v=52691a026c25b635';
+import { STORAGE_KEY } from './model.mjs?v=8bc3fec47353e72d';
+import { normalizePurchaseRecord } from './purchase-records.mjs?v=8bc3fec47353e72d';
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const valueOf = row => ({ quantity:row?.quantity || 0, wished:row?.quantity > 0 ? false : Boolean(row?.wished) });

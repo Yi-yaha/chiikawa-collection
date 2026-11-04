@@ -1,6 +1,6 @@
-import {createClient} from './supabase-client.mjs?v=52691a026c25b635';
-import {cloudConfig} from './cloud-config.mjs?v=52691a026c25b635';
-import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=52691a026c25b635';
+import {createClient} from './supabase-client.mjs?v=8bc3fec47353e72d';
+import {cloudConfig} from './cloud-config.mjs?v=8bc3fec47353e72d';
+import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=8bc3fec47353e72d';
 const h = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const paths = {message:'<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM12 7v6M9 10h6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',image:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m21 15-5-5L5 21"/>',link:'<path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',heart:'<path d="M20 5a5 5 0 0 0-7 0l-1 1-1-1a5 5 0 0 0-7 7l8 8 8-8a5 5 0 0 0 0-7Z"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + paths[name] + '</svg>';
@@ -14,11 +14,18 @@ export function createReportHub({items,getUserId = () => null,client:override,to
   $('open-guide').before(menu);
   $('more-button').insertAdjacentHTML('beforeend','<span id="report-notification-dot" class="notification-dot" aria-hidden="true" hidden></span>');
   document.body.insertAdjacentHTML('beforeend',`
-    <dialog id="report-intro-dialog" class="panel-dialog report-intro-dialog" aria-labelledby="report-intro-title" aria-describedby="report-intro-description">
-      <button type="button" class="icon-button report-intro-close" aria-label="關閉提示" data-close="report-intro-dialog">${icon('close')}</button>
-      <p class="report-eyebrow">${icon('message')}一起補齊圖鑑</p><h2 id="report-intro-title">有商品還沒收錄嗎？</h2>
-      <p class="report-intro-copy" id="report-intro-description">發現缺少的商品或系列，<br>可以從右上角的「⋯」告訴我。</p>
-      <div class="report-intro-actions"><button type="button" class="report-secondary" id="report-intro-open">立即回報</button><button type="button" class="report-primary" data-close="report-intro-dialog" autofocus>知道了</button></div>
+    <dialog id="report-intro-dialog" class="panel-dialog report-intro-dialog release-intro" aria-labelledby="report-intro-title">
+      <button type="button" class="icon-button report-intro-close" aria-label="關閉提示" data-close="report-intro-dialog" autofocus>${icon('close')}</button>
+      <h2 id="report-intro-title">圖鑑有新功能了</h2>
+      <dl class="release-features">
+        <div><dt>缺漏回報</dt><dd>找不到的商品可以直接回報，也能查看處理進度。</dd></div>
+        <div><dt>收藏紀錄</dt><dd>記下購入日期、數量、價格與備註，也支援外幣換算。</dd></div>
+        <div><dt>收藏統計</dt><dd>查看每月花費，以及不同角色、商品種類的花費分布。</dd></div>
+        <div><dt>想要賣</dt><dd>標記想出售的收藏、設定售價，並在待出售清單集中查看。</dd></div>
+      </dl>
+      <p class="release-privacy">收藏紀錄、花費統計與售價都只有自己看得到。</p>
+      <div class="release-contact"><p>圖鑑還在持續改善，功能與內容也會陸續補上。如果使用時遇到問題，或有任何建議，歡迎寫信告訴我：</p><a href="mailto:yi.yaha14@gmail.com">yi.yaha14@gmail.com</a></div>
+      <div class="report-intro-actions"><button type="button" class="report-primary" data-close="report-intro-dialog">我知道了</button></div>
     </dialog>
     <dialog id="report-dialog" class="panel-dialog report-dialog" aria-labelledby="report-title">
       <div class="report-topbar"><span>${icon('heart')}吉伊卡哇圖鑑</span><button type="button" class="icon-button" id="report-close" aria-label="關閉回報頁面">${icon('close')}</button></div>
@@ -81,7 +88,6 @@ export function createReportHub({items,getUserId = () => null,client:override,to
     if (!dialog.open) dialog.showModal();void refresh(true);
   }
   menu.addEventListener('click',open);
-  $('report-intro-open').addEventListener('click',open);
   $('report-open-history').addEventListener('click',async () => {
     $('report-form-view').hidden = true;$('report-success').hidden = true;$('report-history').hidden = false;renderHistory();await refresh(true);
     try {store.markSeen(updates);} catch {}badge();dialog.scrollTop = 0;
@@ -124,12 +130,15 @@ export function createReportHub({items,getUserId = () => null,client:override,to
     } catch (failure) {error(reportError(failure));persist();}
     finally {busy = false;form.querySelectorAll('input,textarea,button').forEach(element => element.disabled = false);$('report-close').disabled = false;$('report-progress').hidden = true;renderImages();}
   });
-  const introKey = 'chiikawa-report-intro-seen-v1';
+  // 此次功能介紹獨立記錄已看過狀態，不因其他頁面更新再次提示。
+  const introKey = 'chiikawa-feature-intro-seen-2026-11-04-v1';
   function seenIntro() {try {if (localStorage.getItem(introKey)) return true;} catch {}try {return !!sessionStorage.getItem(introKey);} catch {return introShown;}}
   function tryIntro() {
     clearTimeout(introTimer);
     if (introShown || seenIntro()) return;
-    if (document.hidden || document.querySelector('dialog[open]') || document.activeElement?.matches('input,textarea,select,[contenteditable]') || new URL(location.href).searchParams.has('code')) {introTimer = setTimeout(tryIntro,1500);return;}
+    const url = new URL(location.href);
+    const authCallback = url.searchParams.has('code') || url.searchParams.has('error') || /(?:^#|&)(?:access_token|refresh_token|error)=/.test(url.hash);
+    if (document.hidden || document.querySelector('dialog[open]') || document.activeElement?.matches('input,textarea,select,[contenteditable]') || authCallback) {introTimer = setTimeout(tryIntro,1500);return;}
     intro.showModal();introShown = true;
     try {localStorage.setItem(introKey,'1');} catch {try {sessionStorage.setItem(introKey,'1');} catch {}}
   }
