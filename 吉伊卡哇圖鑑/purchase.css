@@ -18,8 +18,12 @@
 .purchase-helper{font-size:12px;color:var(--muted);line-height:1.65}
 .purchase-editor .record-money-grid{grid-template-columns:minmax(108px,1fr) minmax(0,170px)}
 .purchase-editor .record-money-grid>label{padding-left:0;font-size:13px}
-.purchase-editor .record-money-grid>select{padding-left:0;border:0;box-shadow:none;font-size:13px}
-.purchase-note{display:block;resize:none;overflow:hidden;overflow-wrap:anywhere;width:100%;min-height:44px;border:1px solid var(--control-line);border-radius:10px;background:var(--paper);padding:10px 12px;font:inherit;font-size:14px;line-height:24px;color:var(--ink)}
+.purchase-editor .record-money-grid>select{padding-left:0;border:0;box-shadow:none;font-size:16px}
+.purchase-note-field{display:grid;min-width:0}
+.purchase-note,.purchase-note-size{grid-area:1/1;min-width:0;width:100%;min-height:46px;border:1px solid var(--control-line);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;line-height:24px;overflow-wrap:anywhere}
+.purchase-note{display:block;resize:none;overflow:hidden;background:var(--paper);color:var(--ink);field-sizing:content}
+.purchase-note-size{visibility:hidden;pointer-events:none;white-space:pre-wrap}
+@supports(field-sizing:content){.purchase-note-field{display:block}.purchase-note-size{display:none}}
 .purchase-note::placeholder{color:var(--muted)}
 .purchase-editor .record-form-actions{margin-top:20px}
 .purchase-stats{width:670px;max-width:calc(100vw - 32px);padding:27px 32px;max-height:calc(100dvh - 40px)}

@@ -1,4 +1,4 @@
-import { capturePosition, restorePosition } from './view-state.mjs?v=8c9c2a0447eca887';
+import { capturePosition, restorePosition } from './view-state.mjs?v=9e47fea71da128d5';
 
 // 清單與商品資訊共用背景鎖定；巢狀視窗只捲動最上層，不重設原頁位置。
 export function createDetailScrollGuard(dialog, catalog) {

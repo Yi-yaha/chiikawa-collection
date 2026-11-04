@@ -411,8 +411,8 @@ html{scroll-padding-top:118px}
 .detail-sale-money input,.record-money-field input,.quantity-stepper input,
 .detail-sale-money input:focus-visible,.record-money-field input:focus-visible,.quantity-stepper input:focus-visible{outline:none;box-shadow:none}
 /* 空白時以提示文字的字級排版，避免小字沿用大數字的基準而偏下。 */
-.detail-sale-money input:placeholder-shown,.record-money-grid .record-money-field input:placeholder-shown{font-size:14px;font-weight:400}
-#record-note:placeholder-shown{font-size:14px}
+.detail-sale-money input:placeholder-shown,.record-money-grid .record-money-field input:placeholder-shown{font-size:16px;font-weight:400}
+#record-note:placeholder-shown{font-size:16px}
 .record-form-actions,.record-conflict>div{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:16px}
 .record-save,.record-cancel{min-height:44px;border-radius:12px;padding:9px 18px;font-size:14px}
 .record-save{background:var(--action-pink);color:#fff;font-weight:500}

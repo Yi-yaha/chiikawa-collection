@@ -1,6 +1,6 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=8c9c2a0447eca887';
-import { createPurchaseBook } from './purchase-book.mjs?v=8c9c2a0447eca887';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=8c9c2a0447eca887';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=9e47fea71da128d5';
+import { createPurchaseBook } from './purchase-book.mjs?v=9e47fea71da128d5';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=9e47fea71da128d5';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope }) {
@@ -23,7 +23,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
         <div class="purchase-record-date"><label for="purchase-date">購入日期 <small>選填</small></label><input id="purchase-date" type="date" lang="zh-TW" aria-label="購入日期，選填"></div>
         <div class="purchase-unit-price-heading"><span>單價</span><output id="purchase-editor-total" aria-live="polite"></output></div>
         <div class="record-money-grid"><label for="purchase-twd">台幣 TWD</label><div class="record-money-field"><span class="record-symbol">NT$</span><input id="purchase-twd" type="text" inputmode="decimal" maxlength="32" aria-label="台幣單價"></div><select id="purchase-currency" aria-label="外幣幣別"><option value="">請選幣別</option>${PURCHASE_CURRENCIES.map(currency => `<option value="${currency.code}">${currency.name} ${currency.code}</option>`).join('')}</select><div class="record-money-field"><span class="record-symbol" id="purchase-symbol">—</span><input id="purchase-foreign" type="text" inputmode="decimal" maxlength="32" aria-label="外幣單價"></div><label for="purchase-rate" class="record-rate-label">匯率<span id="purchase-rate-unit">（台幣／外幣）</span></label><div class="record-money-field"><span class="record-symbol">NT$</span><input id="purchase-rate" type="text" inputmode="decimal" placeholder="匯率" maxlength="32" aria-label="換算匯率"></div></div>
-        <label class="record-note-label" for="purchase-note">備註 <small>選填</small></label><textarea id="purchase-note" class="purchase-note" rows="1" maxlength="2000" placeholder="想記什麼都可以"></textarea>
+        <label class="record-note-label" for="purchase-note">備註 <small>選填</small></label><div class="purchase-note-field"><textarea id="purchase-note" class="purchase-note" rows="1" maxlength="2000" placeholder="想記什麼都可以"></textarea><div id="purchase-note-size" class="purchase-note-size" aria-hidden="true"></div></div>
         <p id="purchase-form-error" class="record-error" role="alert" hidden></p><div class="record-form-actions"><button type="button" class="purchase-delete" id="purchase-delete-record">刪除紀錄</button><button type="button" class="record-cancel" data-purchase-close="purchase-editor">取消</button><button type="submit" class="record-save" id="purchase-save-record">儲存</button></div>
       </form>
     </dialog>
@@ -211,19 +211,15 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     manualFields = edited?.rate ? [edited.foreign !== '' ? 'foreign' : 'twd','rate'] : ['twd','foreign'];
     calculatedField = edited?.rate ? (edited.foreign !== '' ? 'twd' : 'foreign') : 'rate';
     updateCurrency();
+    syncNoteLayout();
     if (!$('purchase-editor').open) $('purchase-editor').showModal();
-    resizeNote();
   }
-  function resizeNote() {
-    const editor = $('purchase-editor');
-    if (!editor.open) return;
-    const note = $('purchase-note'), scrollTop = editor.scrollTop;
-    note.style.height = '0px';
-    note.style.height = (note.scrollHeight + note.offsetHeight - note.clientHeight) + 'px';
-    editor.scrollTop = scrollTop;
+  function syncNoteLayout() {
+    // 由瀏覽器排版決定高度；舊版瀏覽器共用同一格的隱藏文字負責撐高。
+    // 不縮小正在編輯的欄位、不重設捲動或選取範圍，保留 iPhone 原生游標操作。
+    $('purchase-note-size').textContent = $('purchase-note').value + ' ';
   }
-  $('purchase-note').addEventListener('input', resizeNote);
-  window.addEventListener('resize', resizeNote);
+  $('purchase-note').addEventListener('input', syncNoteLayout);
   function recordCandidates() {
     const original = edited?.unitIds || [...selectedUnits];
     const free = reconcile(activeId).held.filter(unit => !book.recordFor(unit.id)).map(unit => unit.id);
@@ -254,7 +250,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   function updateEditorTotal() {
     const long = ['twd','foreign'].some(key => $('purchase-' + key).value.length > 8) || $('purchase-rate').value.length > 10;
     $('purchase-twd').closest('.record-money-grid').classList.toggle('purchase-long-amount',long);
-    $('purchase-rate').style.fontSize = $('purchase-rate').value.length > 18 ? '12px' : '';
+    $('purchase-rate').style.fontSize = $('purchase-rate').value.length > 18 ? '16px' : '';
     const qty = Number($('purchase-record-quantity').value);
     const twd = normalizePurchaseAmount($('purchase-twd').value);
     const foreign = normalizePurchaseAmount($('purchase-foreign').value);
