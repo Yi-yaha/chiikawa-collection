@@ -1,7 +1,7 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=7bb26bb1d520e61e';
-import { createPurchaseBook } from './purchase-book.mjs?v=7bb26bb1d520e61e';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=7bb26bb1d520e61e';
-import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=7bb26bb1d520e61e';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=12794b0d778393c6';
+import { createPurchaseBook } from './purchase-book.mjs?v=12794b0d778393c6';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=12794b0d778393c6';
+import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=12794b0d778393c6';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog }) {
@@ -17,6 +17,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   let selectedUnits = new Set();
   let selectedMonth = null, selectedGroup = null;
   let confirmationResolver = null, manualFields = [], calculatedField = null;
+  const clearedFields = new Set();
 
   document.body.insertAdjacentHTML('beforeend', `
     <dialog id="purchase-editor" class="panel-dialog purchase-editor" aria-label="編輯收藏紀錄">
@@ -211,6 +212,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     for (const key of ['twd', 'foreign', 'rate', 'note', 'date']) $('purchase-' + key).value = edited?.[key] ?? '';
     $('purchase-currency').value = edited?.currency || '';
     $('purchase-form-error').hidden = true;
+    clearedFields.clear();
     manualFields = edited?.rate ? [edited.foreign !== '' ? 'foreign' : 'twd','rate'] : ['twd','foreign'];
     calculatedField = edited?.rate ? (edited.foreign !== '' ? 'twd' : 'foreign') : 'rate';
     updateCurrency();
@@ -266,15 +268,17 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     const value = Object.fromEntries(['twd','foreign','rate'].map(key => [key,$('purchase-' + key).value]));
     value.currency = $('purchase-currency').value;
     if (changed) {
-      if (calculatedField === changed) calculatedField = null;
-      manualFields = manualFields.filter(key => key !== changed);
-      if (value[changed].trim()) manualFields.push(changed);
+      // 空白或尚未完成的小數也是手動編輯，不得回頭換算並覆寫這一格。
+      manualFields = [...manualFields.filter(key => key !== changed), changed].slice(-2);
+      if (value[changed].trim()) clearedFields.delete(changed);
+      else clearedFields.add(changed);
     }
-    const active = manualFields.filter(key => (key === 'rate' ? normalizePurchaseRate : normalizePurchaseAmount)(value[key]) !== '').slice(-2);
-    const target = active.length === 2 ? ['twd','foreign','rate'].find(key => !active.includes(key)) : calculatedField;
-    const result = purchaseCurrency(value.currency) && target ? calculatePurchaseField(value,target) : {value:'',error:''};
+    const active = manualFields.slice(-2);
+    const target = active.length === 2 ? ['twd','foreign','rate'].find(key => !active.includes(key)) : null;
+    // 使用者清空的欄位保持空白；重新輸入該欄位後才恢復參與換算。
+    const result = purchaseCurrency(value.currency) && target && target !== changed && !clearedFields.has(target) ? calculatePurchaseField(value,target) : {value:'',error:''};
     if (result.value !== '') $('purchase-' + target).value = result.value;
-    calculatedField = active.length === 2 && purchaseCurrency(value.currency) ? target : null;
+    calculatedField = result.value !== '' || result.error ? target : null;
     $('purchase-form-error').textContent = result.error; $('purchase-form-error').hidden = !result.error;
     updateEditorTotal();
   }

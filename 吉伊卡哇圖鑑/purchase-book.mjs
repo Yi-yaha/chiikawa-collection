@@ -1,4 +1,4 @@
-import { purchaseBookValue, normalizePurchaseEntry, normalizePurchaseBook } from './purchase-records.mjs?v=7bb26bb1d520e61e';
+import { purchaseBookValue, normalizePurchaseEntry, normalizePurchaseBook } from './purchase-records.mjs?v=12794b0d778393c6';
 
 // 一個收藏單位最多只屬於一筆紀錄；移出收藏只改持有狀態，不刪購入歷史。
 export function createPurchaseBook(quantities = {}, saved = {}) {
@@ -57,7 +57,7 @@ export function createPurchaseBook(quantities = {}, saved = {}) {
     const details = normalizePurchaseEntry(values);
     if (!hasDetails(details)) {if (before) remove(before.id);return null;}
     const record = {id:before?.id || itemId + ':' + crypto.randomUUID(),itemId,qty:ids.length,unitIds:ids,...details};
-    if (before) Object.assign(before,record);
+    if (before) {delete before.rate;Object.assign(before,record);}
     else {book.records.push(record);records.push(record);}
     return record;
   }
