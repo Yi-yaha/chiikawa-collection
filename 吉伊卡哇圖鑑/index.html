@@ -26,12 +26,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=e617453ea7d86ccd">
-  <link rel="stylesheet" href="./purchase.css?v=e617453ea7d86ccd">
-  <link rel="stylesheet" href="./account.css?v=e617453ea7d86ccd">
-  <link rel="stylesheet" href="./report.css?v=e617453ea7d86ccd">
-  <script type="module" src="./app.mjs?v=e617453ea7d86ccd"></script>
-  <meta name="chiikawa-site-version" content="e617453ea7d86ccd">
+  <link rel="stylesheet" href="./styles.css?v=52691a026c25b635">
+  <link rel="stylesheet" href="./purchase.css?v=52691a026c25b635">
+  <link rel="stylesheet" href="./account.css?v=52691a026c25b635">
+  <link rel="stylesheet" href="./report.css?v=52691a026c25b635">
+  <script type="module" src="./app.mjs?v=52691a026c25b635"></script>
+  <meta name="chiikawa-site-version" content="52691a026c25b635">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -102,43 +102,90 @@
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="guide-dialog" class="panel-dialog guide-dialog" aria-labelledby="guide-title" aria-describedby="guide-description">
     <div class="dialog-heading"><h2 id="guide-title">使用說明</h2><button class="icon-button" data-close="guide-dialog" aria-label="關閉使用說明" autofocus><span data-icon="close"></span></button></div>
-    <p id="guide-description" class="dialog-description">記下已經有的，也留住想收藏的。</p>
+    <p id="guide-description" class="dialog-description">記錄收藏、查看花費，或回報還沒收錄的商品。點選下方項目查看操作方式。</p>
     <p class="guide-example">同一款有 <strong>3 個</strong>，就是 <strong>1 款、3 個</strong>。</p>
     <div class="guide-topics">
-      <details class="guide-topic">
+      <details class="guide-topic" open>
         <summary>怎麼記錄收藏與願望？<span data-icon="chevron"></span></summary>
         <div class="guide-copy">
-          <p>點愛心加入收藏，先記為 1 個；到商品詳情可以調整數量。移除收藏時，該款的數量也會一併移除。</p>
-          <p>還沒擁有、但想收藏的商品，可以點星星加入願望清單。加入收藏後，會自動移出願望清單；願望不計入已收藏款數與個數。</p>
+          <p>點商品卡片的愛心加入收藏，先記為 1 個；點名稱旁的 ⓘ 開啟商品詳情，可以調整收藏數量。在「我的娃」裡，也能直接點商品圖片開啟詳情。</p>
+          <p>還沒擁有、但想收藏的商品，可以點星星加入願望清單。加入收藏後，會自動移出願望清單；願望不計入已收藏款數與持有個數。</p>
+          <p>將收藏數量調為 0，就會移出「我的娃」。已填寫的購入紀錄仍會保留；誤刪收藏時，可按提示中的「復原」。</p>
+        </div>
+      </details>
+      <details class="guide-topic">
+        <summary>怎麼記錄購入日期、金額與備註？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>開啟商品詳情後，在收藏數量下方點鉛筆圖示，填寫這筆的數量、購入日期、單價與備註。日期與金額都可選填，只記備註也可以。</p>
+          <p>金額請填<strong>每個的單價</strong>。例如同筆買 3 個、每個 500 元，合計就是 1,500 元；不同日期或價格可分筆記錄。</p>
+          <p>需要換算外幣時，先選幣別；台幣、外幣與匯率任填兩格，就會自動計算另一格。填寫完成後，記得按「儲存」。</p>
+          <p>減少收藏數量時，購入紀錄仍會保留；刪除購入紀錄則不會改變收藏數量。</p>
+        </div>
+      </details>
+      <details class="guide-topic">
+        <summary>怎麼查看收藏統計與花費？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>到右上角「⋯ → 收藏統計」，可切換全部紀錄、今年或本月，查看花費合計、近 6 個月的每月花費，以及各角色或商品種類的花費分布。</p>
+          <p>點「明細」、月份或花費分布中的項目，可以查看對應的購入紀錄。</p>
+          <p>花費依<strong>台幣單價 × 數量</strong>計算，未填台幣金額的紀錄不計入合計。未填購入日期的紀錄，只列入「全部紀錄」，不列入今年、本月或每月花費。</p>
+        </div>
+      </details>
+      <details class="guide-topic">
+        <summary>怎麼使用「想要賣」與待出售清單？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>在商品詳情開啟「想要賣」，可填寫台幣售價，商品圖片會出現紅色「FOR SALE」標示。設定與售價會自動儲存，關閉「想要賣」也會保留上次售價。</p>
+          <p>到「⋯ → 待出售清單」，可集中查看已標記、且仍有收藏數量的商品；點圖片可開啟商品詳情。</p>
+          <p>賣出後，請自行調整收藏數量；數量為 0 時會移出清單。購入紀錄會保留，目前不記錄出售收入。這份清單與售價只有自己看得到。</p>
+        </div>
+      </details>
+      <details class="guide-topic">
+        <summary>找不到商品，怎麼回報？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>先試著搜尋品名、系列或角色；如果還沒收錄，到「⋯ → 回報缺少商品」填寫商品或系列名稱，再提供參考連結或商品圖片，也可以補充缺少的款式。</p>
+          <p>不用登入也能回報，最多可附 3 張圖片。送出後，到回報頁面的「我的回報」查看處理進度與回覆；有更新時，「⋯」與回報入口會顯示提醒。</p>
+          <p>未登入時，請用原本的瀏覽器查看回報；登入後送出的回報，可在同一帳號的其他裝置查看。回報內容與圖片不會直接公開。</p>
         </div>
       </details>
       <details id="guide-progress" class="guide-topic">
-        <summary>收藏進度怎麼算？<span data-icon="chevron"></span></summary>
+        <summary>收藏款數、持有個數與進度怎麼算？<span data-icon="chevron"></span></summary>
         <div class="guide-copy">
           <p>「圖鑑收錄」是目前範圍內的商品總款數，「已收藏」是你擁有的不同款數，「持有」則包含同款重複收藏的個數。</p>
-          <p>「收藏設定」勾選的種類，只影響<strong>收藏目標</strong>與<strong>頭貼外圈</strong>的進度。同款買好幾個，目標仍只計 1 款；未勾選的種類照常記錄收藏款數與持有個數。</p>
-          <p>納入收藏目標的種類，會在種類名稱旁顯示「目標」標示。到「⋯ → 收藏設定」可以查看、調整；未勾選的種類不顯示標示。</p>
-          <p>搜尋與篩選會更新頁面統計；頭貼外圈仍顯示該角色的整體目標進度。</p>
-          <p>好友的收藏統計依實際收藏計算，不受進度勾選影響。</p>
-          <p>查看好友的娃時，點圖片或資訊按鈕可開啟商品詳情。收藏、願望清單及購買備註都更新到自己的圖鑑，好友的資料不會改變。</p>
+          <p>到「⋯ → 收藏設定」勾選想納入目標的種類，就會計入角色頭貼外圈的進度，種類名稱旁也會顯示「目標」。同款有多個，進度仍只計 1 款。</p>
+          <p>未勾選的種類照常記錄收藏款數與持有個數。搜尋與篩選會更新頁面統計，頭貼外圈仍顯示該角色的整體目標進度。</p>
+          <p>好友的收藏統計依實際收藏計算，不受收藏目標的勾選影響。</p>
         </div>
       </details>
-      <details class="guide-topic" open>
-        <summary>哪些地方可以自己調整？<span data-icon="chevron"></span></summary>
+      <details class="guide-topic">
+        <summary>怎麼搜尋、篩選與調整畫面？<span data-icon="chevron"></span></summary>
         <dl class="guide-options">
-          <div><dt>收藏目標</dt><dd>到「⋯ → 收藏設定」勾選想納入目標的種類，種類名稱旁會顯示「目標」標示。</dd></div>
-          <div><dt>角色順序</dt><dd>展開頭貼列後，長按並拖曳角色；電腦可直接拖曳。</dd></div>
-          <div><dt>瀏覽方式</dt><dd>角色圖鑑依種類分區，「我的娃」與願望清單依角色分區，也能切換為依系列排列。系列選單先選大分類，再點開選擇系列；也可直接搜尋系列或分類名稱。搜尋、地區、種類與系列可以一起篩選。</dd></div>
+          <div><dt>搜尋與篩選</dt><dd>可搜尋品名、系列或角色。點「篩選」可搭配地區、種類與系列；系列可逐層展開，也能搜尋系列或分類名稱。收起篩選區後，已選條件仍會套用。</dd></div>
+          <div><dt>排列方式</dt><dd>可切換依角色、種類或系列排列，選項依目前頁面顯示；選擇特定系列時，會切換為依系列排列。</dd></div>
+          <div><dt>角色順序</dt><dd>展開上方頭貼列後，長按並拖曳角色；電腦可直接拖曳。順序會自動儲存，「我的娃」與願望清單也會沿用。</dd></div>
           <div><dt>暱稱與頭貼</dt><dd>登入後，到「⋯ → 個人資料」修改。</dd></div>
         </dl>
       </details>
       <details class="guide-topic">
-        <summary>紀錄會存在哪裡？<span data-icon="chevron"></span></summary>
+        <summary>怎麼查看好友的收藏？<span data-icon="chevron"></span></summary>
         <div class="guide-copy">
-          <p>未登入時，紀錄儲存在目前使用的瀏覽器；登入後可與帳號同步，在不同裝置接續使用。</p>
-          <p>商品詳細頁的「收藏紀錄」可填寫數量、購入日期、單價與備註，皆可自由記錄。金額填每隻單價，同筆購入多個時由系統乘上數量；右上角「⋯ → 收藏統計」可查看花費，僅供本人查看。</p>
-          <p>商品詳細頁可開啟「想要賣」，填寫台幣售價，圖片左上角會顯示紅色 FOR SALE 斜標。設定與售價自動儲存，僅供本人查看；關閉時會保留上次售價，與購買金額分開記錄。</p>
-          <p>「資料管理」可以匯出或匯入備份，保留收藏數量、購買金額與備註、販售設定與售價、願望清單、角色順序與收藏設定。同一份備份重複匯入，數量不會累加；同款會保留較大的數量，購買紀錄保留目前內容，同筆不重複累加，販售設定保留目前已有的內容。</p>
+          <p>登入後，到「⋯ → 好友」加入好友，就能查看彼此的收藏與願望清單，也能比較收藏。</p>
+          <p>查看好友的商品時，點圖片或 ⓘ 可以開啟詳情。這裡的收藏、願望與購入紀錄操作，都是更新<strong>自己的圖鑑</strong>，不會更改好友的資料。</p>
+          <p>購入紀錄、花費統計與販售設定只有自己看得到，好友無法查看。</p>
+        </div>
+      </details>
+      <details class="guide-topic">
+        <summary>紀錄會存在哪裡？怎麼備份？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>未登入時，紀錄儲存在目前使用的瀏覽器；登入後可與帳號同步，在手機與電腦接續使用。</p>
+          <p>到「⋯ → 資料管理」可匯出或匯入備份，保留收藏數量、購入紀錄、願望清單、販售設定與售價、角色順序及收藏設定。</p>
+          <p>同一份備份重複匯入，數量不會累加；同款保留較大的收藏數量，購入紀錄與販售設定則保留目前已有的內容。</p>
+        </div>
+      </details>
+      <details class="guide-topic">
+        <summary>有問題或建議，怎麼聯絡？<span data-icon="chevron"></span></summary>
+        <div class="guide-copy">
+          <p>圖鑑還在持續改善，功能與內容也會陸續補上。如果使用時遇到問題，或有任何建議，歡迎寫信告訴我：</p>
+          <p><a href="mailto:yi.yaha14@gmail.com">yi.yaha14@gmail.com</a></p>
+          <p>如果是商品或系列還沒收錄，也可以直接使用「⋯ → 回報缺少商品」。</p>
         </div>
       </details>
     </div>
