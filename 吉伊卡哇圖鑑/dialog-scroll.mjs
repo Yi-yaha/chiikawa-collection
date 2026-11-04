@@ -1,10 +1,16 @@
-import { capturePosition, restorePosition } from './view-state.mjs?v=092c1a4c8b247422';
+import { capturePosition, restorePosition } from './view-state.mjs?v=e617453ea7d86ccd';
 
-// 商品資訊有自己的捲動範圍；輸入、鍵盤及滑到邊界都不能帶動後方清單。
+// 清單與商品資訊共用背景鎖定；巢狀視窗只捲動最上層，不重設原頁位置。
 export function createDetailScrollGuard(dialog, catalog) {
   const page = document.documentElement;
   let locked = null, lastTouch = null, stopSettling = () => {};
-  const properties = ['--detail-page-top','--detail-page-left','--detail-page-width'];
+  const properties = ['--detail-page-top','--detail-page-left','--detail-page-width','--detail-heading-offset'];
+  const observed = new WeakSet();
+  function observeModal(modal) {
+    if (observed.has(modal)) return;
+    observed.add(modal);
+    modal.addEventListener('close', unlock);
+  }
 
   function sizePage() {
     if (locked) document.body.style.setProperty('--detail-page-width', (innerWidth - locked.scrollbar) + 'px');
@@ -12,7 +18,7 @@ export function createDetailScrollGuard(dialog, catalog) {
   function keepBackground(event) {
     if (!locked) return;
     if (event.target === document && (scrollX || scrollY)) window.scrollTo({ left:0, top:0, behavior:'instant' });
-    for (const background of locked.dialogs) {
+    for (const background of locked.layers.at(-1).dialogs) {
       if (event.target === background.dialog && background.dialog.open && background.dialog.scrollTop !== background.y) background.dialog.scrollTop = background.y;
     }
   }
@@ -51,9 +57,15 @@ export function createDetailScrollGuard(dialog, catalog) {
     window[method]('resize', sizePage);
   }
   function unlock() {
-    if (!locked || dialog.open) return;
+    if (!locked) return;
+    for (const layer of locked.layers) if (!layer.modal.open) {
+      for (const background of layer.dialogs) if (background.dialog.open) background.dialog.scrollTop = background.y;
+    }
+    locked.layers = locked.layers.filter(layer => layer.modal.open);
+    if (locked.layers.length) return;
     const previous = locked;
-    if (dialog.contains(document.activeElement)) document.activeElement.blur();
+    const focusedModal = document.activeElement?.closest?.('dialog');
+    if (focusedModal && !focusedModal.open) document.activeElement.blur();
     locked = null;
     lastTouch = null;
     listen(false);
@@ -84,25 +96,37 @@ export function createDetailScrollGuard(dialog, catalog) {
     events.forEach(event => window.addEventListener(event,stopSettling,{ capture:true, passive:true, once:true }));
     timer = setTimeout(stopSettling,800);
   }
-  dialog.addEventListener('close',unlock);
+  observeModal(dialog);
   return {
     get position() { return locked?.position || null; },
-    open() {
-      if (dialog.open) return;
+    open(modal = dialog) {
+      if (modal.open) return;
+      observeModal(modal);
+      const backgrounds = [...document.querySelectorAll('dialog[open]')].map(background => ({ dialog:background, y:background.scrollTop }));
+      const layer = {modal, dialogs:backgrounds};
+      if (locked) {
+        locked.layers.push(layer);
+        try { modal.showModal(); } catch (error) { unlock(); throw error; }
+        return;
+      }
       stopSettling();
       locked = {
         position:capturePosition(catalog), x:scrollX,
         scrollbar:innerWidth - page.clientWidth,
         styles:properties.map(name => [name,document.body.style.getPropertyValue(name),document.body.style.getPropertyPriority(name)]),
-        dialogs:[...document.querySelectorAll('dialog[open]')].map(background => ({ dialog:background, y:background.scrollTop })),
+        dialogs:backgrounds, layers:[layer],
       };
+      const heading = document.querySelector('.catalog-heading');
+      const headingTop = heading?.getBoundingClientRect().top;
       document.body.style.setProperty('--detail-page-top', -locked.position.y + 'px');
       document.body.style.setProperty('--detail-page-left', -locked.x + 'px');
       sizePage();
+      document.body.style.setProperty('--detail-heading-offset', '0px');
       page.classList.add('detail-page-locked');
       window.scrollTo({ left:0, top:0, behavior:'instant' });
+      if (heading) document.body.style.setProperty('--detail-heading-offset', (headingTop - heading.getBoundingClientRect().top) + 'px');
       listen(true);
-      try { dialog.showModal(); } catch (error) { unlock(); throw error; }
+      try { modal.showModal(); } catch (error) { unlock(); throw error; }
     },
   };
 }

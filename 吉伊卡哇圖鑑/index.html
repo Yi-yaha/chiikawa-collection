@@ -26,12 +26,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=092c1a4c8b247422">
-  <link rel="stylesheet" href="./purchase.css?v=092c1a4c8b247422">
-  <link rel="stylesheet" href="./account.css?v=092c1a4c8b247422">
-  <link rel="stylesheet" href="./report.css?v=092c1a4c8b247422">
-  <script type="module" src="./app.mjs?v=092c1a4c8b247422"></script>
-  <meta name="chiikawa-site-version" content="092c1a4c8b247422">
+  <link rel="stylesheet" href="./styles.css?v=e617453ea7d86ccd">
+  <link rel="stylesheet" href="./purchase.css?v=e617453ea7d86ccd">
+  <link rel="stylesheet" href="./account.css?v=e617453ea7d86ccd">
+  <link rel="stylesheet" href="./report.css?v=e617453ea7d86ccd">
+  <script type="module" src="./app.mjs?v=e617453ea7d86ccd"></script>
+  <meta name="chiikawa-site-version" content="e617453ea7d86ccd">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -52,6 +52,7 @@
             <button id="open-friends" aria-haspopup="dialog" aria-controls="friends-dialog"><span data-icon="friends"></span>好友<span id="friends-menu-badge" class="friends-menu-badge" hidden></span></button>
             <div class="menu-divider"></div>
             <button id="open-settings" aria-haspopup="dialog" aria-controls="settings-dialog" disabled><span data-icon="sliders"></span>收藏設定</button>
+            <button id="open-selling" aria-haspopup="dialog" aria-controls="selling-dialog" disabled><span data-icon="sale"></span>待出售清單</button>
             <div class="menu-divider"></div>
             <button id="open-data"><span data-icon="box"></span>資料管理</button>
             <button id="open-guide" aria-haspopup="dialog" aria-controls="guide-dialog"><span data-icon="info"></span>使用說明</button>
@@ -144,6 +145,16 @@
     <div class="guide-footer"><button class="primary-button" data-close="guide-dialog">知道了</button></div>
   </dialog>
   <dialog id="remove-dialog" class="panel-dialog compact-dialog" aria-labelledby="remove-title" aria-describedby="remove-description"><div class="warning-icon" data-icon="heart"></div><h2 id="remove-title">移出我的娃？</h2><p id="remove-description"></p><div class="confirm-actions"><button class="secondary-button" data-close="remove-dialog" autofocus>先保留</button><button class="danger-button" id="confirm-remove">確認移除</button></div></dialog>
+  <dialog id="selling-dialog" class="panel-dialog selling-dialog" aria-labelledby="selling-title">
+    <div class="selling-dialog-header"><div class="dialog-heading"><div class="selling-title-line"><h2 id="selling-title">待出售清單</h2><button type="button" id="selling-info" class="icon-button selling-info" aria-label="待出售清單說明" aria-haspopup="dialog" aria-controls="selling-help" aria-expanded="false"><span data-icon="info"></span></button></div><button class="icon-button" data-close="selling-dialog" aria-label="關閉待出售清單" autofocus><span data-icon="close"></span></button></div><p id="selling-count" class="selling-count" aria-live="polite"></p></div>
+    <div id="selling-content"></div>
+  </dialog>
+  <dialog id="selling-help" class="panel-dialog selling-help" aria-labelledby="selling-help-title">
+    <h2 id="selling-help-title">待出售清單說明</h2>
+    <p>賣出後，調整收藏數量；數量為 0 時，會自動移出清單。</p>
+    <p>購入紀錄會保留，不記錄出售收入。</p>
+    <div class="selling-help-actions"><button type="button" class="secondary-button" data-close="selling-help">知道了</button></div>
+  </dialog>
   <dialog id="settings-dialog" class="panel-dialog settings-dialog" aria-labelledby="settings-title" aria-describedby="settings-description">
     <div class="dialog-heading"><h2 id="settings-title">收藏設定</h2><button class="icon-button" data-close="settings-dialog" aria-label="關閉收藏設定" autofocus><span data-icon="close"></span></button></div>
     <p id="settings-description" class="dialog-description">勾選的種類會標示「目標」，並計入角色頭貼外圈進度。<br>所有種類的實際收藏款數與持有個數都會完整記錄。</p>

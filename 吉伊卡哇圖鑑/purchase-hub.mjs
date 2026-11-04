@@ -1,6 +1,6 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=092c1a4c8b247422';
-import { createPurchaseBook } from './purchase-book.mjs?v=092c1a4c8b247422';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=092c1a4c8b247422';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=e617453ea7d86ccd';
+import { createPurchaseBook } from './purchase-book.mjs?v=e617453ea7d86ccd';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=e617453ea7d86ccd';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope }) {
@@ -187,7 +187,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     const rows = purchaseRows(units);
     const listed = new Set(rows.flatMap(row => row.record ? [row.record.id] : []));
     rows.push(...records.filter(record => record.itemId === id && !listed.has(record.id)).map(record => ({record,unit:null})));
-    container.innerHTML = `<div class="purchase-purchase-heading"><h3>${$('detail-content').classList.contains('from-friend') ? '我的' : ''}收藏紀錄</h3></div>${rows.map(({record,unit},index) => recordMarkup(record,false,unit,index+1)).join('')}`;
+    container.innerHTML = rows.map(({record,unit},index) => recordMarkup(record,false,unit,index+1)).join('');
     const quantityLabel = document.querySelector('label[for="detail-quantity"]');
     if (quantityLabel) quantityLabel.textContent = $('detail-content').classList.contains('from-friend') ? '我的收藏數量' : '收藏數量';
   }
@@ -212,7 +212,18 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     calculatedField = edited?.rate ? (edited.foreign !== '' ? 'twd' : 'foreign') : 'rate';
     updateCurrency();
     if (!$('purchase-editor').open) $('purchase-editor').showModal();
+    resizeNote();
   }
+  function resizeNote() {
+    const editor = $('purchase-editor');
+    if (!editor.open) return;
+    const note = $('purchase-note'), scrollTop = editor.scrollTop;
+    note.style.height = '0px';
+    note.style.height = (note.scrollHeight + note.offsetHeight - note.clientHeight) + 'px';
+    editor.scrollTop = scrollTop;
+  }
+  $('purchase-note').addEventListener('input', resizeNote);
+  window.addEventListener('resize', resizeNote);
   function recordCandidates() {
     const original = edited?.unitIds || [...selectedUnits];
     const free = reconcile(activeId).held.filter(unit => !book.recordFor(unit.id)).map(unit => unit.id);

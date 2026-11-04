@@ -19,7 +19,7 @@
 .purchase-editor .record-money-grid{grid-template-columns:minmax(108px,1fr) minmax(0,170px)}
 .purchase-editor .record-money-grid>label{padding-left:0;font-size:13px}
 .purchase-editor .record-money-grid>select{padding-left:0;border:0;box-shadow:none;font-size:13px}
-.purchase-note{display:block;resize:vertical;width:100%;min-height:64px;border:1px solid var(--control-line);border-radius:10px;background:var(--paper);padding:10px 12px;font:inherit;font-size:14px;color:var(--ink)}
+.purchase-note{display:block;resize:none;overflow:hidden;overflow-wrap:anywhere;width:100%;min-height:44px;border:1px solid var(--control-line);border-radius:10px;background:var(--paper);padding:10px 12px;font:inherit;font-size:14px;line-height:24px;color:var(--ink)}
 .purchase-note::placeholder{color:var(--muted)}
 .purchase-editor .record-form-actions{margin-top:20px}
 .purchase-stats{width:670px;max-width:calc(100vw - 32px);padding:27px 32px;max-height:calc(100dvh - 40px)}
@@ -83,14 +83,12 @@
 }
 .purchase-save-record:disabled,.purchase-editor .record-save:disabled{opacity:.45}
 .purchase-simple-records{padding-top:12px}
-.purchase-simple-records .purchase-purchase-heading{min-height:36px}
-.purchase-simple-records .purchase-purchase-heading h3{font-size:13px;font-weight:500}
 .purchase-simple-records .purchase-purchase-row{padding:7px 0 10px}
+.purchase-simple-records .purchase-purchase-row:first-child{border-top:0}
 .purchase-simple-records .purchase-row-top{min-height:34px;font-size:13px}
 .purchase-simple-records .purchase-row-top strong{font-size:17px}
 .purchase-simple-records .purchase-row-note{padding-top:1px;font-size:12px}
 .purchase-simple-records .purchase-row-sub{padding-top:4px;font-size:11px}
-.purchase-editor .purchase-note{min-height:44px;resize:vertical}
 .purchase-editor .record-form-actions{margin-top:14px}
 .purchase-editor-header{display:flex;justify-content:flex-end;min-height:34px;margin:-10px -10px 9px 0}
 .purchase-delete{min-height:44px;margin-right:auto;padding:8px 0;font-size:13px;color:var(--coral-dark)}

@@ -513,3 +513,26 @@ dialog::backdrop{overflow:hidden;overscroll-behavior:contain}
 html.detail-page-locked{overflow:hidden;overscroll-behavior:none;scroll-behavior:auto}
 html.detail-page-locked body{position:fixed;top:var(--detail-page-top);left:var(--detail-page-left);width:var(--detail-page-width);overflow:hidden}
 html.detail-page-locked .site-header{transform:translateY(calc(-1 * var(--detail-page-top)))}
+/* 目前清單名稱固定在角色列下方；開啟浮動視窗時保留原本位置。 */
+.catalog-heading{position:sticky;top:var(--catalog-heading-top,120px);z-index:24;background:var(--bg);padding:10px 0}
+html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-heading-offset,0px))}
+.selling-dialog{width:760px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 40px);padding:0;overflow-y:auto;isolation:isolate}
+.selling-dialog-header{position:sticky;top:0;z-index:3;padding:20px 20px 12px;background:var(--paper);border-bottom:1px solid var(--line)}
+.selling-dialog .dialog-heading h2{font-size:20px}
+.selling-title-line{display:flex;align-items:center;gap:8px;min-width:0}
+.selling-title-line h2{white-space:nowrap}
+.selling-info{width:32px;height:32px;flex:0 0 32px;color:var(--muted)}
+.selling-info svg{width:18px;height:18px}
+.selling-help{width:360px;max-width:calc(100vw - 32px);padding:22px 24px}
+.selling-help h2{font-size:18px;font-weight:500;margin:0 0 14px}
+.selling-help p{font-size:14px;line-height:1.75}
+.selling-help p+p{margin-top:12px}
+.selling-help-actions{display:flex;justify-content:flex-end;margin-top:18px}
+.selling-help-actions button{min-height:44px}
+.selling-count{margin-top:6px;font-size:12px;color:var(--muted)}
+#selling-content{padding:16px 20px 20px}
+.selling-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.selling-dialog .product-name{display:block;height:auto;max-height:none;overflow:visible;white-space:normal;-webkit-line-clamp:unset;overflow-wrap:anywhere}
+.selling-dialog .collect-button,.selling-dialog .wish-button{display:none}
+.selling-dialog .empty-state{margin:0;border:0;background:transparent;padding:44px 8px}
+@media(max-width:700px){.selling-grid{gap:12px}.selling-dialog-header{padding:16px 16px 10px}#selling-content{padding:14px 14px 18px}}
