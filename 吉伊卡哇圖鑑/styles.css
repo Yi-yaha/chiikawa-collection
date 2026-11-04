@@ -1,4 +1,9 @@
 /* Soft Minimal UI: shared colors, surfaces, and component radii. */
+.toast.toast-warning{top:var(--toast-top,16px);bottom:auto;left:var(--toast-left,50%);max-width:var(--toast-width,calc(100vw - 32px));padding:8px 14px;border:0;border-radius:10px;background:var(--coral);color:#fff;box-shadow:0 6px 20px rgba(90,40,40,.2);gap:8px;font-size:13px;line-height:20px;pointer-events:none;opacity:0;transform:translate(-50%,-4px);transition:opacity 160ms ease-out,transform 160ms ease-out}
+.toast.toast-warning>[data-icon]{color:#fff}.toast.toast-warning svg{width:16px;height:16px}
+.toast.toast-warning.is-visible{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){.toast.toast-warning,.toast.toast-warning.is-visible{transform:translateX(-50%);transition:opacity 160ms ease-out}}
+html[data-focus-mode="keyboard"] .toast.toast-warning{transition:none;transform:translateX(-50%)}
 :root {
   --wish: #9B772E;
   --wish-bg: #FAF2DF;

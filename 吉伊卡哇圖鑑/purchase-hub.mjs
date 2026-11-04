@@ -1,8 +1,8 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=44871cec291f60ab';
-import { createPurchaseBook } from './purchase-book.mjs?v=44871cec291f60ab';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=44871cec291f60ab';
-import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=44871cec291f60ab';
-import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=44871cec291f60ab';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=7676b76ad38fd376';
+import { createPurchaseBook } from './purchase-book.mjs?v=7676b76ad38fd376';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=7676b76ad38fd376';
+import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=7676b76ad38fd376';
+import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=7676b76ad38fd376';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog }) {
@@ -20,6 +20,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   let confirmationResolver = null, manualFields = [], calculatedField = null;
   const clearedFields = new Set();
   let rateRequest = null;
+  let dismissRateNotice = null;
 
   document.body.insertAdjacentHTML('beforeend', `
     <dialog id="purchase-editor" class="panel-dialog purchase-editor" aria-label="編輯收藏紀錄">
@@ -205,6 +206,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     showEditor(id, book.recordFor(unit.id)?.id || null, unit.id);
   }
   function showEditor(id, recordId = null, unitId = null) {
+    clearRateNotice();
     cancelRateRequest();
     syncBook();
     activeId = id;
@@ -292,6 +294,15 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     button.textContent = loading ? '取得匯率中…' : '帶入目前匯率';
     button.setAttribute('aria-busy', String(loading));
   }
+  function clearRateNotice() {
+    dismissRateNotice?.();
+    dismissRateNotice = null;
+  }
+  function notifyCurrencyRequired() {
+    clearRateNotice();
+    $('purchase-form-error').hidden = true;
+    dismissRateNotice = toast('請先選擇外幣幣別', null, { warning:true, duration:3000 });
+  }
   function cancelRateRequest() {
     if (!rateRequest) return;
     rateRequest.abort();
@@ -299,14 +310,15 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     setRateLoading(false);
   }
   $('purchase-editor').addEventListener('close', cancelRateRequest);
+  $('purchase-editor').addEventListener('close', clearRateNotice);
   $('purchase-current-rate').addEventListener('click', async () => {
     if (!$('purchase-editor').open || rateRequest) return;
     const currency = $('purchase-currency').value;
     if (!purchaseCurrency(currency)) {
-      $('purchase-form-error').textContent = '請先選擇外幣幣別。';
-      $('purchase-form-error').hidden = false;
+      notifyCurrencyRequired();
       return;
     }
+    clearRateNotice();
     const request = new AbortController(), itemId = activeId, recordId = edited?.id, requestScope = getScope();
     const before = JSON.stringify(['twd','foreign','rate'].map(key => $('purchase-' + key).value));
     rateRequest = request;
@@ -483,7 +495,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     renderStats();
     $('purchase-stats-range').focus({preventScroll:true});
   });
-  $('purchase-currency').addEventListener('change', () => {cancelRateRequest();manualFields = ['twd','foreign','rate'].filter(key => $('purchase-' + key).value.trim()); calculatedField = null; updateCurrency(); if (manualFields.length === 2) calculate();});
+  $('purchase-currency').addEventListener('change', () => {clearRateNotice();cancelRateRequest();manualFields = ['twd','foreign','rate'].filter(key => $('purchase-' + key).value.trim()); calculatedField = null; updateCurrency(); if (manualFields.length === 2) calculate();});
   for (const key of ['twd', 'foreign', 'rate']) $('purchase-' + key).addEventListener('input', () => {cancelRateRequest();calculate(key);});
   $('purchase-delete-record').addEventListener('click', async () => {
     if (!$('purchase-editor').open || !edited) return;
@@ -518,6 +530,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     else if ((foreign || rateValue) && !$('purchase-currency').value) error = '請先選擇外幣幣別。';
     else if ($('purchase-date').validity.badInput || !validPurchaseDate($('purchase-date').value)) error = '請選擇有效的購入日期，或留白。';
     if (!error && calculatedField) error = calculatePurchaseField({twd,foreign,rate:rateValue,currency:$('purchase-currency').value},calculatedField).error;
+    if (error === '請先選擇外幣幣別。') { notifyCurrencyRequired(); return; }
     if (error) { $('purchase-form-error').textContent = error; $('purchase-form-error').hidden = false; return; }
     try {
       editorUnchanged();

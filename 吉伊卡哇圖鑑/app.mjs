@@ -1,13 +1,13 @@
-import './focus-visibility.mjs?v=44871cec291f60ab';
-import { createPurchaseHub } from './purchase-hub.mjs?v=44871cec291f60ab';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=44871cec291f60ab';
-import { createDialogController } from './dialog-scroll.mjs?v=44871cec291f60ab';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=44871cec291f60ab';
-import { createCatalogImageLoader } from './image-loader.mjs?v=44871cec291f60ab';
-import { createCharacterSorter } from './character-sorter.mjs?v=44871cec291f60ab';
-import { watchForSiteUpdates } from './site-updates.mjs?v=44871cec291f60ab';
-import { createReportHub } from './report-hub.mjs?v=44871cec291f60ab';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=44871cec291f60ab';
+import './focus-visibility.mjs?v=7676b76ad38fd376';
+import { createPurchaseHub } from './purchase-hub.mjs?v=7676b76ad38fd376';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=7676b76ad38fd376';
+import { createDialogController } from './dialog-scroll.mjs?v=7676b76ad38fd376';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=7676b76ad38fd376';
+import { createCatalogImageLoader } from './image-loader.mjs?v=7676b76ad38fd376';
+import { createCharacterSorter } from './character-sorter.mjs?v=7676b76ad38fd376';
+import { watchForSiteUpdates } from './site-updates.mjs?v=7676b76ad38fd376';
+import { createReportHub } from './report-hub.mjs?v=7676b76ad38fd376';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=7676b76ad38fd376';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -30,6 +30,7 @@ const paths = {
   friends:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M16 4a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5v2"/>',
   reset:'<path d="M3 10a9 9 0 1 1 2.5 8M3 4v6h6"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
+  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><circle cx="12" cy="17" r=".8" fill="currentColor" stroke="none"/>',
   edit:'<path d="m16 3 5 5-12 12-6 1 1-6L16 3ZM14 5l5 5"/>',
   box:'<path d="m3 7 9-4 9 4v11l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v11M7.5 5 16 9"/>',
   tag:'<path d="M3 4h8l10 10-7 7L3 10V4Z"/><circle cx="7.5" cy="8" r="1"/>',
@@ -78,6 +79,7 @@ let itemAliases = {};
 let characterTotals = new Map();
 let avatars = new Map();
 let toastTimer, undoAction, activeDetail, pendingRemoval;
+let toastCleanup = () => {}, toastVersion = 0;
 let storageOK = true;
 let accountHub = null;
 let accountScopeInitialized = false;
@@ -156,19 +158,58 @@ function toastHost() {
   if ($('detail-dialog').open && $('friends-dialog')?.open) return $('detail-dialog');
   return [...document.querySelectorAll('dialog[open]')].at(-1) || document.body;
 }
-function toast(message, undo = null) {
+function toast(message, undo = null, { warning = false, duration = undo ? 9000 : 4500 } = {}) {
   clearTimeout(toastTimer);
+  toastCleanup(); toastCleanup = () => {};
+  const version = ++toastVersion;
   undoAction = undo;
   const host = toastHost();
-  if ($('toast').parentElement !== host) host.appendChild($('toast'));
+  const notice = $('toast');
+  if (notice.parentElement !== host) host.appendChild(notice);
+  notice.classList.toggle('toast-warning', warning);
+  if (!warning) notice.classList.remove('is-visible');
+  notice.setAttribute('role', warning ? 'alert' : 'status');
+  notice.setAttribute('aria-live', warning ? 'assertive' : 'polite');
+  notice.querySelector('[data-icon]').innerHTML = icon(warning ? 'alert' : 'check');
   $('toast-message').textContent = message;
   $('toast-undo').hidden = !undo;
-  $('toast').hidden = false;
-  toastTimer = setTimeout(() => { $('toast').hidden = true; undoAction = null; }, undo ? 9000 : 4500);
+  notice.hidden = false;
+  if (warning) {
+    const viewport = window.visualViewport;
+    const position = () => {
+      if (version !== toastVersion) return;
+      const bounds = host === document.body ? { top:viewport?.offsetTop || 0, left:0, width:innerWidth } : host.getBoundingClientRect();
+      notice.style.setProperty('--toast-top', Math.max(bounds.top + 10, (viewport?.offsetTop || 0) + 10) + 'px');
+      notice.style.setProperty('--toast-left', bounds.left + bounds.width / 2 + 'px');
+      notice.style.setProperty('--toast-width', Math.max(1, Math.min(bounds.width - 88, innerWidth - 32)) + 'px');
+    };
+    position();
+    const observer = new ResizeObserver(position);
+    observer.observe(host);
+    window.addEventListener('resize', position);
+    viewport?.addEventListener('resize', position);
+    viewport?.addEventListener('scroll', position);
+    toastCleanup = () => {
+      observer.disconnect();
+      window.removeEventListener('resize', position);
+      viewport?.removeEventListener('resize', position);
+      viewport?.removeEventListener('scroll', position);
+    };
+    void notice.offsetWidth;
+    notice.classList.add('is-visible');
+  }
+  toastTimer = setTimeout(() => {
+    if (!warning) { dismissToast(); return; }
+    notice.classList.remove('is-visible');
+    toastTimer = setTimeout(dismissToast, 160);
+  }, duration);
+  return () => { if (version === toastVersion) dismissToast(); };
 }
 function dismissToast() {
   clearTimeout(toastTimer);
+  toastCleanup(); toastCleanup = () => {};
   $('toast').hidden = true;
+  $('toast').classList.remove('is-visible');
   undoAction = null;
 }
 $('toast-undo').addEventListener('click', () => {
@@ -178,6 +219,7 @@ $('toast-undo').addEventListener('click', () => {
 });
 document.addEventListener('close', event => {
   if (event.target === $('toast').parentElement) {
+    if ($('toast').classList.contains('toast-warning')) dismissToast();
     const host = toastHost();
     host.appendChild($('toast'));
   }
@@ -1132,7 +1174,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=44871cec291f60ab');
+        const { createAccountHub } = await import('./account-hub.mjs?v=7676b76ad38fd376');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
