@@ -1,13 +1,13 @@
-import './focus-visibility.mjs?v=8bc3fec47353e72d';
-import { createPurchaseHub } from './purchase-hub.mjs?v=8bc3fec47353e72d';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=8bc3fec47353e72d';
-import { createDetailScrollGuard } from './dialog-scroll.mjs?v=8bc3fec47353e72d';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=8bc3fec47353e72d';
-import { createCatalogImageLoader } from './image-loader.mjs?v=8bc3fec47353e72d';
-import { createCharacterSorter } from './character-sorter.mjs?v=8bc3fec47353e72d';
-import { watchForSiteUpdates } from './site-updates.mjs?v=8bc3fec47353e72d';
-import { createReportHub } from './report-hub.mjs?v=8bc3fec47353e72d';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=8bc3fec47353e72d';
+import './focus-visibility.mjs?v=8c9c2a0447eca887';
+import { createPurchaseHub } from './purchase-hub.mjs?v=8c9c2a0447eca887';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=8c9c2a0447eca887';
+import { createDetailScrollGuard } from './dialog-scroll.mjs?v=8c9c2a0447eca887';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=8c9c2a0447eca887';
+import { createCatalogImageLoader } from './image-loader.mjs?v=8c9c2a0447eca887';
+import { createCharacterSorter } from './character-sorter.mjs?v=8c9c2a0447eca887';
+import { watchForSiteUpdates } from './site-updates.mjs?v=8c9c2a0447eca887';
+import { createReportHub } from './report-hub.mjs?v=8c9c2a0447eca887';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=8c9c2a0447eca887';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -35,6 +35,7 @@ const paths = {
   tag:'<path d="M3 4h8l10 10-7 7L3 10V4Z"/><circle cx="7.5" cy="8" r="1"/>',
   download:'<path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/>',
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 16v5h16v-5"/>',
+  share:'<path d="M12 15V3m-4 4 4-4 4 4M5 11v10h14V11"/>',
   'arrow-right':'<path d="M4 12h15m-6-6 6 6-6 6"/>',
   external:'<path d="M14 3h7v7m0-7L10 14M10 3H4a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-6"/>'
 };
@@ -1000,6 +1001,18 @@ function showGuide({ progress = false } = {}) {
   else $('guide-dialog').scrollTop = 0;
 }
 $('open-guide').addEventListener('click', () => showGuide());
+$('share-catalog').addEventListener('click', async () => {
+  const url = 'https://yi-yaha.github.io/chiikawa-collection/';
+  $('more-menu').hidden = true;
+  $('more-button').setAttribute('aria-expanded', 'false');
+  $('more-button').focus({ preventScroll:true });
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('已複製圖鑑網址');
+  } catch {
+    window.prompt('無法自動複製，請複製下方的圖鑑網址：', url);
+  }
+});
 $('settings-guide').addEventListener('click', () => showGuide({ progress:true }));
 $('guide-dialog').addEventListener('close', () => ($('settings-dialog').open ? $('settings-guide') : $('more-button')).focus({preventScroll:true}));
 $('progress-type-options').addEventListener('change', event => {
@@ -1118,7 +1131,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=8bc3fec47353e72d');
+        const { createAccountHub } = await import('./account-hub.mjs?v=8c9c2a0447eca887');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
