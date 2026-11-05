@@ -1,14 +1,14 @@
-import './focus-visibility.mjs?v=74ff3658ca2d64f7';
-import { createPurchaseHub } from './purchase-hub.mjs?v=74ff3658ca2d64f7';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=74ff3658ca2d64f7';
-import { createDialogController } from './dialog-scroll.mjs?v=74ff3658ca2d64f7';
-import { visibleViewport } from './dialog-viewport.mjs?v=74ff3658ca2d64f7';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=74ff3658ca2d64f7';
-import { createCatalogImageLoader } from './image-loader.mjs?v=74ff3658ca2d64f7';
-import { createCharacterSorter } from './character-sorter.mjs?v=74ff3658ca2d64f7';
-import { watchForSiteUpdates } from './site-updates.mjs?v=74ff3658ca2d64f7';
-import { createReportHub } from './report-hub.mjs?v=74ff3658ca2d64f7';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=74ff3658ca2d64f7';
+import './focus-visibility.mjs?v=80efe674f4fdb662';
+import { createPurchaseHub } from './purchase-hub.mjs?v=80efe674f4fdb662';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=80efe674f4fdb662';
+import { createDialogController } from './dialog-scroll.mjs?v=80efe674f4fdb662';
+import { visibleViewport } from './dialog-viewport.mjs?v=80efe674f4fdb662';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=80efe674f4fdb662';
+import { createCatalogImageLoader } from './image-loader.mjs?v=80efe674f4fdb662';
+import { createCharacterSorter } from './character-sorter.mjs?v=80efe674f4fdb662';
+import { watchForSiteUpdates } from './site-updates.mjs?v=80efe674f4fdb662';
+import { createReportHub } from './report-hub.mjs?v=80efe674f4fdb662';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=80efe674f4fdb662';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -116,6 +116,9 @@ function updateCatalogHeadingTop() {
 updateCatalogHeadingTop();
 if (typeof ResizeObserver !== 'undefined') new ResizeObserver(updateCatalogHeadingTop).observe(siteHeader);
 else window.addEventListener('resize', updateCatalogHeadingTop);
+const fitCharacterRow = () => { if (fitCharacterTabs()) revealActiveCharacter(); };
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fitCharacterRow).observe($('character-tabs'));
+else window.addEventListener('resize', fitCharacterRow);
 let sizingSample;
 const catalogSizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(([entry]) => {
   if (!entry || entry.contentRect.height <= 0) return;
@@ -249,14 +252,33 @@ function updateProgressSetting() {
 function collectionRing() {
   return '<svg class="collection-ring" viewBox="0 0 60 60" aria-hidden="true"><circle class="collection-ring-track" cx="30" cy="30" r="28"/><circle class="collection-ring-fill" cx="30" cy="30" r="28" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 30 30)"/></svg>';
 }
+// 每排放完整入口，讓分隔線前不留下切半的頭貼與文字。
+function fitCharacterTabs() {
+  if (charactersExpanded) return false;
+  const tabs = $('character-tabs');
+  const style = getComputedStyle(tabs);
+  const gap = parseFloat(style.columnGap) || 0;
+  const width = tabs.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  if (width <= 0) return false;
+  const minimum = parseFloat(style.getPropertyValue('--character-tab-min')) || 55;
+  const count = Math.max(1, Math.floor((width + gap) / (minimum + gap)));
+  const size = ((width - gap * (count - 1)) / count).toFixed(4) + 'px';
+  if (tabs.style.getPropertyValue('--character-tab-width') === size) return false;
+  tabs.style.setProperty('--character-tab-width', size);
+  return true;
+}
 function revealActiveCharacter() {
   if (charactersExpanded) return;
+  fitCharacterTabs();
   const tabs = $('character-tabs');
   const active = tabs.querySelector('.character-tab.active');
   if (!active) return;
   const bounds = tabs.getBoundingClientRect();
   const selected = active.getBoundingClientRect();
-  tabs.scrollLeft += selected.left - bounds.left - (tabs.clientWidth - selected.width) / 2;
+  const style = getComputedStyle(tabs);
+  const step = selected.width + (parseFloat(style.columnGap) || 0);
+  const centered = tabs.scrollLeft + selected.left - bounds.left - (tabs.clientWidth - selected.width) / 2;
+  tabs.scrollLeft = Math.round(centered / step) * step;
 }
 function setCharactersExpanded(expanded, { focusToggle = false } = {}) {
   if (!expanded) characterSorter.cancel();
@@ -1197,7 +1219,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=74ff3658ca2d64f7');
+        const { createAccountHub } = await import('./account-hub.mjs?v=80efe674f4fdb662');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

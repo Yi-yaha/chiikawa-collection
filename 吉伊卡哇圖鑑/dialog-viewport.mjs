@@ -1,4 +1,4 @@
-import { createTextCaretVisibility } from './text-control.mjs?v=74ff3658ca2d64f7';
+import { createTextCaretVisibility } from './text-control.mjs?v=80efe674f4fdb662';
 
 const EDITABLE = 'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),textarea,select,[contenteditable="true"]';
 const BOUNDS = ['--dialog-top', '--dialog-height'];

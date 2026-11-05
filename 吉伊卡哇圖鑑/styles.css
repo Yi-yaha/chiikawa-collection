@@ -100,8 +100,9 @@ dialog{position:fixed;top:var(--dialog-top,0px);bottom:calc(100% - var(--dialog-
 .catalog-heading>.secondary-button{min-height:44px;margin:0;font-size:12px;padding:8px 12px}
 .catalog-heading>.secondary-button svg{display:block;width:16px;height:16px}
 .catalog-heading{margin-bottom:10px}
-.filter-toggle{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:6px 8px;background:var(--paper);color:var(--coral);border-radius:11px;font-size:12px;line-height:1.4;white-space:nowrap;box-shadow:var(--shadow)}
-@media(hover:hover) and (pointer:fine){.filter-toggle:hover{background:var(--pink)}}
+.filter-toggle{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:6px 8px;background:var(--paper);color:var(--muted);border-radius:11px;font-size:12px;line-height:1.4;white-space:nowrap;box-shadow:var(--shadow)}
+.filter-toggle[aria-expanded="true"],.filter-toggle:has(.filter-count:not([hidden])){color:var(--coral)}
+@media(hover:hover) and (pointer:fine){.filter-toggle:hover{background:var(--paper)}}
 .filter-toggle svg{width:14px;height:14px}
 .filter-toggle-chevron{transition:transform .16s}
 .filter-toggle[aria-expanded="true"] .filter-toggle-chevron{transform:rotate(180deg)}
@@ -259,7 +260,7 @@ html{scroll-padding-top:118px}
 .character-tab.is-drag-source{opacity:.25;background:var(--pink);outline:1px dashed #CFAAA4;outline-offset:-2px}
 .character-drag-preview{position:fixed!important;z-index:110;pointer-events:none;margin:0;min-width:0;background:var(--paper);color:var(--ink);box-shadow:0 8px 24px #5A3B3026;outline:1px solid #E3C6C0;transition:none;cursor:grabbing;will-change:transform}
 .character-drag-preview .avatar{width:48px;height:48px}
-.page-shell{padding-top:18px}
+.page-shell{padding-top:12px}
 @media(max-width:1200px){.header-inner:has(.character-nav.is-expanded) .header-actions{right:32px}}
 @media(max-width:700px){
   .header-inner .character-nav{padding-bottom:8px}
@@ -520,7 +521,7 @@ html.detail-page-locked{overflow:hidden;overscroll-behavior:none;scroll-behavior
 html.detail-page-locked body{position:fixed;top:var(--detail-page-top);left:var(--detail-page-left);width:var(--detail-page-width);overflow:hidden}
 html.detail-page-locked .site-header{transform:translateY(calc(-1 * var(--detail-page-top)))}
 /* 目前清單名稱固定在角色列下方；開啟浮動視窗時保留原本位置。 */
-.catalog-heading{position:sticky;top:var(--catalog-heading-top,120px);z-index:24;background:var(--bg);padding:10px 0}
+.catalog-heading{position:sticky;top:var(--catalog-heading-top,120px);z-index:24;background:var(--bg);padding:6px 0;margin-bottom:6px}
 html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-heading-offset,0px))}
 .selling-dialog{width:760px;max-width:calc(100vw - 32px);max-height:calc(var(--dialog-height,100dvh) - 40px);padding:0;overflow-y:auto;isolation:isolate}
 .selling-dialog-header{position:sticky;top:0;z-index:3;padding:20px 20px 12px;background:var(--paper);border-bottom:1px solid var(--line)}
@@ -542,3 +543,50 @@ html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-headi
 .selling-dialog .collect-button,.selling-dialog .wish-button{display:none}
 .selling-dialog .empty-state{margin:0;border:0;background:transparent;padding:44px 8px}
 @media(max-width:700px){.selling-grid{gap:12px}.selling-dialog-header{padding:16px 16px 10px}#selling-content{padding:14px 14px 18px}}
+
+/* 上方入口維持原有大小；更多共用圓形與下方文字，不加外層底框。 */
+.site-header{padding:0;border-bottom:1px solid var(--line);background:var(--bg)}
+.header-inner{--nav-avatar:48px;--character-tab-min:70px;position:relative;width:100%;max-width:1400px;height:auto;padding:0 48px;gap:16px;border-radius:0;background:transparent}
+.header-inner .character-nav{padding:8px 0}
+.header-inner .character-tabs{gap:4px;padding:5px 3px;align-items:flex-start}
+.header-inner .character-tab{flex:0 0 70px;padding:4px 5px;gap:5px;border-radius:15px;font-size:12px;line-height:17px}
+.header-inner .character-tab .avatar{width:var(--nav-avatar);height:var(--nav-avatar)}
+.header-inner .header-actions{position:relative;flex:0 0 70px;align-self:flex-start;margin:0;padding:13px 0 0 10px}
+.header-inner .header-actions::before{content:"";position:absolute;left:0;top:17px;width:1px;height:var(--nav-avatar);background:var(--line)}
+.header-inner #more-button{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;height:auto;padding:4px 0;border:0;border-radius:15px;background:transparent;color:var(--muted);font-size:12px;line-height:17px;white-space:nowrap}
+.more-avatar{position:relative;display:grid;place-items:center;width:var(--nav-avatar);height:var(--nav-avatar);border:1px solid transparent;border-radius:50%;background:var(--paper)}
+.more-avatar svg{width:23px;height:23px}
+.header-inner #more-button[aria-expanded="true"] .more-avatar{background:var(--pink);border-color:#e3c6c0}
+.header-inner #more-button:focus-visible{outline-offset:-2px}
+.header-inner #more-button>.notification-dot{top:4px;right:max(0px,calc((100% - var(--nav-avatar))/2))}
+.header-inner .more-menu{top:calc(100% + 8px)}
+.header-inner:has(.character-nav.is-expanded){align-items:flex-start;gap:0}
+.header-inner:has(.character-nav.is-expanded) .header-actions{position:absolute;top:0;right:48px;width:70px;padding-top:13px}
+.header-inner .character-picker-heading{min-height:80px;padding:4px 86px 4px 3px}
+.header-inner .character-nav.is-expanded .character-tabs{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:12px 8px;max-height:calc(100dvh - 160px);padding:8px 3px 12px}
+.header-inner .character-nav.is-expanded .character-tab{min-height:0}
+.character-drag-preview .avatar{width:48px;height:48px}
+@media(hover:hover) and (pointer:fine){
+  .header-inner #more-button:hover .more-avatar{background:var(--pink)}
+}
+@media(max-width:1200px){
+  .header-inner{padding-right:32px;padding-left:32px}
+  .header-inner:has(.character-nav.is-expanded) .header-actions{right:32px}
+}
+@media(max-width:700px){
+  .header-inner{--nav-avatar:44px;--character-tab-min:55px;padding:0 17px;gap:8px}
+  .header-inner .character-nav{padding:6px 0 8px}
+  .header-inner .character-tabs{gap:4px}
+  .header-inner .character-tab{flex-basis:55px;min-width:0;padding:4px 0;gap:4px;font-size:12px}
+  .header-inner .header-actions{flex-basis:60px;padding-top:11px}
+  .header-inner .header-actions::before{top:15px}
+  .header-inner #more-button{gap:4px}
+  .header-inner:has(.character-nav.is-expanded) .header-actions{right:17px;width:60px;padding-top:11px}
+  .header-inner .character-picker-heading{min-height:76px;padding-right:76px}
+  .header-inner .character-nav.is-expanded .character-tabs{grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:10px 5px;max-height:calc(100dvh - 154px)}
+  .header-inner .character-nav.is-expanded .character-tab{font-size:11px}
+  .character-drag-preview .avatar{width:44px;height:44px}
+}
+/* 滑動停下時對齊完整入口，避免分隔線旁露出半個圓形。 */
+.header-inner .character-nav:not(.is-expanded) .character-tabs{scroll-snap-type:x mandatory;scroll-padding-inline:3px}
+.header-inner .character-nav:not(.is-expanded) .character-tab{flex-basis:var(--character-tab-width,var(--character-tab-min));scroll-snap-align:start}
