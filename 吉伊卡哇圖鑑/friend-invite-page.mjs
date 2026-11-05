@@ -1,4 +1,4 @@
-import { getFriendInviteTarget } from './friend-invite.mjs?v=fadb2113ec9b9e2d';
+import { getFriendInviteTarget } from './friend-invite.mjs?v=fcfae49c01d318e7';
 
 const target = getFriendInviteTarget(location.href);
 const link = document.getElementById('open-friend-invite');

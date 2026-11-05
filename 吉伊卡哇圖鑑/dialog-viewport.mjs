@@ -1,4 +1,4 @@
-import { measureTextCaret } from './text-control.mjs?v=fadb2113ec9b9e2d';
+import { measureTextCaret } from './text-control.mjs?v=fcfae49c01d318e7';
 
 const EDITABLE = 'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),textarea,select,[contenteditable="true"]';
 const GEOMETRY = ['top', 'bottom', 'margin-top', 'margin-bottom', 'max-height'];

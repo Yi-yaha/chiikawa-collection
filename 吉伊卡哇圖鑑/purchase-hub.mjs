@@ -1,8 +1,8 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=fadb2113ec9b9e2d';
-import { createPurchaseBook } from './purchase-book.mjs?v=fadb2113ec9b9e2d';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=fadb2113ec9b9e2d';
-import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=fadb2113ec9b9e2d';
-import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=fadb2113ec9b9e2d';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=fcfae49c01d318e7';
+import { createPurchaseBook } from './purchase-book.mjs?v=fcfae49c01d318e7';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=fcfae49c01d318e7';
+import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=fcfae49c01d318e7';
+import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=fcfae49c01d318e7';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog }) {

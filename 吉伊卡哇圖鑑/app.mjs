@@ -1,13 +1,13 @@
-import './focus-visibility.mjs?v=fadb2113ec9b9e2d';
-import { createPurchaseHub } from './purchase-hub.mjs?v=fadb2113ec9b9e2d';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=fadb2113ec9b9e2d';
-import { createDialogController } from './dialog-scroll.mjs?v=fadb2113ec9b9e2d';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=fadb2113ec9b9e2d';
-import { createCatalogImageLoader } from './image-loader.mjs?v=fadb2113ec9b9e2d';
-import { createCharacterSorter } from './character-sorter.mjs?v=fadb2113ec9b9e2d';
-import { watchForSiteUpdates } from './site-updates.mjs?v=fadb2113ec9b9e2d';
-import { createReportHub } from './report-hub.mjs?v=fadb2113ec9b9e2d';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=fadb2113ec9b9e2d';
+import './focus-visibility.mjs?v=fcfae49c01d318e7';
+import { createPurchaseHub } from './purchase-hub.mjs?v=fcfae49c01d318e7';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=fcfae49c01d318e7';
+import { createDialogController } from './dialog-scroll.mjs?v=fcfae49c01d318e7';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=fcfae49c01d318e7';
+import { createCatalogImageLoader } from './image-loader.mjs?v=fcfae49c01d318e7';
+import { createCharacterSorter } from './character-sorter.mjs?v=fcfae49c01d318e7';
+import { watchForSiteUpdates } from './site-updates.mjs?v=fcfae49c01d318e7';
+import { createReportHub } from './report-hub.mjs?v=fcfae49c01d318e7';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=fcfae49c01d318e7';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -404,20 +404,24 @@ function renderFilters() {
   $('reset-filters').hidden = !chips.length;
   if (!$('series-popover').hidden) renderSeriesOptions();
 }
-function productCard(item, { detailOnImage = state.scope === 'mine' } = {}) {
+function productCard(item, { detailOnImage = false } = {}) {
   const owned = state.owned.has(item.id);
   const wished = state.wishlist.has(item.id);
   const selling = state.saleRecords[item.id]?.enabled === true;
   const mine = state.scope === 'mine';
   const name = escapeHTML(item.character + '・' + item.name);
   const detailAction = ' data-detail="' + item.id + '" aria-label="查看' + name + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog"';
-  const imageAction = detailOnImage ? detailAction : ' data-collect="' + item.id + '" aria-label="' + (owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"';
+  const collectAction = ' data-collect="' + item.id + '" aria-label="' + (mine ? '移出我的娃' : owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"' + (mine ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '');
+  const imageInteractive = detailOnImage || state.scope !== 'wishlist';
+  const imageTag = imageInteractive ? 'button' : 'div';
+  const imageAction = detailOnImage ? detailAction : imageInteractive ? collectAction : '';
+  const wishConfirmation = wished && state.scope === 'wishlist' ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '';
   return '<article class="product-card ' + (owned ? 'owned' : wished ? 'wished' : '') + (selling ? ' is-selling' : '') + '" data-item="' + item.id + '">' +
-    '<div class="product-visual"><button class="product-image-button"' + imageAction + '><div class="product-image"><img data-src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div></button>' +
+    '<div class="product-visual"><' + imageTag + ' class="product-image-button"' + imageAction + '><div class="product-image"><img data-src="' + escapeHTML(item.image) + '" alt="' + name + '" loading="lazy" decoding="async" width="200" height="200"></div></' + imageTag + '>' +
     '<div class="product-sale-ribbon" aria-label="這個商品想要賣"' + (selling ? '' : ' hidden') + '><span lang="en">FOR SALE</span></div>' +
-    '<button class="wish-button ' + (wished ? 'wished' : '') + '" data-wish="' + item.id + '" aria-label="' + '將' + name + (wished ? '移出願望清單' : '加入願望清單') + '" aria-pressed="' + wished + '"' + (owned ? ' hidden' : '') + '>' + icon('star') + '</button></div>' +
+    '<button class="wish-button ' + (wished ? 'wished' : '') + '" data-wish="' + item.id + '" aria-label="' + '將' + name + (wished ? '移出願望清單' : '加入願望清單') + '" aria-pressed="' + wished + '"' + wishConfirmation + (owned ? ' hidden' : '') + '>' + icon('star') + '</button></div>' +
     '<div class="product-meta"><h4 class="product-name" title="' + escapeHTML(item.name) + '">' + escapeHTML(item.name) + '</h4><button class="product-info-button"' + detailAction + '>' + icon('info') + '</button></div>' +
-    '<button class="collect-button ' + (owned ? 'owned' : '') + '" data-collect="' + item.id + '" aria-label="' + (mine ? '移出我的娃' : owned ? '取消收藏' : '收藏') + name + '" aria-pressed="' + owned + '"' + (mine ? ' aria-haspopup="dialog" aria-controls="remove-dialog"' : '') + '>' + icon('heart') + '</button></article>';
+    '<button class="collect-button ' + (owned ? 'owned' : '') + '"' + collectAction + (owned ? '' : ' hidden') + '>' + icon('heart') + '</button></article>';
 }
 function emptyState() {
   const untouchedMine = state.scope === 'mine' && state.owned.size === 0;
@@ -492,6 +496,7 @@ function updateCollectionCard(id) {
     button.setAttribute('aria-pressed', String(owned));
     button.setAttribute('aria-label', (state.scope === 'mine' ? '移出我的娃' : owned ? '取消收藏' : '收藏') + item.character + '・' + item.name);
   });
+  card.querySelector('.collect-button').hidden = !owned;
   const wish = card.querySelector('[data-wish]');
   wish.hidden = owned;
   wish.classList.toggle('wished', wished);
@@ -614,13 +619,20 @@ function refreshCollection(changedId) {
   if (activeDetail && $('detail-dialog').open) updateDetailCollection();
   if ($('selling-dialog').open) renderSellingList();
 }
+function confirmRemoval(id, kind, origin = document.activeElement) {
+  const item = itemMap.get(id);
+  const wishlist = kind === 'wishlist';
+  pendingRemoval = {id, kind, origin};
+  $('remove-title').textContent = wishlist ? '移出願望清單？' : '移出我的娃？';
+  $('remove-dialog').querySelector('.warning-icon').innerHTML = icon(wishlist ? 'star' : 'heart');
+  $('remove-description').textContent = '要將' + item.character + '的「' + item.name + '」移出' + (wishlist ? '願望清單' : '我的娃') + '嗎？' + (!wishlist && quantityOf(id) > 1 ? '目前記錄的 ' + number(quantityOf(id)) + ' 個會一併移除。' : '');
+  openDialog('remove-dialog');
+}
 function requestCollectionChange(id) {
   const item = itemMap.get(id);
   if (!item) return;
   if (state.owned.has(id) && (state.scope === 'mine' || quantityOf(id) > 1)) {
-    pendingRemoval = {id, origin:document.activeElement};
-    $('remove-description').textContent = '要將' + item.character + '的「' + item.name + '」移出我的娃嗎？' + (quantityOf(id) > 1 ? '目前記錄的 ' + number(quantityOf(id)) + ' 個會一併移除。' : '');
-    openDialog('remove-dialog');
+    confirmRemoval(id, 'collection');
     return;
   }
   toggleOwned(id);
@@ -657,7 +669,7 @@ function setQuantity(id, quantity, {showUndo = false, origin = document.activeEl
   const wished = state.wishlist.has(id);
   dismissToast();
   const card = origin?.closest('.product-card');
-  const neighbor = card?.nextElementSibling?.querySelector('.product-image-button') || card?.previousElementSibling?.querySelector('.product-image-button');
+  const neighbor = card?.nextElementSibling?.querySelector('button.product-image-button, .product-info-button') || card?.previousElementSibling?.querySelector('button.product-image-button, .product-info-button');
   restoreItem(id, quantity, false);
   refreshCollection(id);
   focusAfterRemoval(origin, neighbor);
@@ -669,12 +681,16 @@ function setQuantity(id, quantity, {showUndo = false, origin = document.activeEl
     toast('已復原收藏變更');
   });
 }
-function toggleWish(id, origin = document.activeElement) {
+function toggleWish(id, origin = document.activeElement, {confirmed = false} = {}) {
   if (!itemMap.has(id) || state.owned.has(id)) return;
-  dismissToast();
   const wished = state.wishlist.has(id);
+  if (wished && state.scope === 'wishlist' && !confirmed) {
+    confirmRemoval(id, 'wishlist', origin);
+    return;
+  }
+  dismissToast();
   const card = origin?.closest('.product-card');
-  const neighbor = card?.nextElementSibling?.querySelector('.product-image-button') || card?.previousElementSibling?.querySelector('.product-image-button');
+  const neighbor = card?.nextElementSibling?.querySelector('button.product-image-button, .product-info-button') || card?.previousElementSibling?.querySelector('button.product-image-button, .product-info-button');
   if (wished) state.wishlist.delete(id); else state.wishlist.add(id);
   refreshCollection(id);
   focusAfterRemoval(origin, neighbor);
@@ -718,6 +734,13 @@ function updateDetailCollection() {
   wish.hidden = owned;
   wish.classList.toggle('wished', wished);
   wish.setAttribute('aria-pressed', String(wished));
+  if (wished && state.scope === 'wishlist') {
+    wish.setAttribute('aria-haspopup', 'dialog');
+    wish.setAttribute('aria-controls', 'remove-dialog');
+  } else {
+    wish.removeAttribute('aria-haspopup');
+    wish.removeAttribute('aria-controls');
+  }
   wish.innerHTML = icon('star') + (fromFriend ? (wished ? '移出我的願望清單' : '加入我的願望清單') : (wished ? '移出願望清單' : '加入願望清單'));
   updateDetailRecord();
 }
@@ -984,7 +1007,9 @@ $('confirm-remove').addEventListener('click', () => {
   const removal = pendingRemoval;
   if (!removal) return;
   $('remove-dialog').close();
-  if (state.owned.has(removal.id)) toggleOwned(removal.id, {showUndo:true, origin:removal.origin, confirmed:true});
+  if (removal.kind === 'wishlist') {
+    if (state.wishlist.has(removal.id)) toggleWish(removal.id, removal.origin, {confirmed:true});
+  } else if (state.owned.has(removal.id)) toggleOwned(removal.id, {showUndo:true, origin:removal.origin, confirmed:true});
 });
 $('more-button').addEventListener('click', () => {
   $('more-menu').hidden = !$('more-menu').hidden;
@@ -1174,7 +1199,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=fadb2113ec9b9e2d');
+        const { createAccountHub } = await import('./account-hub.mjs?v=fcfae49c01d318e7');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

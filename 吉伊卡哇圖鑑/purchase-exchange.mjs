@@ -1,4 +1,4 @@
-import { normalizePurchaseRate, purchaseCurrency, validPurchaseDate } from './purchase-records.mjs?v=fadb2113ec9b9e2d';
+import { normalizePurchaseRate, purchaseCurrency, validPurchaseDate } from './purchase-records.mjs?v=fcfae49c01d318e7';
 
 // 每日參考匯率；僅傳送幣別，不傳送金額、收藏或帳號資料。
 // 來源與備援：https://github.com/fawazahmed0/exchange-api
