@@ -1,11 +1,11 @@
-import { createClient } from './supabase-client.mjs?v=fcfae49c01d318e7';
-import { cloudConfig } from './cloud-config.mjs?v=fcfae49c01d318e7';
-import { createCloudStore } from './cloud-store.mjs?v=fcfae49c01d318e7';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=fcfae49c01d318e7';
-import { createFriendInviteURL } from './friend-invite.mjs?v=fcfae49c01d318e7';
-import { describePurchaseRecord } from './purchase-records.mjs?v=fcfae49c01d318e7';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=fcfae49c01d318e7';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=fcfae49c01d318e7';
+import { createClient } from './supabase-client.mjs?v=74ff3658ca2d64f7';
+import { cloudConfig } from './cloud-config.mjs?v=74ff3658ca2d64f7';
+import { createCloudStore } from './cloud-store.mjs?v=74ff3658ca2d64f7';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=74ff3658ca2d64f7';
+import { createFriendInviteURL } from './friend-invite.mjs?v=74ff3658ca2d64f7';
+import { describePurchaseRecord } from './purchase-records.mjs?v=74ff3658ca2d64f7';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=74ff3658ca2d64f7';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=74ff3658ca2d64f7';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -67,14 +67,6 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
     <dialog id="migration-dialog" class="panel-dialog account-dialog" aria-labelledby="migration-title"><div class="dialog-heading"><h2 id="migration-title">帶入原有收藏</h2>${closeButton('migration-dialog','關閉帶入收藏')}</div><p class="dialog-description">將這台裝置原本的收藏加入目前帳號。同款數量保留較大的紀錄，重複帶入不會累加。</p><div id="migration-summary" class="migration-summary"></div><p class="social-note">確認儲存成功前，原本的本機紀錄會繼續保留。</p><p id="migration-message" class="form-message" role="status"></p><div class="confirm-actions"><button class="secondary-button" id="skip-migration">暫時略過</button><button class="primary-button" id="confirm-migration">加入帳號</button></div></dialog>
     <dialog id="sync-conflict-dialog" class="panel-dialog account-dialog" aria-labelledby="sync-conflict-title"><div class="dialog-heading"><h2 id="sync-conflict-title">確認同步差異</h2>${closeButton('sync-conflict-dialog','關閉同步差異')}</div><p class="dialog-description">這些紀錄也在其他裝置更新過。請選擇要保留的版本，其他收藏會照常同步。</p><div id="sync-conflict-content"></div></dialog>
   `);
-  for (const id of ['account-dialog','friends-dialog','migration-dialog','sync-conflict-dialog']) {
-    $(id).addEventListener('click', event => {
-      if (event.target !== $(id)) return;
-      if (id === 'account-dialog' && user && !profile?.nickname) return;
-      const rect = $(id).getBoundingClientRect();
-      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $(id).close();
-    });
-  }
   $('account-dialog').addEventListener('cancel', event => { if (user && !profile?.nickname) event.preventDefault(); });
   $('account-dialog').addEventListener('close', () => {
     resetAvatarDraft();

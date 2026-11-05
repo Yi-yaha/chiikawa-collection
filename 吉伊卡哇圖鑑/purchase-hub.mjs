@@ -1,8 +1,8 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=fcfae49c01d318e7';
-import { createPurchaseBook } from './purchase-book.mjs?v=fcfae49c01d318e7';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=fcfae49c01d318e7';
-import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=fcfae49c01d318e7';
-import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=fcfae49c01d318e7';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=74ff3658ca2d64f7';
+import { createPurchaseBook } from './purchase-book.mjs?v=74ff3658ca2d64f7';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=74ff3658ca2d64f7';
+import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=74ff3658ca2d64f7';
+import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=74ff3658ca2d64f7';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog }) {
@@ -45,7 +45,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     if (!$('purchase-stats').open || $('purchase-stats-help').open) return;
     $('purchase-stats-info').setAttribute('aria-expanded', 'true');
     openDialog('purchase-stats-help');
-    $('purchase-stats-help-close').focus();
+    $('purchase-stats-help-close').focus({preventScroll:true});
   });
   $('purchase-stats-help').addEventListener('close', () => {
     $('purchase-stats-info').setAttribute('aria-expanded', 'false');
@@ -60,7 +60,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     $('purchase-confirm').returnValue = 'cancel';
     const answer = new Promise(resolve => { confirmationResolver = resolve; });
     openDialog('purchase-confirm');
-    $('purchase-confirm-cancel').focus();
+    $('purchase-confirm-cancel').focus({preventScroll:true});
     return answer;
   }
   $('purchase-confirm-cancel').addEventListener('click', () => $('purchase-confirm').close('cancel'));
@@ -69,11 +69,6 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     const resolve = confirmationResolver;
     confirmationResolver = null;
     resolve?.($('purchase-confirm').returnValue === 'confirm');
-  });
-  $('purchase-confirm').addEventListener('click', event => {
-    if (event.target !== $('purchase-confirm')) return;
-    const bounds = $('purchase-confirm').getBoundingClientRect();
-    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) $('purchase-confirm').close('cancel');
   });
 
   function syncBook() {
@@ -544,7 +539,6 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     changed();
     toast('已儲存紀錄');
   });
-  for (const id of ['purchase-editor', 'purchase-stats', 'purchase-ledger', 'purchase-stats-help']) $(id).addEventListener('click', event => { if (event.target !== $(id)) return; const bounds = $(id).getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) $(id).close(); });
 
   return {
     renderDetail:renderPurchaseSection,

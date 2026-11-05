@@ -1,6 +1,6 @@
-import {createClient} from './supabase-client.mjs?v=fcfae49c01d318e7';
-import {cloudConfig} from './cloud-config.mjs?v=fcfae49c01d318e7';
-import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=fcfae49c01d318e7';
+import {createClient} from './supabase-client.mjs?v=74ff3658ca2d64f7';
+import {cloudConfig} from './cloud-config.mjs?v=74ff3658ca2d64f7';
+import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=74ff3658ca2d64f7';
 const h = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const paths = {message:'<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM12 7v6M9 10h6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',image:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m21 15-5-5L5 21"/>',link:'<path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',heart:'<path d="M20 5a5 5 0 0 0-7 0l-1 1-1-1a5 5 0 0 0-7 7l8 8 8-8a5 5 0 0 0 0-7Z"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + paths[name] + '</svg>';
@@ -27,7 +27,7 @@ export function createReportHub({items,getUserId = () => null,client:override,to
       <div class="release-contact"><p>圖鑑還在持續改善，功能與內容也會陸續補上。如果使用時遇到問題，或有任何建議，歡迎寫信告訴我：</p><a href="mailto:yi.yaha14@gmail.com">yi.yaha14@gmail.com</a></div>
       <div class="report-intro-actions"><button type="button" class="report-primary" data-close="report-intro-dialog">我知道了</button></div>
     </dialog>
-    <dialog id="report-dialog" class="panel-dialog report-dialog" aria-labelledby="report-title">
+    <dialog id="report-dialog" class="panel-dialog report-dialog" aria-labelledby="report-title" data-dialog-dismiss="explicit">
       <div class="report-topbar"><span>${icon('heart')}吉伊卡哇圖鑑</span><button type="button" class="icon-button" id="report-close" aria-label="關閉回報頁面">${icon('close')}</button></div>
       <div id="report-form-view"><div class="report-heading"><h2 id="report-title">回報缺少商品</h2><button type="button" class="report-history-link" id="report-open-history" hidden>我的回報</button></div>
         <form id="report-form" novalidate>
@@ -97,8 +97,6 @@ export function createReportHub({items,getUserId = () => null,client:override,to
   $('report-close').addEventListener('click',() => {if (!busy && !preparing) {persist();dialog.close();}});
   dialog.addEventListener('cancel',event => {if (busy || preparing) event.preventDefault();else persist();});
   dialog.addEventListener('close',() => {if (!busy) persist();$('more-button').focus({preventScroll:true});});
-  // 僅提示框允許點背景關閉；回報表單避免誤觸遺失填寫內容。
-  intro.addEventListener('click',event => {if (event.target !== intro) return;const rect = intro.getBoundingClientRect();if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) intro.close();});
   for (const id of ['report-intro-dialog','report-dialog']) $(id).querySelectorAll('[data-close]').forEach(button => button.addEventListener('click',() => $(button.dataset.close).close()));
   $('report-add-images').addEventListener('click',() => {if (!busy && !preparing) $('report-files').click();});
   $('report-files').addEventListener('change',async event => {

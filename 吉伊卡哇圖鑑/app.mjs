@@ -1,13 +1,14 @@
-import './focus-visibility.mjs?v=fcfae49c01d318e7';
-import { createPurchaseHub } from './purchase-hub.mjs?v=fcfae49c01d318e7';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=fcfae49c01d318e7';
-import { createDialogController } from './dialog-scroll.mjs?v=fcfae49c01d318e7';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=fcfae49c01d318e7';
-import { createCatalogImageLoader } from './image-loader.mjs?v=fcfae49c01d318e7';
-import { createCharacterSorter } from './character-sorter.mjs?v=fcfae49c01d318e7';
-import { watchForSiteUpdates } from './site-updates.mjs?v=fcfae49c01d318e7';
-import { createReportHub } from './report-hub.mjs?v=fcfae49c01d318e7';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=fcfae49c01d318e7';
+import './focus-visibility.mjs?v=74ff3658ca2d64f7';
+import { createPurchaseHub } from './purchase-hub.mjs?v=74ff3658ca2d64f7';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=74ff3658ca2d64f7';
+import { createDialogController } from './dialog-scroll.mjs?v=74ff3658ca2d64f7';
+import { visibleViewport } from './dialog-viewport.mjs?v=74ff3658ca2d64f7';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=74ff3658ca2d64f7';
+import { createCatalogImageLoader } from './image-loader.mjs?v=74ff3658ca2d64f7';
+import { createCharacterSorter } from './character-sorter.mjs?v=74ff3658ca2d64f7';
+import { watchForSiteUpdates } from './site-updates.mjs?v=74ff3658ca2d64f7';
+import { createReportHub } from './report-hub.mjs?v=74ff3658ca2d64f7';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=74ff3658ca2d64f7';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -153,10 +154,7 @@ function persist() {
   return storageOK;
 }
 function toastHost() {
-  const focused = document.activeElement?.closest('dialog[open]');
-  if (focused) return focused;
-  if ($('detail-dialog').open && $('friends-dialog')?.open) return $('detail-dialog');
-  return [...document.querySelectorAll('dialog[open]')].at(-1) || document.body;
+  return dialogController.top || document.body;
 }
 function toast(message, undo = null, { warning = false, duration = undo ? 9000 : 4500 } = {}) {
   clearTimeout(toastTimer);
@@ -385,8 +383,13 @@ function renderSeriesOptions() {
 }
 function sizeSeriesPopover() {
   if ($('series-popover').hidden) return;
-  const space = window.innerHeight - $('series-popover').getBoundingClientRect().top - 16;
-  $('series-popover').style.setProperty('--series-menu-space', Math.max(120, space) + 'px');
+  const bounds = visibleViewport();
+  const anchor = $('series-toggle').getBoundingClientRect();
+  const below = Math.max(0,bounds.top + bounds.height - anchor.bottom - 18);
+  const above = Math.max(0,anchor.top - bounds.top - 18);
+  const side = below >= Math.min(240,above) ? 'below' : 'above';
+  $('series-popover').dataset.side = side;
+  $('series-popover').style.setProperty('--series-menu-space', (side === 'below' ? below : above) + 'px');
 }
 function renderFilters() {
   renderFilterDisclosure();
@@ -816,8 +819,8 @@ function renderDetail(id) {
     detailRecordMarkup() + '</div></div>';
   updateDetailCollection();
   updateDetailSale();
+  purchaseHub.renderDetail(activeDetail);
   openDialog('detail-dialog');
-  updateDetailRecord();
 }
 function closeSeries() {
   $('series-popover').hidden = true;
@@ -917,6 +920,8 @@ $('series-toggle').addEventListener('click', () => {
 });
 $('series-search').addEventListener('input', () => { renderSeriesOptions(); $('series-options').scrollTop = 0; });
 window.addEventListener('resize', sizeSeriesPopover);
+window.visualViewport?.addEventListener('resize', sizeSeriesPopover);
+window.visualViewport?.addEventListener('scroll', sizeSeriesPopover);
 let groupResizeFrame;
 window.addEventListener('resize', () => {
   cancelAnimationFrame(groupResizeFrame);
@@ -1103,20 +1108,13 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('keydown', event => {
   if(event.key === 'Escape') {
+    if (dialogController.top) return;
     if(charactersExpanded) setCharactersExpanded(false, { focusToggle:true });
     if(!$('series-popover').hidden) { closeSeries(); $('series-toggle').focus(); }
     if(!$('more-menu').hidden) $('more-button').focus();
     $('more-menu').hidden = true; $('more-button').setAttribute('aria-expanded','false');
   }
 });
-document.querySelectorAll('dialog').forEach(dialog => {
-  dialog.addEventListener('click', event => {
-    if(event.target !== dialog) return;
-    const bounds = dialog.getBoundingClientRect();
-    if(event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
-  });
-});
-
 $('export-data').addEventListener('click', () => {
   const content = {...savedValue(),app:'chiikawa-collection',exportedAt:new Date().toISOString()};
   const blob = new Blob([JSON.stringify(content,null,2)],{type:'application/json'});
@@ -1199,7 +1197,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=fcfae49c01d318e7');
+        const { createAccountHub } = await import('./account-hub.mjs?v=74ff3658ca2d64f7');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

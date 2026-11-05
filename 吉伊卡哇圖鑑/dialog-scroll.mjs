@@ -1,18 +1,38 @@
-import { capturePosition, restorePosition } from './view-state.mjs?v=fcfae49c01d318e7';
-import { createDialogViewport } from './dialog-viewport.mjs?v=fcfae49c01d318e7';
+import { capturePosition } from './view-state.mjs?v=74ff3658ca2d64f7';
+import { createDialogViewport } from './dialog-viewport.mjs?v=74ff3658ca2d64f7';
 
 // 全站彈出視窗共用一個操作層級。背景僅保存位置，原生dialog負責焦點與互動隔離。
 export function createDialogController(catalog, { getPosition = () => capturePosition(catalog) } = {}) {
   const page = document.documentElement;
   const properties = ['--detail-page-top','--detail-page-left','--detail-page-width','--detail-heading-offset'];
   let locked = null;
+  let backdropPress = null;
+  const topLayer = () => locked?.layers.findLast(layer => layer.modal.open);
+  function outside(modal, event) {
+    const rect = modal.getBoundingClientRect();
+    return event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+  }
+  // 關閉政策、遮罩點擊與最上層判定集中管理；各功能只處理自己的資料。
+  document.addEventListener('pointerdown', event => {
+    const modal = topLayer()?.modal;
+    backdropPress = modal && event.target === modal && outside(modal,event) ? modal : null;
+  }, true);
+  document.addEventListener('pointercancel', () => { backdropPress = null; }, true);
+  document.addEventListener('click', event => {
+    const modal = topLayer()?.modal;
+    const startedOutside = backdropPress === modal;
+    backdropPress = null;
+    if (!modal || !startedOutside || modal.dataset.dialogDismiss === 'explicit' || event.target !== modal || !outside(modal,event)) return;
+    if (typeof modal.requestClose === 'function') modal.requestClose();
+    else if (modal.dispatchEvent(new Event('cancel',{ cancelable:true }))) modal.close();
+  });
   function sizePage() {
     if (locked) document.body.style.setProperty('--detail-page-width', (innerWidth - locked.scrollbar) + 'px');
   }
   function keepBackground(event) {
     if (!locked) return;
     // 不攔截整頁的原生鍵盤定位，也不改最上層視窗、輸入框或游標的捲動。
-    for (const background of locked.layers.at(-1)?.dialogs || []) {
+    for (const background of topLayer()?.dialogs || []) {
       if (event.target === background.dialog && background.dialog.open && background.dialog.scrollTop !== background.y) background.dialog.scrollTop = background.y;
     }
   }
@@ -38,11 +58,14 @@ export function createDialogController(catalog, { getPosition = () => capturePos
       if (value) document.body.style.setProperty(name,value,priority);
       else document.body.style.removeProperty(name);
     }
-    window.scrollTo({ left:previous.x, top:previous.position.y, behavior:'instant' });
-    void restorePosition(previous.position, catalog);
+    const card = previous.position.item && catalog.querySelector('[data-item="' + CSS.escape(previous.position.item) + '"]');
+    const y = card ? card.getBoundingClientRect().top + scrollY - previous.position.offset : previous.position.y;
+    // 解除固定後一次還原背景，不再於後續畫面逐次拉回頁面。
+    window.scrollTo({ left:previous.x, top:Math.max(0,y), behavior:'instant' });
   }
   return {
     get position() { return locked?.position || null; },
+    get top() { return topLayer()?.modal || null; },
     open(modal) {
       if (modal.open) return;
       if (!locked) {
@@ -77,6 +100,7 @@ export function createDialogController(catalog, { getPosition = () => capturePos
       locked.layers.push(layer);
       modal.addEventListener('close', unlock, { once:true });
       try {
+        layer.viewport.prepare();
         modal.showModal();
         layer.viewport.activate();
       } catch (error) { unlock(); throw error; }

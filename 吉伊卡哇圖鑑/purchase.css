@@ -14,7 +14,7 @@
 .purchase-row-top .record-edit{padding:0;width:30px;min-height:34px;justify-content:center;flex-shrink:0}
 .purchase-row-sub{font-size:11px;color:var(--muted);padding-top:1px}
 .purchase-row-note{font-size:12px;color:var(--muted);padding-top:4px;overflow-wrap:anywhere}
-.purchase-editor{width:440px;max-width:calc(100vw - 32px);padding:26px 28px;max-height:calc(100dvh - 40px)}
+.purchase-editor{width:440px;max-width:calc(100vw - 32px);padding:26px 28px;max-height:calc(var(--dialog-height,100dvh) - 40px)}
 .purchase-editor .dialog-heading{margin-bottom:16px}
 .purchase-editor .dialog-heading h2{font-size:20px}
 .purchase-breakdown-tabs{display:flex;align-items:center;gap:4px;padding:3px;border-radius:10px;background:var(--bg)}
@@ -30,7 +30,7 @@
 @supports(field-sizing:content){.purchase-note-field{display:block}.purchase-note-size{display:none}}
 .purchase-note::placeholder{color:var(--muted)}
 .purchase-editor .record-form-actions{margin-top:20px}
-.purchase-stats{width:670px;max-width:calc(100vw - 32px);padding:27px 32px;max-height:calc(100dvh - 40px)}
+.purchase-stats{width:670px;max-width:calc(100vw - 32px);padding:27px 32px;max-height:calc(var(--dialog-height,100dvh) - 40px)}
 .purchase-stats .dialog-heading{align-items:flex-start;margin-bottom:22px}
 .purchase-stats .dialog-heading h2{font-size:22px}
 .purchase-monthly{padding-top:26px}
@@ -150,7 +150,7 @@
 .purchase-record-date input::-webkit-datetime-edit{display:block;width:100%;padding:0}
 .purchase-record-date input::-webkit-datetime-edit-fields-wrapper{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0}
 .purchase-record-date input::-webkit-datetime-edit-year-field,.purchase-record-date input::-webkit-datetime-edit-month-field,.purchase-record-date input::-webkit-datetime-edit-day-field,.purchase-record-date input::-webkit-datetime-edit-text{padding:0}
-#purchase-stats{width:560px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);margin:auto;padding:14px 16px 16px}
+#purchase-stats{width:560px;max-width:calc(100vw - 16px);max-height:calc(var(--dialog-height,100dvh) - 16px);margin:auto;padding:14px 16px 16px}
 #purchase-stats>.dialog-heading{align-items:center;margin-bottom:6px;gap:8px}
 #purchase-stats .purchase-stats-title-line{display:flex;align-items:center;gap:10px;min-width:0}
 #purchase-stats .dialog-heading h2{font-size:20px;line-height:1.4;white-space:nowrap}

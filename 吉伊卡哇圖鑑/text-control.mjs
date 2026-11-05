@@ -24,3 +24,40 @@ export function measureTextCaret(control) {
   mirror.remove();
   return { top, bottom:top + height };
 }
+
+// 長備註的捲動只由所屬的最上層視窗處理，與視窗置中排版分開。
+// 僅在單一游標超出可見區時捲動內容；不改輸入值、選取或欄位高度。
+export function createTextCaretVisibility(dialog) {
+  let active = false, frame = 0;
+  function reveal() {
+    frame = 0;
+    const control = document.activeElement;
+    if (!active || !dialog.open || control?.tagName !== 'TEXTAREA' || !dialog.contains(control)
+      || control.selectionStart !== control.selectionEnd) return;
+    const panel = dialog.getBoundingClientRect();
+    const top = panel.top + dialog.clientTop + 12;
+    const bottom = panel.top + dialog.clientTop + dialog.clientHeight - 12;
+    if (control.getBoundingClientRect().height <= bottom - top) return;
+    const caret = measureTextCaret(control);
+    if (caret.bottom > bottom) dialog.scrollTop += caret.bottom - bottom;
+    else if (caret.top < top) dialog.scrollTop += caret.top - top;
+  }
+  function schedule() {
+    if (active && !frame) frame = requestAnimationFrame(reveal);
+  }
+  const events = ['input','select','selectionchange','keyup'];
+  return {
+    schedule,
+    activate() {
+      if (active) return;
+      active = true;
+      for (const event of events) dialog.addEventListener(event,schedule,true);
+    },
+    pause() {
+      active = false;
+      for (const event of events) dialog.removeEventListener(event,schedule,true);
+      cancelAnimationFrame(frame);
+      frame = 0;
+    },
+  };
+}
