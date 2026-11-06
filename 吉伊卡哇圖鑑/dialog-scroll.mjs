@@ -1,10 +1,11 @@
-import { capturePosition } from './view-state.mjs?v=80efe674f4fdb662';
-import { createDialogViewport } from './dialog-viewport.mjs?v=80efe674f4fdb662';
+import { capturePosition } from './view-state.mjs?v=5b46c0b58ac51eae';
+import { createDialogViewport } from './dialog-viewport.mjs?v=5b46c0b58ac51eae';
 
 // 全站彈出視窗共用一個操作層級。背景僅保存位置，原生dialog負責焦點與互動隔離。
 export function createDialogController(catalog, { getPosition = () => capturePosition(catalog) } = {}) {
   const page = document.documentElement;
-  const properties = ['--detail-page-top','--detail-page-left','--detail-page-width','--detail-heading-offset'];
+  const properties = ['--detail-page-top','--detail-page-left','--detail-page-width','--detail-heading-offset','--detail-header-top','--detail-header-height'];
+  const documentHeight = '--detail-document-height';
   let locked = null;
   let backdropPress = null;
   const topLayer = () => locked?.layers.findLast(layer => layer.modal.open);
@@ -54,6 +55,8 @@ export function createDialogController(catalog, { getPosition = () => capturePos
     document.removeEventListener('scroll', keepBackground, true);
     window.removeEventListener('resize', sizePage);
     page.classList.remove('detail-page-locked');
+    if (previous.documentStyle[0]) page.style.setProperty(documentHeight, ...previous.documentStyle);
+    else page.style.removeProperty(documentHeight);
     for (const [name,value,priority] of previous.styles) {
       if (value) document.body.style.setProperty(name,value,priority);
       else document.body.style.removeProperty(name);
@@ -73,8 +76,10 @@ export function createDialogController(catalog, { getPosition = () => capturePos
           position:{ ...getPosition() }, x:scrollX,
           scrollbar:innerWidth - page.clientWidth,
           styles:properties.map(name => [name,document.body.style.getPropertyValue(name),document.body.style.getPropertyPriority(name)]),
+          documentStyle:[page.style.getPropertyValue(documentHeight),page.style.getPropertyPriority(documentHeight)],
           layers:[],
         };
+        const header = document.querySelector('.site-header')?.getBoundingClientRect();
         const heading = document.querySelector('.catalog-heading');
         let headingTop = heading?.getBoundingClientRect().top;
         if (heading && locked.position.y !== scrollY) {
@@ -84,10 +89,13 @@ export function createDialogController(catalog, { getPosition = () => capturePos
         }
         document.body.style.setProperty('--detail-page-top', -locked.position.y + 'px');
         document.body.style.setProperty('--detail-page-left', -locked.x + 'px');
+        document.body.style.setProperty('--detail-header-top', (header?.top || 0) + 'px');
+        document.body.style.setProperty('--detail-header-height', (header?.height || 0) + 'px');
+        // 固定背景時仍保留文件高度，避免捲動歸零讓手機頂端列跳動。
+        page.style.setProperty(documentHeight, Math.max(page.scrollHeight, locked.position.y + innerHeight) + 'px');
         sizePage();
         document.body.style.setProperty('--detail-heading-offset', '0px');
         page.classList.add('detail-page-locked');
-        window.scrollTo({ left:0, top:0, behavior:'instant' });
         if (heading) document.body.style.setProperty('--detail-heading-offset', (headingTop - heading.getBoundingClientRect().top) + 'px');
         document.addEventListener('scroll', keepBackground, true);
         window.addEventListener('resize', sizePage);

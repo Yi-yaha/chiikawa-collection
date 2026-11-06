@@ -517,9 +517,10 @@ html{scroll-padding-top:118px}
 /* 商品資訊的滑動與背景清單分開，包含手機鍵盤開啟時的頁面位置。 */
 dialog{overscroll-behavior:contain}
 dialog::backdrop{overflow:hidden;overscroll-behavior:contain}
-html.detail-page-locked{overflow:hidden;overscroll-behavior:none;scroll-behavior:auto}
-html.detail-page-locked body{position:fixed;top:var(--detail-page-top);left:var(--detail-page-left);width:var(--detail-page-width);overflow:hidden}
-html.detail-page-locked .site-header{transform:translateY(calc(-1 * var(--detail-page-top)))}
+html.detail-page-locked{min-height:var(--detail-document-height);overflow:hidden;overscroll-behavior:none;scroll-behavior:auto}
+html.detail-page-locked body{position:fixed;top:var(--detail-page-top);left:var(--detail-page-left);width:var(--detail-page-width);padding-top:var(--detail-header-height);overflow:hidden}
+/* 頂端列保留開啟前的位置，原高度由背景頁留位，不使用跨整頁的大幅位移。 */
+html.detail-page-locked .site-header{position:fixed;top:var(--detail-header-top);left:var(--detail-page-left);width:var(--detail-page-width)}
 /* 目前清單名稱固定在角色列下方；開啟浮動視窗時保留原本位置。 */
 .catalog-heading{position:sticky;top:var(--catalog-heading-top,120px);z-index:24;background:var(--bg);padding:6px 0;margin-bottom:6px}
 html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-heading-offset,0px))}
