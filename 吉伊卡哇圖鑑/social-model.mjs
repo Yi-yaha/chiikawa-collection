@@ -1,5 +1,5 @@
-import { typeLabel } from './model.mjs?v=54bdce99f3004270';
-import { normalizeFriendCode } from './friend-invite.mjs?v=54bdce99f3004270';
+import { typeLabel } from './model.mjs?v=0cef56e173a18785';
+import { normalizeFriendCode } from './friend-invite.mjs?v=0cef56e173a18785';
 
 export { normalizeFriendCode };
 
@@ -14,8 +14,13 @@ export function collectionStats(items, quantities = {}) {
   const owned = items.filter(item => Number.isInteger(quantities[item.id]) && quantities[item.id] > 0);
   const countBy = key => {
     const counts = new Map();
-    for (const item of owned) counts.set(item[key], (counts.get(item[key]) || 0) + 1);
-    return [...counts].map(([name, count]) => ({ name, label:key === 'type' ? typeLabel(name) : name, count, ratio:owned.length ? count / owned.length : 0, total:items.filter(item => item[key] === name).length }))
+    const value = item => key === 'series' ? String(item.series || '').trim() : item[key];
+    for (const item of owned) {
+      const name = value(item);
+      if (key === 'series' && !name) continue;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    }
+    return [...counts].map(([name, count]) => ({ name, label:key === 'type' ? typeLabel(name) : name, count, ratio:owned.length ? count / owned.length : 0, total:items.filter(item => value(item) === name).length }))
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'zh-TW'));
   };
   return {
@@ -24,6 +29,7 @@ export function collectionStats(items, quantities = {}) {
     multiples:owned.filter(item => quantities[item.id] > 1).length,
     characters:countBy('character'),
     types:countBy('type'),
+    series:countBy('series'),
     total:items.length,
   };
 }

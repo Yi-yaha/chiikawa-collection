@@ -128,7 +128,7 @@ input::placeholder{color:var(--muted);opacity:1}
 .series-toggle{width:100%;gap:8px;justify-content:space-between;font-size:16px;text-align:left}
 .series-toggle #series-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .select-control>span:last-child svg{width:15px;height:15px;color:var(--muted)}
-.series-popover{top:42px;left:auto;right:0;width:340px;max-width:calc(100vw - 34px);border-color:var(--line);border-radius:var(--radius)}
+.series-popover{top:42px;left:auto;right:0;width:280px;max-width:calc(100vw - 34px);border-color:var(--line);border-radius:var(--radius)}
 .series-search-wrap{border-color:transparent;border-radius:var(--control-radius);min-height:44px}
 .series-search-wrap input{font-size:16px}
 .series-option{min-height:44px;font-size:13px;line-height:1.5}
@@ -487,7 +487,10 @@ html{scroll-padding-top:118px}
 
 /* 系列先選大分類，再展開該區的系列；搜尋直接顯示符合項目。 */
 .series-popover{display:flex;flex-direction:column;top:calc(100% + 6px);max-height:var(--series-menu-space,calc(100dvh - 220px))}
-.series-popover[data-side="above"]{top:auto;bottom:calc(100% + 6px)}
+.series-popover.filter-popover{position:fixed;right:auto;z-index:30}
+.filter-popover-flat .series-options{margin-top:0}
+.filter-menu-anchor{min-width:0}
+.filter-menu-label{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .series-search-wrap{flex-shrink:0}
 .series-options{min-height:0;max-height:440px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 .series-all{margin-bottom:4px}
@@ -635,7 +638,8 @@ html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-headi
 .filter-options{grid-template-columns:1fr 1fr;gap:8px}
 .filter-options .series-anchor{grid-column:1/-1}
 .filter-options .select-control{height:44px;min-height:44px;border-color:var(--line);box-shadow:none}
-.filter-options select,.filter-options .series-toggle{font-size:14px}
+.filter-options select{font-size:14px}
+:is(.filter-options,.overview-filters) .series-toggle{height:44px;min-height:44px;padding-inline:10px;border-color:var(--line);box-shadow:none;font-size:14px}
 .catalog-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;margin:8px 0 16px}
 .ownership-control{display:flex;align-items:center;gap:2px;padding:2px;border-radius:10px;background:#EDE8E1;min-width:0}
 .ownership-control button{position:relative;flex:1 1 auto;min-height:28px;padding:4px 14px;border-radius:8px;color:#81766C;font-size:13px;line-height:20px;white-space:nowrap;transition:background 130ms ease,color 130ms ease}

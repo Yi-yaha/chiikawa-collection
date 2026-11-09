@@ -1,14 +1,14 @@
-import './focus-visibility.mjs?v=54bdce99f3004270';
-import { createPurchaseHub } from './purchase-hub.mjs?v=54bdce99f3004270';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=54bdce99f3004270';
-import { createDialogController } from './dialog-scroll.mjs?v=54bdce99f3004270';
-import { visibleViewport } from './dialog-viewport.mjs?v=54bdce99f3004270';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=54bdce99f3004270';
-import { createCatalogImageLoader } from './image-loader.mjs?v=54bdce99f3004270';
-import { createCharacterSorter } from './character-sorter.mjs?v=54bdce99f3004270';
-import { watchForSiteUpdates } from './site-updates.mjs?v=54bdce99f3004270';
-import { createReportHub } from './report-hub.mjs?v=54bdce99f3004270';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=54bdce99f3004270';
+import './focus-visibility.mjs?v=0cef56e173a18785';
+import { createPurchaseHub } from './purchase-hub.mjs?v=0cef56e173a18785';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=0cef56e173a18785';
+import { createDialogController } from './dialog-scroll.mjs?v=0cef56e173a18785';
+import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=0cef56e173a18785';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=0cef56e173a18785';
+import { createCatalogImageLoader } from './image-loader.mjs?v=0cef56e173a18785';
+import { createCharacterSorter } from './character-sorter.mjs?v=0cef56e173a18785';
+import { watchForSiteUpdates } from './site-updates.mjs?v=0cef56e173a18785';
+import { createReportHub } from './report-hub.mjs?v=0cef56e173a18785';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=0cef56e173a18785';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -369,24 +369,36 @@ function renderFilterDisclosure() {
   $('filter-count').textContent = String(count);
 }
 function renderTypeOptions() {
+  const available = filterItems(baseItems(), {region:state.region,series:state.series,query:state.query});
   const counts = new Map();
-  filterItems(baseItems(), {region:state.region,series:state.series,query:state.query}).forEach(item => counts.set(item.type, (counts.get(item.type) || 0) + 1));
-  const allTypes = [...new Set([...ITEM_TYPES, ...state.items.map(item => item.type)])];
-  $('type-filter').innerHTML = '<option value="">全部種類</option>' + allTypes.filter(type => counts.has(type) || state.type === type).map(type => '<option value="' + escapeHTML(type) + '"' + (state.type === type ? ' selected' : '') + '>' + escapeHTML(typeLabel(type)) + '（' + number(counts.get(type) || 0) + ' 款）</option>').join('');
+  for (const item of available) counts.set(item.type,(counts.get(item.type) || 0) + 1);
+  const allTypes = [...new Set([...ITEM_TYPES,...state.items.map(item => item.type)])];
+  $('type-filter').innerHTML = filterSelectOptions('全部種類',available.length,
+    allTypes.map(type => [type,typeLabel(type)]),counts,state.type);
+  catalogTypeMenu.sync();
 }
 function renderRegionOptions() {
+  const available = filterItems(baseItems(), {type:state.type,series:state.series,query:state.query});
   const counts = new Map();
-  filterItems(baseItems(), {type:state.type,series:state.series,query:state.query}).forEach(item => {
+  for (const item of available) {
     const region = item.region || '日本';
-    counts.set(region, (counts.get(region) || 0) + 1);
-  });
-  $('region-filter').innerHTML = '<option value="">全部地區</option>' + ['日本','台灣','韓國','香港','中國'].filter(region => counts.has(region) || state.region === region).map(region => '<option value="' + escapeHTML(region) + '"' + (state.region === region ? ' selected' : '') + '>' + escapeHTML(region) + '（' + number(counts.get(region) || 0) + ' 款）</option>').join('');
+    counts.set(region,(counts.get(region) || 0) + 1);
+  }
+  $('region-filter').innerHTML = filterSelectOptions('全部地區',available.length,
+    ['日本','台灣','韓國','香港','中國'].map(region => [region,region]),counts,state.region);
+  catalogRegionMenu.sync();
+}
+function filterSelectOptions(allLabel,total,options,counts,selected) {
+  const all = '<option value="" data-count="' + total + '">' + allLabel + '</option>';
+  const available = options.filter(([key]) => counts.has(key) || selected === key);
+  return all + available.map(([key,label]) => '<option value="' + escapeHTML(key) + '" data-count="' +
+    (counts.get(key) || 0) + '"' + (selected === key ? ' selected' : '') + '>' + escapeHTML(label) + '</option>').join('');
 }
 function renderSeriesOptions() {
   const available = filterItems(baseItems(), {type:state.type,region:state.region,query:state.query});
   const search = $('series-search').value.trim();
   const categories = groupSeriesOptions(available, {query:search, catalog:state.items, seriesTree:state.seriesTree});
-  const option = ({key, label, count}) => '<button type="button" class="series-option ' + (state.series === key ? 'selected' : '') + '" data-series="' + escapeHTML(key) + '" aria-pressed="' + (state.series === key) + '"><span>' + escapeHTML(label) + '</span><small>' + number(count) + ' 款</small></button>';
+  const option = ({key,label,count}) => filterChoice({key,label,count,selected:state.series === key,attribute:'data-series'});
   const hierarchy = (node, depth = 0) => {
     if (!node.hasChildren) return node.ownOptions.map(option).join('');
     const heading = escapeHTML(node.label);
@@ -396,7 +408,7 @@ function renderSeriesOptions() {
     const expanded = depth ? openSeriesSubcategories.has(node.id) : node.id === openSeriesCategory;
     return '<section class="series-category"><button type="button" class="series-category-toggle' + (selected ? ' has-selection' : '') + '" data-series-' + (depth ? 'subcategory' : 'category') + '="' + escapeHTML(node.id) + '" aria-expanded="' + expanded + '" aria-controls="series-category-' + escapeHTML(node.id) + '"><span class="series-category-name">' + heading + (selected ? icon('check') : '') + '</span><small>' + number(node.options.length) + ' 個系列</small>' + icon('chevron') + '</button><div id="series-category-' + escapeHTML(node.id) + '" class="series-category-options"' + (expanded ? '' : ' hidden') + '>' + body + '</div></section>';
   };
-  let html = '<button type="button" class="series-option series-all ' + (!state.series ? 'selected' : '') + '" data-series="" aria-pressed="' + !state.series + '"><span>全部系列</span><small>' + number(available.length) + ' 款</small></button>';
+  let html = filterChoice({key:'',label:'全部系列',count:available.length,selected:!state.series,all:true,attribute:'data-series'});
   html += categories.map(category => {
     if (category.id === 'unassigned') return '<div class="series-unassigned">' + category.options.map(option).join('') + '</div>';
     if (category.children) return hierarchy(category);
@@ -411,16 +423,6 @@ function renderSeriesOptions() {
   }).join('');
   if (!categories.length) html += '<p class="series-option-empty">' + (search ? '找不到符合的系列，換個名稱試試看。' : '目前沒有可選的系列，試試切換角色或調整篩選。') + '</p>';
   $('series-options').innerHTML = html;
-}
-function sizeSeriesPopover() {
-  if ($('series-popover').hidden) return;
-  const bounds = visibleViewport();
-  const anchor = $('series-toggle').getBoundingClientRect();
-  const below = Math.max(0,bounds.top + bounds.height - anchor.bottom - 18);
-  const above = Math.max(0,anchor.top - bounds.top - 18);
-  const side = below >= Math.min(240,above) ? 'below' : 'above';
-  $('series-popover').dataset.side = side;
-  $('series-popover').style.setProperty('--series-menu-space', (side === 'below' ? below : above) + 'px');
 }
 function renderFilters() {
   renderFilterDisclosure();
@@ -641,7 +643,7 @@ function setScope(scope) {
     state.type = ''; state.region = ''; state.series = ''; state.query = '';
     $('catalog-search').value = '';
   }
-  closeSeries();
+  closeCatalogFilters();
   renderTabs();
   renderCatalog();
 }
@@ -858,9 +860,10 @@ function renderDetail(id) {
   purchaseHub.renderDetail(activeDetail);
   openDialog('detail-dialog');
 }
-function closeSeries() {
-  $('series-popover').hidden = true;
-  $('series-toggle').setAttribute('aria-expanded','false');
+function closeCatalogFilters() {
+  catalogSeriesMenu.close();
+  catalogRegionMenu.close();
+  catalogTypeMenu.close();
 }
 function showData() {
   updateDataSummary();
@@ -919,18 +922,20 @@ $('character-toggle').addEventListener('click', () => {
 });
 $('filter-toggle').addEventListener('click', () => {
   filtersExpanded = !filtersExpanded;
-  if (!filtersExpanded) closeSeries();
+  if (!filtersExpanded) closeCatalogFilters();
   renderFilterDisclosure();
   try { localStorage.setItem(filterExpansionKey, String(filtersExpanded)); } catch {}
 });
 renderFilterDisclosure();
 $('type-filter').addEventListener('change', event => { state.type = event.target.value; renderCatalog(); });
 $('region-filter').addEventListener('change', event => { state.region = event.target.value; renderCatalog(); });
-$('series-toggle').addEventListener('click', () => {
-  const opening = $('series-popover').hidden;
-  if (!opening) { closeSeries(); return; }
-  $('series-popover').hidden = false;
-  $('series-toggle').setAttribute('aria-expanded','true');
+const catalogRegionMenu = upgradeFilterSelect($('region-filter'));
+const catalogTypeMenu = upgradeFilterSelect($('type-filter'));
+const catalogSeriesMenu = createFilterMenu({
+  button:$('series-toggle'), panel:$('series-popover'), align:'end',
+  onOpen:prepareSeriesMenu,
+});
+function prepareSeriesMenu() {
   $('series-search').value = '';
   const selectedCategory = groupSeriesOptions(state.items, {seriesTree:state.seriesTree}).find(category => category.options.some(({key}) => key === state.series));
   openSeriesCategory = selectedCategory?.id || '';
@@ -943,21 +948,18 @@ $('series-toggle').addEventListener('click', () => {
   };
   if (selectedCategory) expandSelected(selectedCategory);
   renderSeriesOptions();
-  sizeSeriesPopover();
-  const options = $('series-options');
-  options.scrollTop = 0;
-  const selected = options.querySelector('.series-option.selected');
-  if (selected) {
-    const bounds = options.getBoundingClientRect();
+  const list = $('series-options');
+  list.scrollTop = 0;
+  requestAnimationFrame(() => {
+    if (!catalogSeriesMenu.isOpen) return;
+    const selected = list.querySelector('.series-option.selected');
+    if (!selected) return;
+    const bounds = list.getBoundingClientRect();
     const position = selected.getBoundingClientRect();
-    options.scrollTop = position.top - bounds.top - (options.clientHeight - position.height) / 2;
-  }
-  $('series-toggle').focus({ preventScroll:true });
-});
+    list.scrollTop += position.top - bounds.top - (list.clientHeight - position.height) / 2;
+  });
+}
 $('series-search').addEventListener('input', () => { renderSeriesOptions(); $('series-options').scrollTop = 0; });
-window.addEventListener('resize', sizeSeriesPopover);
-window.visualViewport?.addEventListener('resize', sizeSeriesPopover);
-window.visualViewport?.addEventListener('scroll', sizeSeriesPopover);
 let groupResizeFrame;
 window.addEventListener('resize', () => {
   cancelAnimationFrame(groupResizeFrame);
@@ -991,8 +993,8 @@ $('series-options').addEventListener('click', event => {
   if (target) {
     state.series = target.dataset.series;
     if(state.series) { state.groupBy = 'series'; persist(); }
-    closeSeries();
-    renderCatalog(); $('series-toggle').focus();
+    catalogSeriesMenu.close(true);
+    renderCatalog();
   }
 });
 let searchTimer;
@@ -1144,7 +1146,6 @@ $('open-data').addEventListener('click', () => { $('more-menu').hidden = true; $
 document.addEventListener('click', event => {
   const close = event.target.closest('[data-close]');
   if(close) $(close.dataset.close).close();
-  if(!event.target.closest('.series-anchor')) closeSeries();
   if(!event.target.closest('.menu-anchor')) { $('more-menu').hidden = true; $('more-button').setAttribute('aria-expanded','false'); }
   if(charactersExpanded && !event.target.closest('.character-nav')) setCharactersExpanded(false);
 });
@@ -1152,7 +1153,6 @@ document.addEventListener('keydown', event => {
   if(event.key === 'Escape') {
     if (dialogController.top) return;
     if(charactersExpanded) setCharactersExpanded(false, { focusToggle:true });
-    if(!$('series-popover').hidden) { closeSeries(); $('series-toggle').focus(); }
     if(!$('more-menu').hidden) $('more-button').focus();
     $('more-menu').hidden = true; $('more-button').setAttribute('aria-expanded','false');
   }
@@ -1240,7 +1240,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=54bdce99f3004270');
+        const { createAccountHub } = await import('./account-hub.mjs?v=0cef56e173a18785');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           seriesTree:state.seriesTree, initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
@@ -1298,6 +1298,6 @@ async function init() {
     $('retry-load').addEventListener('click',init);
   }
 }
-const purchaseHub = createPurchaseHub({state,getItem:id => itemMap.get(id),icon,persist,openDialog,getScope:() => collectionStorageKey,
+const purchaseHub = createPurchaseHub({state,onOpenDetail:renderDetail,getItem:id => itemMap.get(id),icon,persist,openDialog,getScope:() => collectionStorageKey,
   updateCollection:() => {if (activeDetail && $('detail-dialog').open) updateDetailCollection();},toast});
 init().then(() => purchaseHub.onReady()).finally(() => watchForSiteUpdates());

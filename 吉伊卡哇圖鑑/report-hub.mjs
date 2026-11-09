@@ -1,6 +1,6 @@
-import {createClient} from './supabase-client.mjs?v=54bdce99f3004270';
-import {cloudConfig} from './cloud-config.mjs?v=54bdce99f3004270';
-import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=54bdce99f3004270';
+import {createClient} from './supabase-client.mjs?v=0cef56e173a18785';
+import {cloudConfig} from './cloud-config.mjs?v=0cef56e173a18785';
+import {createReportStore,prepareReportImage,REPORT_STATES,reportError,normalizeReport} from './report-store.mjs?v=0cef56e173a18785';
 const h = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const paths = {message:'<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM12 7v6M9 10h6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',image:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m21 15-5-5L5 21"/>',link:'<path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',heart:'<path d="M20 5a5 5 0 0 0-7 0l-1 1-1-1a5 5 0 0 0-7 7l8 8 8-8a5 5 0 0 0 0-7Z"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + paths[name] + '</svg>';
@@ -20,7 +20,7 @@ export function createReportHub({items,getUserId = () => null,client:override,to
       <dl class="release-features">
         <div><dt>缺漏回報</dt><dd>找不到的商品可以直接回報，也能查看處理進度。</dd></div>
         <div><dt>收藏紀錄</dt><dd>記下購入日期、數量、價格與備註，也支援外幣換算。</dd></div>
-        <div><dt>收藏統計</dt><dd>查看每月花費，以及不同角色、商品種類的花費分布。</dd></div>
+        <div><dt>收藏統計</dt><dd>依角色、種類與系列查看收藏概況，也能分析每月花費。</dd></div>
         <div><dt>想要賣</dt><dd>標記想出售的收藏、設定售價，並在待出售清單集中查看。</dd></div>
       </dl>
       <p class="release-privacy">收藏紀錄、花費統計與售價都只有自己看得到。</p>

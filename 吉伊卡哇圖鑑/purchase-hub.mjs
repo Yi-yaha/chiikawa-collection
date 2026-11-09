@@ -1,13 +1,15 @@
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=54bdce99f3004270';
-import { createPurchaseBook } from './purchase-book.mjs?v=54bdce99f3004270';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=54bdce99f3004270';
-import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=54bdce99f3004270';
-import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=54bdce99f3004270';
+import { createCollectionOverview } from './collection-overview.mjs?v=0cef56e173a18785';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=0cef56e173a18785';
+import { createPurchaseBook } from './purchase-book.mjs?v=0cef56e173a18785';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=0cef56e173a18785';
+import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=0cef56e173a18785';
+import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=0cef56e173a18785';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
-export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog }) {
+export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog, onOpenDetail }) {
   let book = createPurchaseBook(), records = book.records, fingerprint = '', scope = getScope();
   let editorBase = null, editorScope = null;
+  let overview = null, statsTab = 'overview', overviewScroll = 0, spendingScroll = 0;
   const n = value => new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 }).format(value);
   const money = value => 'NT$ ' + n(value);
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
@@ -35,14 +37,52 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
         <p id="purchase-form-error" class="record-error" role="alert" hidden></p><div class="record-form-actions"><button type="button" class="purchase-delete" id="purchase-delete-record">刪除紀錄</button><button type="button" class="record-cancel" data-purchase-close="purchase-editor">取消</button><button type="submit" class="record-save" id="purchase-save-record">儲存</button></div>
       </form>
     </dialog>
-    <dialog id="purchase-stats" class="panel-dialog purchase-stats" aria-labelledby="purchase-stats-title"><div class="dialog-heading"><div class="purchase-stats-title-line"><h2 id="purchase-stats-title">收藏統計</h2><button type="button" id="purchase-stats-info" class="icon-button purchase-stats-info" aria-label="統計說明" aria-haspopup="dialog" aria-controls="purchase-stats-help" aria-expanded="false">${icon('info')}</button></div><button class="icon-button" data-purchase-close="purchase-stats" aria-label="關閉收藏統計">${icon('close')}</button></div><div id="purchase-stats-content"></div></dialog>
+    <dialog id="purchase-stats" class="panel-dialog purchase-stats" aria-labelledby="purchase-stats-title"><div class="dialog-heading"><div class="purchase-stats-title-line"><h2 id="purchase-stats-title">收藏統計</h2><button type="button" id="purchase-stats-info" class="icon-button purchase-stats-info" aria-label="統計說明" aria-haspopup="dialog" aria-controls="purchase-stats-help" aria-expanded="false">${icon('info')}</button></div><button class="icon-button" data-purchase-close="purchase-stats" aria-label="關閉收藏統計">${icon('close')}</button></div><div class="purchase-stats-tabs" role="tablist" aria-label="統計項目"><button type="button" role="tab" id="purchase-overview-tab" data-stats-tab="overview" aria-selected="true" aria-controls="purchase-overview">收藏概況</button><button type="button" role="tab" id="purchase-spending-tab" data-stats-tab="spending" aria-selected="false" aria-controls="purchase-stats-content" tabindex="-1">花費分析</button></div><section id="purchase-overview" role="tabpanel" aria-labelledby="purchase-overview-tab"></section><section id="purchase-stats-content" role="tabpanel" aria-labelledby="purchase-spending-tab" hidden></section></dialog>
     <dialog id="purchase-stats-help" class="panel-dialog purchase-stats-help" aria-labelledby="purchase-stats-help-title" aria-describedby="purchase-stats-help-message"><h2 id="purchase-stats-help-title">統計說明</h2><div id="purchase-stats-help-message"><p>選擇 3、6 或 12 個月，再左右滑動查看其他時段。金額、花費分布及明細會一起更新。</p><p>依購入日期統計，金額以單價 × 數量計算。未填購入日期或台幣金額的紀錄不列入花費合計。</p><p>滑動時維持相同的長條比例，方便比較不同月份。記帳內容與統計結果僅自己可見。</p></div><div class="purchase-stats-help-actions"><button type="button" id="purchase-stats-help-close" data-purchase-close="purchase-stats-help">知道了</button></div></dialog>
     <dialog id="purchase-ledger" class="panel-dialog purchase-ledger" aria-labelledby="purchase-ledger-title"><div class="dialog-heading"><h2 id="purchase-ledger-title">購入明細</h2><button class="icon-button" data-purchase-close="purchase-ledger" aria-label="關閉購入明細">${icon('close')}</button></div><div id="purchase-ledger-content"></div></dialog>
     <dialog id="purchase-confirm" class="panel-dialog compact-dialog purchase-confirm" aria-labelledby="purchase-confirm-title" aria-describedby="purchase-confirm-message"><h2 id="purchase-confirm-title"></h2><p id="purchase-confirm-message"></p><div class="confirm-actions"><button type="button" class="secondary-button" id="purchase-confirm-cancel">取消</button><button type="button" class="danger-button" id="purchase-confirm-accept"></button></div></dialog>
   `);
 
+  const spendingHelp = $('purchase-stats-help-message').innerHTML;
+  function saveStatsView() {
+    if (!overview) return;
+    try { sessionStorage.setItem(scope + '-collection-overview',JSON.stringify({ tab:statsTab,overview:overview.getViewState(),overviewScroll,spendingScroll })); } catch {}
+  }
+  function ensureOverview() {
+    if (overview || !state.ready) return;
+    let saved;
+    try { saved = JSON.parse(sessionStorage.getItem(scope + '-collection-overview')); } catch {}
+    statsTab = saved?.tab === 'spending' ? 'spending' : 'overview';
+    overviewScroll = Number(saved?.overviewScroll) || 0; spendingScroll = Number(saved?.spendingScroll) || 0;
+    overview = createCollectionOverview({container:$('purchase-overview'),items:state.items,characters:state.characters,seriesTree:state.seriesTree,
+      getQuantities:() => state.quantities,onOpenDetail,initialView:saved?.overview,getScrollRoot:() => $('purchase-stats')});
+    updateStatsTabs();
+  }
+  function updateStatsTabs() {
+    $('purchase-overview').hidden = statsTab !== 'overview'; $('purchase-stats-content').hidden = statsTab !== 'spending';
+    for (const button of document.querySelectorAll('[data-stats-tab]')) {
+      const active = button.dataset.statsTab === statsTab;
+      button.setAttribute('aria-selected',String(active)); button.tabIndex = active ? 0 : -1;
+    }
+  }
+  function switchStatsTab(next) {
+    if (next === statsTab) return;
+    if (statsTab === 'overview') {overview?.remember();overviewScroll = $('purchase-stats').scrollTop;} else spendingScroll = $('purchase-stats').scrollTop;
+    statsTab = next; updateStatsTabs(); renderStats();
+    $('purchase-stats').scrollTop = statsTab === 'overview' ? overviewScroll : spendingScroll;
+    saveStatsView();
+  }
+  $('purchase-stats').addEventListener('scroll',() => { if (statsTab === 'overview') {overview?.remember();overviewScroll = $('purchase-stats').scrollTop;} else spendingScroll = $('purchase-stats').scrollTop; },{passive:true});
+  $('purchase-stats').addEventListener('close',saveStatsView);
+  window.addEventListener('pagehide',saveStatsView);
+  $('purchase-stats').addEventListener('keydown',event => {
+    if (!event.target.matches('[data-stats-tab]') || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    event.preventDefault(); switchStatsTab(event.key === 'Home' ? 'overview' : event.key === 'End' ? 'spending' : statsTab === 'overview' ? 'spending' : 'overview');
+    document.querySelector('[data-stats-tab="' + statsTab + '"]').focus({preventScroll:true});
+  });
   $('purchase-stats-info').addEventListener('click', () => {
     if (!$('purchase-stats').open || $('purchase-stats-help').open) return;
+    $('purchase-stats-help-message').innerHTML = statsTab === 'overview' ? '<p>同款多個算 1 款，持有個數則依實際數量累加。願望清單不列入收藏。</p><p>角色、種類與系列都能點開查看商品。完整度以目前篩選範圍的圖鑑款數計算，不受收藏目標設定影響。</p><p>系列可依完整度排序，或依原本的系列分類查看。花費分析與購入紀錄僅自己可見。</p>' : spendingHelp;
     $('purchase-stats-info').setAttribute('aria-expanded', 'true');
     openDialog('purchase-stats-help');
     $('purchase-stats-help-close').focus({preventScroll:true});
@@ -75,6 +115,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     const currentScope = getScope();
     const stamp = JSON.stringify([state.purchaseRecords,state.quantities]);
     if (scope !== currentScope) {
+      saveStatsView(); overview?.destroy(); overview = null; statsTab = 'overview'; overviewScroll = 0; spendingScroll = 0;
       for (const id of ['purchase-editor','purchase-ledger','purchase-stats','purchase-stats-help','purchase-confirm']) if ($(id).open) $(id).close();
       edited = null; scope = currentScope; periodEnd = null; range = 6;
     }
@@ -359,6 +400,8 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   function renderStats() {
     timelineCleanup?.();
     syncBook();
+    ensureOverview(); overview?.refresh(); updateStatsTabs();
+    if (statsTab !== 'spending') return;
     statsPeriod = purchasePeriod(records, range, periodEnd);
     periodEnd = statsPeriod.end;
     const buckets = new Map();
@@ -464,6 +507,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
   }
   function showStats() {
     closeOverlays(); renderStats(); openDialog('purchase-stats');
+    $('purchase-stats').scrollTop = statsTab === 'overview' ? overviewScroll : spendingScroll;
   }
   function showLedger(title, rows) {
     rows = rows.filter(record => record.twd !== '' || record.foreign !== '');
@@ -475,6 +519,7 @@ export function createPurchaseHub({ state, getItem, icon, persist, updateCollect
     const button = event.target.closest('button');
     if (!button) return;
     if (button.dataset.purchaseMonth && ignoreChartClick) {ignoreChartClick=false;event.preventDefault();return;}
+    if (button.dataset.statsTab) switchStatsTab(button.dataset.statsTab);
     if (button.dataset.purchaseClose) $(button.dataset.purchaseClose).close();
     if (button.dataset.purchaseUnitEdit) editUnit(button.dataset.purchaseItem, button.dataset.purchaseUnitEdit);
     if (button.hasAttribute('data-purchase-edit')) { const record = records.find(value => value.id === button.dataset.purchaseEdit); if (record) showEditor(record.itemId, record.id); }
