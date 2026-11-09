@@ -485,13 +485,17 @@ html{scroll-padding-top:118px}
 .filter-options{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.35fr)}
 @media(max-width:700px){.filter-options{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.filter-options>.series-anchor{grid-column:1/-1}}
 
-/* 系列先選大分類，再展開該區的系列；搜尋直接顯示符合項目。 */
+/* 系列大分類可跳到圖鑑分區，選單保留供接著選小系列。 */
 .series-popover{display:flex;flex-direction:column;top:calc(100% + 6px);max-height:var(--series-menu-space,calc(100dvh - 220px))}
 .series-popover.filter-popover{position:fixed;right:auto;z-index:30}
 .filter-popover-flat .series-options{margin-top:0}
 .filter-menu-anchor{min-width:0}
 .filter-menu-label{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .series-search-wrap{flex-shrink:0}
+.series-popover-tools{display:flex;align-items:center;gap:4px}
+.series-popover-tools .series-search-wrap{flex:1;min-width:0}
+.series-popover-close{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:8px;color:var(--muted)}
+.series-popover-close svg{width:16px;height:16px}
 .series-options{min-height:0;max-height:440px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 .series-all{margin-bottom:4px}
 .series-category{border-top:1px solid var(--line)}

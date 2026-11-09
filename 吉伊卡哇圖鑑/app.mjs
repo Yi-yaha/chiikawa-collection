@@ -1,14 +1,14 @@
-import './focus-visibility.mjs?v=9cbe9f70c17a92a0';
-import { createPurchaseHub } from './purchase-hub.mjs?v=9cbe9f70c17a92a0';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=9cbe9f70c17a92a0';
-import { createDialogController } from './dialog-scroll.mjs?v=9cbe9f70c17a92a0';
-import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=9cbe9f70c17a92a0';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=9cbe9f70c17a92a0';
-import { createCatalogImageLoader } from './image-loader.mjs?v=9cbe9f70c17a92a0';
-import { createCharacterSorter } from './character-sorter.mjs?v=9cbe9f70c17a92a0';
-import { watchForSiteUpdates } from './site-updates.mjs?v=9cbe9f70c17a92a0';
-import { createReportHub } from './report-hub.mjs?v=9cbe9f70c17a92a0';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=9cbe9f70c17a92a0';
+import './focus-visibility.mjs?v=bb316fd32f994623';
+import { createPurchaseHub } from './purchase-hub.mjs?v=bb316fd32f994623';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=bb316fd32f994623';
+import { createDialogController } from './dialog-scroll.mjs?v=bb316fd32f994623';
+import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=bb316fd32f994623';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=bb316fd32f994623';
+import { createCatalogImageLoader } from './image-loader.mjs?v=bb316fd32f994623';
+import { createCharacterSorter } from './character-sorter.mjs?v=bb316fd32f994623';
+import { watchForSiteUpdates } from './site-updates.mjs?v=bb316fd32f994623';
+import { createReportHub } from './report-hub.mjs?v=bb316fd32f994623';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=bb316fd32f994623';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -91,6 +91,7 @@ let filtersExpanded = false;
 let charactersExpanded = false;
 let openSeriesCategory = '';
 const openSeriesSubcategories = new Set();
+const seriesMenuBranches = new Map();
 let unownedViewIds = null;
 try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
 try { history.scrollRestoration = 'manual'; } catch {}
@@ -227,12 +228,12 @@ document.addEventListener('close', event => {
   }
 }, true);
 function baseItems() { return scopeItems(state.items, state.scope, state.owned, state.wishlist); }
-function currentItems() {
+function currentItems(series = state.series) {
   // 未擁有清單在本次瀏覽中保留原位；收藏照常儲存，重新篩選才更新清單。
   if (state.ownership === 'unowned' && !unownedViewIds) {
     unownedViewIds = new Set(state.items.filter(item => !state.owned.has(item.id)).map(item => item.id));
   }
-  return filterItems(baseItems(), state).filter(item => state.ownership === 'all' || (state.ownership === 'owned' ? state.owned.has(item.id) : unownedViewIds.has(item.id)));
+  return filterItems(baseItems(), {...state, series}).filter(item => state.ownership === 'all' || (state.ownership === 'owned' ? state.owned.has(item.id) : unownedViewIds.has(item.id)));
 }
 function matchingCatalogItems() {
   const items = state.scope === 'mine' ? state.items : scopeItems(state.items, state.scope, state.owned, state.wishlist);
@@ -395,31 +396,35 @@ function filterSelectOptions(allLabel,total,options,counts,selected) {
     (counts.get(key) || 0) + '"' + (selected === key ? ' selected' : '') + '>' + escapeHTML(label) + '</option>').join('');
 }
 function renderSeriesOptions() {
-  const available = filterItems(baseItems(), {type:state.type,region:state.region,query:state.query});
+  const available = currentItems('');
   const search = $('series-search').value.trim();
   const categories = groupSeriesOptions(available, {query:search, catalog:state.items, seriesTree:state.seriesTree});
+  seriesMenuBranches.clear();
   const option = ({key,label,count}) => filterChoice({key,label,count,selected:state.series === key,attribute:'data-series'});
+  const branchToggle = (node, depth, body) => {
+    const selected = node.options.some(({key}) => key === state.series);
+    const expanded = depth ? openSeriesSubcategories.has(node.id) : node.id === openSeriesCategory;
+    const id = escapeHTML(node.id);
+    seriesMenuBranches.set(node.id, node);
+    return '<section class="series-category"><button type="button" class="series-category-toggle' + (selected ? ' has-selection' : '') + '" data-series-' + (depth ? 'subcategory' : 'category') + '="' + id + '" aria-expanded="' + expanded + '" aria-controls="series-category-' + id + '"><span class="series-category-name">' + escapeHTML(node.label) + (selected ? icon('check') : '') + '</span><small>' + number(node.options.length) + ' 個系列</small>' + icon('chevron') + '</button><div id="series-category-' + id + '" class="series-category-options"' + (expanded ? '' : ' hidden') + '>' + body + '</div></section>';
+  };
   const hierarchy = (node, depth = 0) => {
     if (!node.hasChildren) return node.ownOptions.map(option).join('');
     const heading = escapeHTML(node.label);
     const body = node.ownOptions.map(option).join('') + node.children.map(child => hierarchy(child, depth + 1)).join('');
     if (search) return '<section class="series-category"><' + (depth ? 'p class="series-subgroup-heading"' : 'h3 class="series-search-heading"') + '>' + heading + '</' + (depth ? 'p' : 'h3') + '>' + body + '</section>';
-    const selected = node.options.some(({key}) => key === state.series);
-    const expanded = depth ? openSeriesSubcategories.has(node.id) : node.id === openSeriesCategory;
-    return '<section class="series-category"><button type="button" class="series-category-toggle' + (selected ? ' has-selection' : '') + '" data-series-' + (depth ? 'subcategory' : 'category') + '="' + escapeHTML(node.id) + '" aria-expanded="' + expanded + '" aria-controls="series-category-' + escapeHTML(node.id) + '"><span class="series-category-name">' + heading + (selected ? icon('check') : '') + '</span><small>' + number(node.options.length) + ' 個系列</small>' + icon('chevron') + '</button><div id="series-category-' + escapeHTML(node.id) + '" class="series-category-options"' + (expanded ? '' : ' hidden') + '>' + body + '</div></section>';
+    return branchToggle(node, depth, body);
   };
   let html = filterChoice({key:'',label:'全部系列',count:available.length,selected:!state.series,all:true,attribute:'data-series'});
   html += categories.map(category => {
     if (category.id === 'unassigned') return '<div class="series-unassigned">' + category.options.map(option).join('') + '</div>';
     if (category.children) return hierarchy(category);
-    const selected = category.options.some(({key}) => key === state.series);
     const heading = escapeHTML(category.label);
     const options = category.sections
       ? category.sections.map(section => '<div class="series-subgroup" role="group" aria-label="' + escapeHTML(section.label) + '"><p class="series-subgroup-heading">' + escapeHTML(section.label) + '</p>' + section.options.map(option).join('') + '</div>').join('')
       : category.options.map(option).join('');
     if (search) return '<section class="series-category"><h3 class="series-search-heading">' + heading + '</h3>' + options + '</section>';
-    const expanded = category.id === openSeriesCategory;
-    return '<section class="series-category"><button type="button" class="series-category-toggle' + (selected ? ' has-selection' : '') + '" data-series-category="' + category.id + '" aria-expanded="' + expanded + '" aria-controls="series-category-' + category.id + '"><span class="series-category-name">' + heading + (selected ? icon('check') : '') + '</span><small>' + number(category.options.length) + ' 個系列</small>' + icon('chevron') + '</button><div id="series-category-' + category.id + '" class="series-category-options"' + (expanded ? '' : ' hidden') + '>' + options + '</div></section>';
+    return branchToggle(category, 0, options);
   }).join('');
   if (!categories.length) html += '<p class="series-option-empty">' + (search ? '找不到符合的系列，換個名稱試試看。' : '目前沒有可選的系列，試試切換角色或調整篩選。') + '</p>';
   $('series-options').innerHTML = html;
@@ -499,7 +504,7 @@ function catalogSeriesProducts(branch, renderCard = productCard, depth = 0) {
   const children = branch.children.map(child => catalogSeriesProducts(child, renderCard, depth + 1)).join('');
   if (!depth) return '<div class="catalog-series-products">' + grid + children + '</div>';
   const heading = 'h' + Math.min(3 + depth, 6);
-  return '<section class="catalog-series-section"><header class="catalog-series-heading"><' + heading + '>' + escapeHTML(branch.name) + '</' + heading + '><span>' + number(branch.count) + ' 款</span></header>' + grid + children + '</section>';
+  return '<section class="catalog-series-section" data-series-section="' + escapeHTML(branch.name) + '"><header class="catalog-series-heading"><' + heading + '>' + escapeHTML(branch.name) + '</' + heading + '><span>' + number(branch.count) + ' 款</span></header>' + grid + children + '</section>';
 }
 function replaceCatalogSeriesProducts(products, branch) {
   // 分段增減時沿用仍在清單裡的卡片與圖片。
@@ -963,7 +968,7 @@ const catalogSeriesMenu = createFilterMenu({
 });
 function prepareSeriesMenu() {
   $('series-search').value = '';
-  const selectedCategory = groupSeriesOptions(state.items, {seriesTree:state.seriesTree}).find(category => category.options.some(({key}) => key === state.series));
+  const selectedCategory = state.series && groupSeriesOptions(currentItems(''), {seriesTree:state.seriesTree}).find(category => category.options.some(({key}) => key === state.series));
   openSeriesCategory = selectedCategory?.id || '';
   openSeriesSubcategories.clear();
   const expandSelected = node => {
@@ -978,7 +983,7 @@ function prepareSeriesMenu() {
   list.scrollTop = 0;
   requestAnimationFrame(() => {
     if (!catalogSeriesMenu.isOpen) return;
-    const selected = list.querySelector('.series-option.selected');
+    const selected = list.querySelector('.series-option.selected:not(.series-all)');
     if (!selected) return;
     const bounds = list.getBoundingClientRect();
     const position = selected.getBoundingClientRect();
@@ -993,34 +998,69 @@ window.addEventListener('resize', () => {
     $('catalog-content').querySelectorAll('.catalog-group').forEach(group => group.style.setProperty('--group-rows', Math.ceil(Number(group.dataset.count) / catalogColumns())));
   });
 }, { passive:true });
+function seriesHeading(name, groups) {
+  const content = $('catalog-content');
+  const nested = name && content.querySelector('[data-series-section="' + CSS.escape(name) + '"] > .catalog-series-heading > :first-child');
+  if (nested) return nested;
+  const group = [...content.querySelectorAll('.catalog-group')].find(section => !groups || groups.has(section.dataset.groupKey));
+  return group?.querySelector('.group-heading h3');
+}
+function revealSeriesHeading(heading) {
+  heading.tabIndex = -1;
+  const top = Math.max(siteHeader.getBoundingClientRect().bottom, window.visualViewport?.offsetTop || 0);
+  window.scrollBy({top:heading.getBoundingClientRect().top - top - 16, behavior:'instant'});
+}
 $('series-options').addEventListener('click', event => {
-  const subcategory = event.target.closest('[data-series-subcategory]');
-  if (subcategory) {
-    const id = subcategory.dataset.seriesSubcategory;
-    const expanded = !openSeriesSubcategories.has(id);
-    if (expanded) openSeriesSubcategories.add(id); else openSeriesSubcategories.delete(id);
-    subcategory.setAttribute('aria-expanded', String(expanded));
-    $(subcategory.getAttribute('aria-controls')).hidden = !expanded;
-    if (expanded) $('series-options').scrollTop += subcategory.getBoundingClientRect().top - $('series-options').getBoundingClientRect().top;
-    return;
-  }
-  const category = event.target.closest('[data-series-category]');
-  if (category) {
-    openSeriesCategory = openSeriesCategory === category.dataset.seriesCategory ? '' : category.dataset.seriesCategory;
-    $('series-options').querySelectorAll('[data-series-category]').forEach(button => {
-      const expanded = button.dataset.seriesCategory === openSeriesCategory;
-      button.setAttribute('aria-expanded', String(expanded));
-      $(button.getAttribute('aria-controls')).hidden = !expanded;
-    });
-    if (openSeriesCategory) $('series-options').scrollTop += category.getBoundingClientRect().top - $('series-options').getBoundingClientRect().top;
+  const branch = event.target.closest('[data-series-category], [data-series-subcategory]');
+  if (branch) {
+    const {seriesCategory, seriesSubcategory} = branch.dataset;
+    const id = seriesCategory ?? seriesSubcategory;
+    const node = seriesMenuBranches.get(id);
+    if (!node) return;
+    const expanded = branch.getAttribute('aria-expanded') === 'false';
+    if (seriesCategory) openSeriesCategory = expanded ? id : '';
+    else if (expanded) openSeriesSubcategories.add(id);
+    else openSeriesSubcategories.delete(id);
+
+    // 大分類只定位到目前篩選下的商品，系列篩選留給最後選到的系列。
+    let heading;
+    if (expanded) {
+      if (state.series || state.groupBy !== 'series') {
+        const groupingChanged = state.groupBy !== 'series';
+        state.series = '';
+        state.groupBy = 'series';
+        if (groupingChanged) persist();
+        renderCatalog();
+      } else renderSeriesOptions();
+      const keys = new Set(node.options.map(({key}) => key));
+      const groups = new Set(currentItems().filter(item => keys.has(seriesKey(item))).map(item => seriesGroupKey(item, state.seriesTree)));
+      heading = seriesHeading(node.label, groups);
+    } else renderSeriesOptions();
+
+    const list = $('series-options');
+    const button = list.querySelector('[data-series-' + (seriesCategory ? 'category' : 'subcategory') + '="' + CSS.escape(id) + '"]');
+    button?.focus({preventScroll:true});
+    if (heading) {
+      revealSeriesHeading(heading);
+      catalogSeriesMenu.pin(heading);
+    }
+    if (expanded && button) list.scrollTop += button.getBoundingClientRect().top - list.getBoundingClientRect().top;
     return;
   }
   const target = event.target.closest('[data-series]');
   if (target) {
+    const jumped = catalogSeriesMenu.isPinned;
     state.series = target.dataset.series;
     if(state.series) { state.groupBy = 'series'; persist(); }
-    catalogSeriesMenu.close(true);
+    catalogSeriesMenu.close(!jumped);
     renderCatalog();
+    if (jumped) {
+      const heading = seriesHeading(state.series);
+      if (heading) {
+        revealSeriesHeading(heading);
+        heading.focus({preventScroll:true});
+      }
+    }
   }
 });
 let searchTimer;
@@ -1266,7 +1306,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=9cbe9f70c17a92a0');
+        const { createAccountHub } = await import('./account-hub.mjs?v=bb316fd32f994623');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           seriesTree:state.seriesTree, initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

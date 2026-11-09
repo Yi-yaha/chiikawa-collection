@@ -26,13 +26,13 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=9cbe9f70c17a92a0">
-  <link rel="stylesheet" href="./purchase.css?v=9cbe9f70c17a92a0">
-  <link rel="stylesheet" href="./account.css?v=9cbe9f70c17a92a0">
-  <link rel="stylesheet" href="./collection-overview.css?v=9cbe9f70c17a92a0">
-  <link rel="stylesheet" href="./report.css?v=9cbe9f70c17a92a0">
-  <script type="module" src="./app.mjs?v=9cbe9f70c17a92a0"></script>
-  <meta name="chiikawa-site-version" content="9cbe9f70c17a92a0">
+  <link rel="stylesheet" href="./styles.css?v=bb316fd32f994623">
+  <link rel="stylesheet" href="./purchase.css?v=bb316fd32f994623">
+  <link rel="stylesheet" href="./account.css?v=bb316fd32f994623">
+  <link rel="stylesheet" href="./collection-overview.css?v=bb316fd32f994623">
+  <link rel="stylesheet" href="./report.css?v=bb316fd32f994623">
+  <script type="module" src="./app.mjs?v=bb316fd32f994623"></script>
+  <meta name="chiikawa-site-version" content="bb316fd32f994623">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -80,7 +80,10 @@
             <div class="series-anchor">
               <button id="series-toggle" class="select-control series-toggle" aria-label="篩選系列：全部系列" aria-haspopup="dialog" aria-expanded="false" aria-controls="series-popover"><span id="series-label">全部系列</span><span data-icon="chevron"></span></button>
               <div id="series-popover" class="series-popover" role="dialog" aria-label="選擇系列" hidden>
-                <div class="series-search-wrap"><span data-icon="search"></span><input id="series-search" type="search" placeholder="搜尋系列或分類" aria-label="搜尋系列或分類" autocomplete="off"></div>
+                <div class="series-popover-tools">
+                  <div class="series-search-wrap"><span data-icon="search"></span><input id="series-search" type="search" placeholder="搜尋系列或分類" aria-label="搜尋系列或分類" autocomplete="off"></div>
+                  <button type="button" class="series-popover-close" data-close-filter-menu aria-label="關閉系列選單" hidden><span data-icon="close"></span></button>
+                </div>
                 <div id="series-options" class="series-options"></div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { visibleViewport } from './dialog-viewport.mjs?v=9cbe9f70c17a92a0';
+import { visibleViewport } from './dialog-viewport.mjs?v=bb316fd32f994623';
 
 const chevron = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char =>
@@ -16,7 +16,8 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
   const search = panel.querySelector('input[type="search"]');
   const list = panel.querySelector('.series-options');
   const anchor = button.parentElement;
-  let events;
+  const dismiss = panel.querySelector('[data-close-filter-menu]');
+  let events, pinnedTarget, pinnedInset = 0;
   panel.classList.add('filter-popover');
   if (!search) panel.classList.add('filter-popover-flat');
 
@@ -28,7 +29,7 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     const bottom = Math.min(frame?.bottom ?? innerHeight,viewport.top + viewport.height) - 12;
     const leftEdge = (frame?.left ?? 0) + 12;
     const rightEdge = (frame?.right ?? document.documentElement.clientWidth) - 12;
-    if (!field.height || (search !== document.activeElement && (field.bottom < top || field.top > bottom))) {
+    if (!field.height || (!pinnedTarget && search !== document.activeElement && (field.bottom < top || field.top > bottom))) {
       close();
       return;
     }
@@ -37,6 +38,18 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     const left = align === 'end' ? field.right - width : field.left;
     panel.style.width = width + 'px';
     panel.style.left = Math.max(leftEdge,Math.min(left,rightEdge - width)) + 'px';
+
+    if (pinnedTarget) {
+      const space = Math.max(0,bottom - top);
+      // 短清單捲不到頁首時，仍要讓剛跳到的分區標題露在選單上方。
+      const belowHeading = bottom - viewport.top - pinnedInset;
+      const height = Math.min(310,space,Math.max(150,space * .46),Math.max(150,belowHeading));
+      panel.style.top = bottom - height + 'px';
+      panel.style.bottom = 'auto';
+      panel.style.height = height + 'px';
+      panel.style.setProperty('--series-menu-space', height + 'px');
+      return;
+    }
 
     const above = field.top - top - 6;
     const below = bottom - field.bottom - 6;
@@ -62,7 +75,10 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     panel.hidden = true;
     button.setAttribute('aria-expanded','false');
     if (activeMenu === api) activeMenu = null;
-    if (restoreFocus) button.focus({preventScroll:true});
+    const focusTarget = pinnedTarget?.isConnected ? pinnedTarget : button;
+    pinnedTarget = null;
+    if (dismiss) dismiss.hidden = true;
+    if (restoreFocus) focusTarget.focus({preventScroll:true});
   }
 
   function focusChoice(choice) {
@@ -107,6 +123,7 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     if (panel.hidden) open(event.detail === 0);
     else close();
   });
+  dismiss?.addEventListener('click',() => close(true));
   anchor.addEventListener('keydown',event => {
     if (event.key === 'Escape' && !panel.hidden) {
       event.preventDefault();
@@ -128,7 +145,18 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     focusChoice(choices[Math.max(0,Math.min(choices.length - 1,next))]);
   });
 
-  const api = { close, get isOpen() { return !panel.hidden; } };
+  const api = {
+    close,
+    pin(target) {
+      if (panel.hidden) return;
+      pinnedTarget = target;
+      pinnedInset = target.getBoundingClientRect().bottom - visibleViewport().top + 10;
+      if (dismiss) dismiss.hidden = false;
+      position();
+    },
+    get isOpen() { return !panel.hidden; },
+    get isPinned() { return Boolean(pinnedTarget); },
+  };
   return api;
 }
 
