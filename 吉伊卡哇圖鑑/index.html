@@ -26,13 +26,13 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=bb316fd32f994623">
-  <link rel="stylesheet" href="./purchase.css?v=bb316fd32f994623">
-  <link rel="stylesheet" href="./account.css?v=bb316fd32f994623">
-  <link rel="stylesheet" href="./collection-overview.css?v=bb316fd32f994623">
-  <link rel="stylesheet" href="./report.css?v=bb316fd32f994623">
-  <script type="module" src="./app.mjs?v=bb316fd32f994623"></script>
-  <meta name="chiikawa-site-version" content="bb316fd32f994623">
+  <link rel="stylesheet" href="./styles.css?v=f41b3fb569f7cb39">
+  <link rel="stylesheet" href="./purchase.css?v=f41b3fb569f7cb39">
+  <link rel="stylesheet" href="./account.css?v=f41b3fb569f7cb39">
+  <link rel="stylesheet" href="./collection-overview.css?v=f41b3fb569f7cb39">
+  <link rel="stylesheet" href="./report.css?v=f41b3fb569f7cb39">
+  <script type="module" src="./app.mjs?v=f41b3fb569f7cb39"></script>
+  <meta name="chiikawa-site-version" content="f41b3fb569f7cb39">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -82,7 +82,7 @@
               <div id="series-popover" class="series-popover" role="dialog" aria-label="選擇系列" hidden>
                 <div class="series-popover-tools">
                   <div class="series-search-wrap"><span data-icon="search"></span><input id="series-search" type="search" placeholder="搜尋系列或分類" aria-label="搜尋系列或分類" autocomplete="off"></div>
-                  <button type="button" class="series-popover-close" data-close-filter-menu aria-label="關閉系列選單" hidden><span data-icon="close"></span></button>
+                  <button type="button" class="series-popover-close" data-close-filter-menu aria-label="關閉系列選單"><span data-icon="close"></span></button>
                 </div>
                 <div id="series-options" class="series-options"></div>
               </div>
@@ -98,9 +98,11 @@
         </div>
         <label class="grouping-control"><select id="grouping-select" aria-label="排列方式"><option value="character">依種類</option><option value="series">依系列</option></select><span data-icon="chevron"></span></label>
       </section>
-      <p id="result-context" class="result-context" role="status" aria-live="polite" hidden></p>
-      <div class="filter-summary"><div id="active-filters" class="active-filters"></div><button id="reset-filters" class="text-button" hidden><span data-icon="reset"></span>重設篩選</button></div>
-      <div id="catalog-content" aria-busy="true"><div class="product-grid skeleton-grid" aria-hidden="true"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+      <section id="catalog-results" aria-label="商品結果" tabindex="-1">
+        <p id="result-context" class="result-context" role="status" aria-live="polite" hidden></p>
+        <div class="filter-summary"><div id="active-filters" class="active-filters"></div><button id="reset-filters" class="text-button" hidden><span data-icon="reset"></span>重設篩選</button></div>
+        <div id="catalog-content" aria-busy="true"><div class="product-grid skeleton-grid" aria-hidden="true"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+      </section>
     </section>
 
   </main>

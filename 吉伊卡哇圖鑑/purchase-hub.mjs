@@ -1,9 +1,9 @@
-import { createCollectionOverview } from './collection-overview.mjs?v=bb316fd32f994623';
-import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=bb316fd32f994623';
-import { createPurchaseBook } from './purchase-book.mjs?v=bb316fd32f994623';
-import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=bb316fd32f994623';
-import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=bb316fd32f994623';
-import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=bb316fd32f994623';
+import { createCollectionOverview } from './collection-overview.mjs?v=f41b3fb569f7cb39';
+import { calculatePurchaseField, normalizePurchaseAmount, normalizePurchaseRate, PURCHASE_CURRENCIES } from './purchase-records.mjs?v=f41b3fb569f7cb39';
+import { createPurchaseBook } from './purchase-book.mjs?v=f41b3fb569f7cb39';
+import { purchaseRecordTotal, purchaseTotal, validPurchaseDate, purchaseCurrency } from './purchase-records.mjs?v=f41b3fb569f7cb39';
+import { monthNumber, monthKey, purchasePeriod, recordsInPeriod, periodLabel, periodDates } from './purchase-period.mjs?v=f41b3fb569f7cb39';
+import { fetchPurchaseExchangeRate } from './purchase-exchange.mjs?v=f41b3fb569f7cb39';
 
 // 本人的私人收藏紀錄；依既有帳號、離線與版本差異流程保存。
 export function createPurchaseHub({ state, getItem, icon, persist, updateCollection, toast, getScope, openDialog, onOpenDetail }) {

@@ -1,6 +1,6 @@
-import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=bb316fd32f994623';
-import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=bb316fd32f994623';
-import { normalizeSaleRecords } from './sale-records.mjs?v=bb316fd32f994623';
+import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=f41b3fb569f7cb39';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=f41b3fb569f7cb39';
+import { normalizeSaleRecords } from './sale-records.mjs?v=f41b3fb569f7cb39';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -277,9 +277,9 @@ export function scopeItems(items, scope, owned, wishlist = new Set()) {
   return items.filter(item => item.character === scope);
 }
 
-export function filterItems(items, { type = '', region = '', series = '', query = '' } = {}) {
+export function filterItems(items, { type = '', region = '', series = '', seriesKeys, query = '' } = {}) {
   const needle = normalizeSearchText(query);
-  return items.filter(item => (!type || item.type === type) && (!region || (item.region || '日本') === region) && (!series || seriesKey(item) === series) && (!needle || normalizeSearchText(`${item.name} ${item.series || ''} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`).includes(needle)));
+  return items.filter(item => (!type || item.type === type) && (!region || (item.region || '日本') === region) && (seriesKeys ? seriesKeys.has(seriesKey(item)) : !series || seriesKey(item) === series) && (!needle || normalizeSearchText(`${item.name} ${item.series || ''} ${item.character} ${item.japaneseName || ''} ${item.sku || ''}`).includes(needle)));
 }
 
 export function collectionStats(items, owned, quantities = {}, includedTypes = {}) {

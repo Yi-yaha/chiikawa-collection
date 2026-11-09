@@ -1,4 +1,4 @@
-import { visibleViewport } from './dialog-viewport.mjs?v=bb316fd32f994623';
+import { visibleViewport } from './dialog-viewport.mjs?v=f41b3fb569f7cb39';
 
 const chevron = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char =>
@@ -11,13 +11,13 @@ export function filterChoice({ key, label, selected, count, all = false, attribu
 }
 
 // 浮動選單沿用所屬畫面的操作層級，鍵盤出現時只調整選單自己的可見範圍。
-export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWidth = 280, flat = false }) {
+export function createFilterMenu({ button, panel, onOpen, returnFocus, fixedAnchor = false, align = 'start', maxWidth = 280, flat = false }) {
   const dialog = button.closest('dialog');
   const search = panel.querySelector('input[type="search"]');
   const list = panel.querySelector('.series-options');
   const anchor = button.parentElement;
   const dismiss = panel.querySelector('[data-close-filter-menu]');
-  let events, pinnedTarget, pinnedInset = 0;
+  let events, openingOffset = null;
   panel.classList.add('filter-popover');
   if (!search) panel.classList.add('filter-popover-flat');
 
@@ -29,7 +29,7 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     const bottom = Math.min(frame?.bottom ?? innerHeight,viewport.top + viewport.height) - 12;
     const leftEdge = (frame?.left ?? 0) + 12;
     const rightEdge = (frame?.right ?? document.documentElement.clientWidth) - 12;
-    if (!field.height || (!pinnedTarget && search !== document.activeElement && (field.bottom < top || field.top > bottom))) {
+    if (!field.height || (openingOffset === null && search !== document.activeElement && (field.bottom < top || field.top > bottom))) {
       close();
       return;
     }
@@ -39,20 +39,11 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     panel.style.width = width + 'px';
     panel.style.left = Math.max(leftEdge,Math.min(left,rightEdge - width)) + 'px';
 
-    if (pinnedTarget) {
-      const space = Math.max(0,bottom - top);
-      // 短清單捲不到頁首時，仍要讓剛跳到的分區標題露在選單上方。
-      const belowHeading = bottom - viewport.top - pinnedInset;
-      const height = Math.min(310,space,Math.max(150,space * .46),Math.max(150,belowHeading));
-      panel.style.top = bottom - height + 'px';
-      panel.style.bottom = 'auto';
-      panel.style.height = height + 'px';
-      panel.style.setProperty('--series-menu-space', height + 'px');
-      return;
-    }
-
-    const above = field.top - top - 6;
-    const below = bottom - field.bottom - 6;
+    // 系列選單以開啟時的位置為準；背景捲動不改變選單的展開方向。
+    const fieldTop = openingOffset === null ? field.top : Math.min(viewport.top + openingOffset,bottom);
+    const fieldBottom = openingOffset === null ? field.bottom : Math.min(fieldTop + field.height,bottom);
+    const above = fieldTop - top - 6;
+    const below = bottom - fieldBottom - 6;
     const placeBelow = below >= Math.min(search ? 235 : 160,above);
     const space = placeBelow ? below : above;
     if (space < (search ? 110 : 66)) {
@@ -62,8 +53,8 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
       panel.style.setProperty('--series-menu-space', Math.max(0,bottom-top) + 'px');
       return;
     }
-    panel.style.top = placeBelow ? field.bottom + 6 + 'px' : 'auto';
-    panel.style.bottom = placeBelow ? 'auto' : innerHeight - field.top + 6 + 'px';
+    panel.style.top = placeBelow ? fieldBottom + 6 + 'px' : 'auto';
+    panel.style.bottom = placeBelow ? 'auto' : innerHeight - fieldTop + 6 + 'px';
     // 選單朝上時保持搜尋欄位置，避免縮短結果清單時移動正在輸入的欄位。
     panel.style.height = search && !placeBelow ? Math.min(310,space) + 'px' : 'auto';
     panel.style.setProperty('--series-menu-space', space + 'px');
@@ -75,10 +66,8 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     panel.hidden = true;
     button.setAttribute('aria-expanded','false');
     if (activeMenu === api) activeMenu = null;
-    const focusTarget = pinnedTarget?.isConnected ? pinnedTarget : button;
-    pinnedTarget = null;
-    if (dismiss) dismiss.hidden = true;
-    if (restoreFocus) focusTarget.focus({preventScroll:true});
+    openingOffset = null;
+    if (restoreFocus) (returnFocus?.() || button).focus({preventScroll:true});
   }
 
   function focusChoice(choice) {
@@ -95,6 +84,7 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     activeMenu = api;
     panel.hidden = false;
     button.setAttribute('aria-expanded','true');
+    if (fixedAnchor) openingOffset = button.getBoundingClientRect().top - visibleViewport().top;
     onOpen?.();
     position();
     if (panel.hidden) return;
@@ -145,18 +135,7 @@ export function createFilterMenu({ button, panel, onOpen, align = 'start', maxWi
     focusChoice(choices[Math.max(0,Math.min(choices.length - 1,next))]);
   });
 
-  const api = {
-    close,
-    pin(target) {
-      if (panel.hidden) return;
-      pinnedTarget = target;
-      pinnedInset = target.getBoundingClientRect().bottom - visibleViewport().top + 10;
-      if (dismiss) dismiss.hidden = false;
-      position();
-    },
-    get isOpen() { return !panel.hidden; },
-    get isPinned() { return Boolean(pinnedTarget); },
-  };
+  const api = { close, get isOpen() { return !panel.hidden; } };
   return api;
 }
 

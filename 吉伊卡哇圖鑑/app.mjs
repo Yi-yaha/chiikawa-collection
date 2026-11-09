@@ -1,14 +1,14 @@
-import './focus-visibility.mjs?v=bb316fd32f994623';
-import { createPurchaseHub } from './purchase-hub.mjs?v=bb316fd32f994623';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=bb316fd32f994623';
-import { createDialogController } from './dialog-scroll.mjs?v=bb316fd32f994623';
-import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=bb316fd32f994623';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=bb316fd32f994623';
-import { createCatalogImageLoader } from './image-loader.mjs?v=bb316fd32f994623';
-import { createCharacterSorter } from './character-sorter.mjs?v=bb316fd32f994623';
-import { watchForSiteUpdates } from './site-updates.mjs?v=bb316fd32f994623';
-import { createReportHub } from './report-hub.mjs?v=bb316fd32f994623';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=bb316fd32f994623';
+import './focus-visibility.mjs?v=f41b3fb569f7cb39';
+import { createPurchaseHub } from './purchase-hub.mjs?v=f41b3fb569f7cb39';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=f41b3fb569f7cb39';
+import { createDialogController } from './dialog-scroll.mjs?v=f41b3fb569f7cb39';
+import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=f41b3fb569f7cb39';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=f41b3fb569f7cb39';
+import { createCatalogImageLoader } from './image-loader.mjs?v=f41b3fb569f7cb39';
+import { createCharacterSorter } from './character-sorter.mjs?v=f41b3fb569f7cb39';
+import { watchForSiteUpdates } from './site-updates.mjs?v=f41b3fb569f7cb39';
+import { createReportHub } from './report-hub.mjs?v=f41b3fb569f7cb39';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=f41b3fb569f7cb39';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -74,7 +74,7 @@ function avatarPortrait(character) {
   const crop = '--portrait-size:' + (zoom*100) + '%;--portrait-x:' + (50-x*zoom) + '%;--portrait-y:' + (50-y*zoom) + '%';
   return '<span class="avatar-portrait" style="' + crop + '"><img src="' + escapeHTML(avatars.get(character)) + '" alt="" width="300" height="300" loading="lazy" decoding="async"></span>';
 }
-const state = { items:[], characters:[], owned:new Set(), quantities:{}, wishlist:new Set(), purchaseRecords:{}, saleRecords:{}, characterOrder:[], groupBy:'character', includedTypes:{}, scope:'mine', ownership:'all', type:'', region:'', series:'', query:'', ready:false };
+const state = { items:[], characters:[], owned:new Set(), quantities:{}, wishlist:new Set(), purchaseRecords:{}, saleRecords:{}, characterOrder:[], groupBy:'character', includedTypes:{}, scope:'mine', ownership:'all', type:'', region:'', seriesFilter:null, query:'', ready:false };
 let itemMap = new Map();
 let itemAliases = {};
 let characterTotals = new Map();
@@ -89,9 +89,8 @@ let lastClearKey = STORAGE_KEY + '-last-clear';
 const filterExpansionKey = STORAGE_KEY + '-filters-expanded';
 let filtersExpanded = false;
 let charactersExpanded = false;
-let openSeriesCategory = '';
-const openSeriesSubcategories = new Set();
-const seriesMenuBranches = new Map();
+let openSeriesPath = [];
+const catalogSeriesBranches = new Map();
 let unownedViewIds = null;
 try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
 try { history.scrollRestoration = 'manual'; } catch {}
@@ -101,7 +100,7 @@ const dialogController = createDialogController($('catalog-content'), {
 });
 for (const event of ['pointerdown','touchstart','wheel','keydown']) window.addEventListener(event, () => { initialPositionPending = false; }, { passive:true, once:true });
 const browseState = createViewState({ key:STORAGE_KEY + '-browse', read:() => ({
-  scope:state.scope, type:state.type, region:state.region, series:state.series,
+  scope:state.scope, type:state.type, region:state.region, series:state.seriesFilter?.key || '', seriesBranch:state.seriesFilter?.id,
   query:$('catalog-search').value, groupBy:state.groupBy, ownership:state.ownership, filtersExpanded, charactersExpanded,
   tabs:{ x:$('character-tabs').scrollLeft, y:$('character-tabs').scrollTop },
   position:dialogController.position || initialPositionPending && browseState.saved?.position || capturePosition($('catalog-content')),
@@ -228,16 +227,31 @@ document.addEventListener('close', event => {
   }
 }, true);
 function baseItems() { return scopeItems(state.items, state.scope, state.owned, state.wishlist); }
-function currentItems(series = state.series) {
+function filteredCatalogItems(items, overrides) {
+  const {type, region, query, seriesFilter} = state;
+  return filterItems(items, {type, region, query, series:seriesFilter?.key, seriesKeys:seriesFilter?.keys, ...overrides});
+}
+function currentItems(overrides) {
   // 未擁有清單在本次瀏覽中保留原位；收藏照常儲存，重新篩選才更新清單。
   if (state.ownership === 'unowned' && !unownedViewIds) {
     unownedViewIds = new Set(state.items.filter(item => !state.owned.has(item.id)).map(item => item.id));
   }
-  return filterItems(baseItems(), {...state, series}).filter(item => state.ownership === 'all' || (state.ownership === 'owned' ? state.owned.has(item.id) : unownedViewIds.has(item.id)));
+  return filteredCatalogItems(baseItems(), overrides).filter(item => state.ownership === 'all' || (state.ownership === 'owned' ? state.owned.has(item.id) : unownedViewIds.has(item.id)));
 }
 function matchingCatalogItems() {
   const items = state.scope === 'mine' ? state.items : scopeItems(state.items, state.scope, state.owned, state.wishlist);
-  return filterItems(items, state);
+  return filteredCatalogItems(items);
+}
+function exactSeriesFilter(key) { return key ? {key,label:seriesLabel(key)} : null; }
+function indexSeriesBranches() {
+  catalogSeriesBranches.clear();
+  function visit(node, parents = []) {
+    if (node.id === 'unassigned' || (node.children && !node.hasChildren)) return;
+    const path = [...parents,node.id];
+    catalogSeriesBranches.set(node.id, { id:node.id, label:node.label, path, keys:new Set(node.options.map(({key}) => key)) });
+    node.children?.forEach(child => visit(child,path));
+  }
+  groupSeriesOptions(state.items, {seriesTree:state.seriesTree}).forEach(node => visit(node));
 }
 function catalogGrouping() {
   if (state.groupBy === 'series') return 'series';
@@ -361,7 +375,7 @@ function renderHeading() {
 }
 
 function renderFilterDisclosure() {
-  const count = Number(Boolean(state.type)) + Number(Boolean(state.region)) + Number(Boolean(state.series));
+  const count = Number(Boolean(state.type)) + Number(Boolean(state.region)) + Number(Boolean(state.seriesFilter));
   $('filter-options').hidden = !filtersExpanded;
   $('filter-toggle').setAttribute('aria-expanded', String(filtersExpanded));
   $('filter-toggle').setAttribute('aria-label', (filtersExpanded ? '收合' : '展開') + '地區、種類與系列篩選' + (count ? '，已套用 ' + count + ' 個條件' : ''));
@@ -370,7 +384,7 @@ function renderFilterDisclosure() {
   $('filter-count').textContent = String(count);
 }
 function renderTypeOptions() {
-  const available = filterItems(baseItems(), {region:state.region,series:state.series,query:state.query});
+  const available = filteredCatalogItems(baseItems(), {type:''});
   const counts = new Map();
   for (const item of available) counts.set(item.type,(counts.get(item.type) || 0) + 1);
   const allTypes = [...new Set([...ITEM_TYPES,...state.items.map(item => item.type)])];
@@ -379,7 +393,7 @@ function renderTypeOptions() {
   catalogTypeMenu.sync();
 }
 function renderRegionOptions() {
-  const available = filterItems(baseItems(), {type:state.type,series:state.series,query:state.query});
+  const available = filteredCatalogItems(baseItems(), {region:''});
   const counts = new Map();
   for (const item of available) {
     const region = item.region || '日本';
@@ -396,17 +410,17 @@ function filterSelectOptions(allLabel,total,options,counts,selected) {
     (counts.get(key) || 0) + '"' + (selected === key ? ' selected' : '') + '>' + escapeHTML(label) + '</option>').join('');
 }
 function renderSeriesOptions() {
-  const available = currentItems('');
+  const available = currentItems({series:'',seriesKeys:null});
   const search = $('series-search').value.trim();
   const categories = groupSeriesOptions(available, {query:search, catalog:state.items, seriesTree:state.seriesTree});
-  seriesMenuBranches.clear();
-  const option = ({key,label,count}) => filterChoice({key,label,count,selected:state.series === key,attribute:'data-series'});
+  const selection = state.seriesFilter;
+  const option = ({key,label,count}) => filterChoice({key,label,count,selected:selection?.key === key,attribute:'data-series'});
   const branchToggle = (node, depth, body) => {
-    const selected = node.options.some(({key}) => key === state.series);
-    const expanded = depth ? openSeriesSubcategories.has(node.id) : node.id === openSeriesCategory;
+    const current = selection?.id === node.id;
+    const selected = selection?.path?.includes(node.id) || node.options.some(({key}) => key === selection?.key);
+    const expanded = openSeriesPath.includes(node.id);
     const id = escapeHTML(node.id);
-    seriesMenuBranches.set(node.id, node);
-    return '<section class="series-category"><button type="button" class="series-category-toggle' + (selected ? ' has-selection' : '') + '" data-series-' + (depth ? 'subcategory' : 'category') + '="' + id + '" aria-expanded="' + expanded + '" aria-controls="series-category-' + id + '"><span class="series-category-name">' + escapeHTML(node.label) + (selected ? icon('check') : '') + '</span><small>' + number(node.options.length) + ' 個系列</small>' + icon('chevron') + '</button><div id="series-category-' + id + '" class="series-category-options"' + (expanded ? '' : ' hidden') + '>' + body + '</div></section>';
+    return '<section class="series-category"><button type="button" class="series-category-toggle' + (selected ? ' has-selection' : '') + '" data-series-' + (depth ? 'subcategory' : 'category') + '="' + id + '" aria-expanded="' + expanded + '" aria-controls="series-category-' + id + '"' + (current ? ' aria-current="true"' : '') + '><span class="series-category-name">' + escapeHTML(node.label) + (selected ? icon('check') : '') + '</span><small>' + number(node.options.length) + ' 個系列</small>' + icon('chevron') + '</button><div id="series-category-' + id + '" class="series-category-options"' + (expanded ? '' : ' hidden') + '>' + body + '</div></section>';
   };
   const hierarchy = (node, depth = 0) => {
     if (!node.hasChildren) return node.ownOptions.map(option).join('');
@@ -415,7 +429,7 @@ function renderSeriesOptions() {
     if (search) return '<section class="series-category"><' + (depth ? 'p class="series-subgroup-heading"' : 'h3 class="series-search-heading"') + '>' + heading + '</' + (depth ? 'p' : 'h3') + '>' + body + '</section>';
     return branchToggle(node, depth, body);
   };
-  let html = filterChoice({key:'',label:'全部系列',count:available.length,selected:!state.series,all:true,attribute:'data-series'});
+  let html = filterChoice({key:'',label:'全部系列',count:available.length,selected:!selection,all:true,attribute:'data-series'});
   html += categories.map(category => {
     if (category.id === 'unassigned') return '<div class="series-unassigned">' + category.options.map(option).join('') + '</div>';
     if (category.children) return hierarchy(category);
@@ -433,13 +447,14 @@ function renderFilters() {
   renderFilterDisclosure();
   renderTypeOptions();
   renderRegionOptions();
-  $('series-label').textContent = (state.series ? seriesLabel(state.series) : '全部系列');
-  $('series-toggle').setAttribute('aria-label', '篩選系列：' + ((state.series ? seriesLabel(state.series) : '全部系列')));
-  $('series-toggle').title = (state.series ? seriesLabel(state.series) : '全部系列');
+  const series = state.seriesFilter?.label;
+  $('series-label').textContent = series || '全部系列';
+  $('series-toggle').setAttribute('aria-label', '篩選系列：' + (series || '全部系列'));
+  $('series-toggle').title = series || '全部系列';
   const chips = [];
   if(state.type) chips.push(['type', '種類：' + typeLabel(state.type)]);
   if(state.region) chips.push(['region', '地區：' + state.region]);
-  if(state.series) chips.push(['series', '系列：' + seriesLabel(state.series)]);
+  if(series) chips.push(['series', '系列：' + series]);
   if(state.query) chips.push(['query', '搜尋：' + state.query]);
   $('active-filters').innerHTML = chips.map(([key,label]) => '<button class="filter-chip" data-remove-filter="' + key + '" aria-label="移除' + escapeHTML(label) + '">' + escapeHTML(label) + icon('close') + '</button>').join('');
   $('reset-filters').hidden = !chips.length;
@@ -477,7 +492,7 @@ function renderResultCount(items) {
   $('result-count').innerHTML = state.scope === 'wishlist'
     ? '想收 <strong>' + number(overviewItems.length) + '</strong> 款'
     : '已擁有 <strong>' + number(stats.owned) + '</strong><span class="summary-slash">／</span>' + number(stats.total) + ' 款<span class="summary-dot">·</span>共 <strong>' + number(stats.pieces) + '</strong> 個';
-  const filtered = state.type || state.region || state.series || state.query || state.ownership !== 'all';
+  const filtered = state.type || state.region || state.seriesFilter || state.query || state.ownership !== 'all';
   $('result-context').hidden = !filtered;
   $('result-context').textContent = '目前顯示 ' + number(items.length) + ' 款';
 }
@@ -504,7 +519,7 @@ function catalogSeriesProducts(branch, renderCard = productCard, depth = 0) {
   const children = branch.children.map(child => catalogSeriesProducts(child, renderCard, depth + 1)).join('');
   if (!depth) return '<div class="catalog-series-products">' + grid + children + '</div>';
   const heading = 'h' + Math.min(3 + depth, 6);
-  return '<section class="catalog-series-section" data-series-section="' + escapeHTML(branch.name) + '"><header class="catalog-series-heading"><' + heading + '>' + escapeHTML(branch.name) + '</' + heading + '><span>' + number(branch.count) + ' 款</span></header>' + grid + children + '</section>';
+  return '<section class="catalog-series-section"><header class="catalog-series-heading"><' + heading + '>' + escapeHTML(branch.name) + '</' + heading + '><span>' + number(branch.count) + ' 款</span></header>' + grid + children + '</section>';
 }
 function replaceCatalogSeriesProducts(products, branch) {
   // 分段增減時沿用仍在清單裡的卡片與圖片。
@@ -536,6 +551,7 @@ function renderCatalog() {
   renderFilters();
   const items = currentItems();
   renderResultCount(items);
+  $('catalog-results').classList.toggle('has-series-filter', Boolean(state.seriesFilter));
   $('catalog-content').setAttribute('aria-busy','false');
   if (!items.length) {
     $('catalog-content').innerHTML = emptyState();
@@ -671,7 +687,7 @@ function setScope(scope) {
   state.ownership = 'all';
   if (enteringPersonal) {
     clearTimeout(searchTimer);
-    state.type = ''; state.region = ''; state.series = ''; state.query = '';
+    state.type = ''; state.region = ''; state.seriesFilter = null; state.query = '';
     $('catalog-search').value = '';
   }
   closeCatalogFilters();
@@ -680,7 +696,7 @@ function setScope(scope) {
 }
 function resetFilters() {
   clearTimeout(searchTimer);
-  state.type = ''; state.region = ''; state.series = ''; state.query = ''; state.ownership = 'all';
+  state.type = ''; state.region = ''; state.seriesFilter = null; state.query = ''; state.ownership = 'all';
   $('catalog-search').value = '';
   renderCatalog();
 }
@@ -962,28 +978,32 @@ $('type-filter').addEventListener('change', event => { state.type = event.target
 $('region-filter').addEventListener('change', event => { state.region = event.target.value; renderCatalog(); });
 const catalogRegionMenu = upgradeFilterSelect($('region-filter'));
 const catalogTypeMenu = upgradeFilterSelect($('type-filter'));
+let seriesMenuAtResults = false;
 const catalogSeriesMenu = createFilterMenu({
-  button:$('series-toggle'), panel:$('series-popover'), align:'end',
+  button:$('series-toggle'), panel:$('series-popover'), align:'end', fixedAnchor:true,
   onOpen:prepareSeriesMenu,
+  returnFocus:() => seriesMenuAtResults ? $('catalog-results') : null,
 });
 function prepareSeriesMenu() {
+  seriesMenuAtResults = false;
   $('series-search').value = '';
-  const selectedCategory = state.series && groupSeriesOptions(currentItems(''), {seriesTree:state.seriesTree}).find(category => category.options.some(({key}) => key === state.series));
-  openSeriesCategory = selectedCategory?.id || '';
-  openSeriesSubcategories.clear();
-  const expandSelected = node => {
-    if (node.options.some(({key}) => key === state.series)) {
-      openSeriesSubcategories.add(node.id);
-      for (const child of node.children || []) expandSelected(child);
+  const selection = state.seriesFilter;
+  openSeriesPath = selection?.path || [];
+  if (selection?.key) {
+    function selectedPath(nodes, parents = []) {
+      const node = nodes.find(node => node.options.some(({key}) => key === selection.key));
+      if (!node || (node.children && !node.hasChildren)) return parents;
+      const path = [...parents,node.id];
+      return node.children ? selectedPath(node.children,path) : path;
     }
-  };
-  if (selectedCategory) expandSelected(selectedCategory);
+    openSeriesPath = selectedPath(groupSeriesOptions(currentItems({series:'',seriesKeys:null}), {seriesTree:state.seriesTree}));
+  }
   renderSeriesOptions();
   const list = $('series-options');
   list.scrollTop = 0;
   requestAnimationFrame(() => {
     if (!catalogSeriesMenu.isOpen) return;
-    const selected = list.querySelector('.series-option.selected:not(.series-all)');
+    const selected = list.querySelector('[aria-current="true"], .series-option.selected:not(.series-all)');
     if (!selected) return;
     const bounds = list.getBoundingClientRect();
     const position = selected.getBoundingClientRect();
@@ -998,69 +1018,52 @@ window.addEventListener('resize', () => {
     $('catalog-content').querySelectorAll('.catalog-group').forEach(group => group.style.setProperty('--group-rows', Math.ceil(Number(group.dataset.count) / catalogColumns())));
   });
 }, { passive:true });
-function seriesHeading(name, groups) {
-  const content = $('catalog-content');
-  const nested = name && content.querySelector('[data-series-section="' + CSS.escape(name) + '"] > .catalog-series-heading > :first-child');
-  if (nested) return nested;
-  const group = [...content.querySelectorAll('.catalog-group')].find(section => !groups || groups.has(section.dataset.groupKey));
-  return group?.querySelector('.group-heading h3');
+function revealSeriesResults(keepMenu) {
+  const results = $('catalog-results');
+  const start = ($('result-context').hidden ? results : $('result-context')).getBoundingClientRect();
+  const viewport = window.visualViewport;
+  const viewportTop = viewport?.offsetTop || 0;
+  const viewportBottom = viewportTop + (viewport?.height || innerHeight);
+  let top = Math.max(siteHeader.getBoundingClientRect().bottom,viewportTop) + 16;
+  if (keepMenu) {
+    const menu = $('series-popover').getBoundingClientRect();
+    if (menu.top < top + start.height && menu.bottom > top && menu.bottom + 12 + start.height < viewportBottom) top = menu.bottom + 12;
+    seriesMenuAtResults = true;
+  }
+  window.scrollBy({top:start.top - top,behavior:'instant'});
+  if (!keepMenu) results.focus({preventScroll:true});
 }
-function revealSeriesHeading(heading) {
-  heading.tabIndex = -1;
-  const top = Math.max(siteHeader.getBoundingClientRect().bottom, window.visualViewport?.offsetTop || 0);
-  window.scrollBy({top:heading.getBoundingClientRect().top - top - 16, behavior:'instant'});
+function chooseSeriesFilter(selection, {keepMenu = false, reveal = true} = {}) {
+  state.seriesFilter = selection;
+  if (selection && state.groupBy !== 'series') {
+    state.groupBy = 'series';
+    persist();
+  }
+  if (!keepMenu) catalogSeriesMenu.close(!reveal);
+  renderCatalog();
+  if (reveal) revealSeriesResults(keepMenu);
 }
 $('series-options').addEventListener('click', event => {
   const branch = event.target.closest('[data-series-category], [data-series-subcategory]');
   if (branch) {
     const {seriesCategory, seriesSubcategory} = branch.dataset;
     const id = seriesCategory ?? seriesSubcategory;
-    const node = seriesMenuBranches.get(id);
-    if (!node) return;
-    const expanded = branch.getAttribute('aria-expanded') === 'false';
-    if (seriesCategory) openSeriesCategory = expanded ? id : '';
-    else if (expanded) openSeriesSubcategories.add(id);
-    else openSeriesSubcategories.delete(id);
-
-    // 大分類只定位到目前篩選下的商品，系列篩選留給最後選到的系列。
-    let heading;
-    if (expanded) {
-      if (state.series || state.groupBy !== 'series') {
-        const groupingChanged = state.groupBy !== 'series';
-        state.series = '';
-        state.groupBy = 'series';
-        if (groupingChanged) persist();
-        renderCatalog();
-      } else renderSeriesOptions();
-      const keys = new Set(node.options.map(({key}) => key));
-      const groups = new Set(currentItems().filter(item => keys.has(seriesKey(item))).map(item => seriesGroupKey(item, state.seriesTree)));
-      heading = seriesHeading(node.label, groups);
-    } else renderSeriesOptions();
-
+    const selection = catalogSeriesBranches.get(id);
+    if (!selection) return;
+    const collapse = state.seriesFilter === selection && openSeriesPath.includes(id);
+    openSeriesPath = collapse ? selection.path.slice(0,-1) : selection.path;
+    if (collapse) renderSeriesOptions();
+    else chooseSeriesFilter(selection,{keepMenu:true});
     const list = $('series-options');
     const button = list.querySelector('[data-series-' + (seriesCategory ? 'category' : 'subcategory') + '="' + CSS.escape(id) + '"]');
     button?.focus({preventScroll:true});
-    if (heading) {
-      revealSeriesHeading(heading);
-      catalogSeriesMenu.pin(heading);
-    }
-    if (expanded && button) list.scrollTop += button.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    if (!collapse && button) list.scrollTop += button.getBoundingClientRect().top - list.getBoundingClientRect().top;
     return;
   }
   const target = event.target.closest('[data-series]');
   if (target) {
-    const jumped = catalogSeriesMenu.isPinned;
-    state.series = target.dataset.series;
-    if(state.series) { state.groupBy = 'series'; persist(); }
-    catalogSeriesMenu.close(!jumped);
-    renderCatalog();
-    if (jumped) {
-      const heading = seriesHeading(state.series);
-      if (heading) {
-        revealSeriesHeading(heading);
-        heading.focus({preventScroll:true});
-      }
-    }
+    const selection = exactSeriesFilter(target.dataset.series);
+    chooseSeriesFilter(selection,{reveal:Boolean(selection || seriesMenuAtResults)});
   }
 });
 let searchTimer;
@@ -1083,7 +1086,8 @@ $('reset-filters').addEventListener('click', resetFilters);
 $('active-filters').addEventListener('click', event => {
   const key = event.target.closest('[data-remove-filter]')?.dataset.removeFilter;
   if(!key) return;
-  state[key] = '';
+  if (key === 'series') state.seriesFilter = null;
+  else state[key] = '';
   if(key === 'query') $('catalog-search').value = '';
   renderCatalog();
 });
@@ -1285,6 +1289,7 @@ async function init() {
     const catalog = await response.json();
     state.items = catalog.items;
     state.seriesTree = catalog.seriesTree;
+    indexSeriesBranches();
     state.characters = catalog.characters;
     itemAliases = catalog.itemAliases || {};
     itemMap = new Map(state.items.map(item => [item.id,item]));
@@ -1297,16 +1302,18 @@ async function init() {
     const browse = browseState.saved;
     if (browse) {
       if (['mine','wishlist','all',...characterTabOrder(state.characters)].includes(browse.scope)) state.scope = browse.scope;
-      for (const key of ['type','region','series','query']) if (typeof browse[key] === 'string') state[key] = browse[key];
+      for (const key of ['type','region','query']) if (typeof browse[key] === 'string') state[key] = browse[key];
+      state.seriesFilter = catalogSeriesBranches.get(browse.seriesBranch) || (
+        typeof browse.series === 'string' && state.items.some(item => seriesKey(item) === browse.series) ? exactSeriesFilter(browse.series) : null
+      );
       if (['character','series'].includes(browse.groupBy)) state.groupBy = browse.groupBy;
       if (!['mine','wishlist'].includes(state.scope) && ['all','owned','unowned'].includes(browse.ownership)) state.ownership = browse.ownership;
       filtersExpanded = Boolean(browse.filtersExpanded);
       $('catalog-search').value = state.query;
     }
-    if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=bb316fd32f994623');
+        const { createAccountHub } = await import('./account-hub.mjs?v=f41b3fb569f7cb39');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           seriesTree:state.seriesTree, initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
