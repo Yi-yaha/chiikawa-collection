@@ -26,12 +26,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=5b46c0b58ac51eae">
-  <link rel="stylesheet" href="./purchase.css?v=5b46c0b58ac51eae">
-  <link rel="stylesheet" href="./account.css?v=5b46c0b58ac51eae">
-  <link rel="stylesheet" href="./report.css?v=5b46c0b58ac51eae">
-  <script type="module" src="./app.mjs?v=5b46c0b58ac51eae"></script>
-  <meta name="chiikawa-site-version" content="5b46c0b58ac51eae">
+  <link rel="stylesheet" href="./styles.css?v=72a5ca384232f390">
+  <link rel="stylesheet" href="./purchase.css?v=72a5ca384232f390">
+  <link rel="stylesheet" href="./account.css?v=72a5ca384232f390">
+  <link rel="stylesheet" href="./report.css?v=72a5ca384232f390">
+  <script type="module" src="./app.mjs?v=72a5ca384232f390"></script>
+  <meta name="chiikawa-site-version" content="72a5ca384232f390">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -65,7 +65,7 @@
   <main class="page-shell">
     <section id="catalog" class="catalog" aria-labelledby="catalog-title">
       <div class="catalog-heading">
-        <div><h1 id="catalog-title"></h1></div>
+        <div><h1 id="catalog-title"></h1><p id="result-count" class="layout-summary" role="status" aria-live="polite">正在整理圖鑑…</p></div>
       </div>
       <div class="filters">
         <div class="filter-controls">
@@ -86,13 +86,15 @@
           </div>
         </div>
       </div>
-      <section class="collection-overview" aria-label="收藏統計">
-        <p id="result-context" class="summary-context" hidden>目前篩選結果</p>
-        <div class="result-tools">
-          <div id="result-count" class="catalog-summary" role="status" aria-live="polite">正在整理圖鑑…</div>
-          <div class="segmented" role="group" aria-label="排列方式"><button data-group="character" class="active" aria-pressed="true"><span data-icon="person"></span>依角色</button><button data-group="series" aria-pressed="false"><span data-icon="grid"></span>依系列</button></div>
+      <section class="catalog-toolbar" aria-label="商品顯示方式">
+        <div class="ownership-control" id="ownership-control" role="group" aria-label="篩選擁有狀態">
+          <button type="button" data-ownership="all" class="active" aria-pressed="true">全部</button>
+          <button type="button" data-ownership="owned" aria-pressed="false">已擁有</button>
+          <button type="button" data-ownership="unowned" aria-pressed="false">未擁有</button>
         </div>
+        <label class="grouping-control"><select id="grouping-select" aria-label="排列方式"><option value="character">依種類</option><option value="series">依系列</option></select><span data-icon="chevron"></span></label>
       </section>
+      <p id="result-context" class="result-context" role="status" aria-live="polite" hidden></p>
       <div class="filter-summary"><div id="active-filters" class="active-filters"></div><button id="reset-filters" class="text-button" hidden><span data-icon="reset"></span>重設篩選</button></div>
       <div id="catalog-content" aria-busy="true"><div class="product-grid skeleton-grid" aria-hidden="true"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
     </section>
@@ -150,17 +152,17 @@
       <details id="guide-progress" class="guide-topic">
         <summary>收藏款數、持有個數與進度怎麼算？<span data-icon="chevron"></span></summary>
         <div class="guide-copy">
-          <p>「圖鑑收錄」是目前範圍內的商品總款數，「已收藏」是你擁有的不同款數，「持有」則包含同款重複收藏的個數。</p>
+          <p>標題下的「已擁有」是目前角色或圖鑑範圍內擁有的不同款數，斜線後是收錄總款數；總個數則包含同款重複收藏的數量。</p>
           <p>到「⋯ → 收藏設定」勾選想納入目標的種類，就會計入角色頭貼外圈的進度，種類名稱旁也會顯示「目標」。同款有多個，進度仍只計 1 款。</p>
-          <p>未勾選的種類照常記錄收藏款數與持有個數。搜尋與篩選會更新頁面統計，頭貼外圈仍顯示該角色的整體目標進度。</p>
+          <p>未勾選的種類照常記錄收藏款數與持有個數。搜尋與篩選只縮小下方商品清單，標題下保留目前角色或整個圖鑑的總覽，頭貼外圈仍顯示該角色的整體目標進度。</p>
           <p>好友的收藏統計依實際收藏計算，不受收藏目標的勾選影響。</p>
         </div>
       </details>
       <details class="guide-topic">
         <summary>怎麼搜尋、篩選與調整畫面？<span data-icon="chevron"></span></summary>
         <dl class="guide-options">
-          <div><dt>搜尋與篩選</dt><dd>可搜尋品名、系列或角色。點「篩選」可搭配地區、種類與系列；系列可逐層展開，也能搜尋系列或分類名稱。收起篩選區後，已選條件仍會套用。</dd></div>
-          <div><dt>排列方式</dt><dd>可切換依角色、種類或系列排列，選項依目前頁面顯示；選擇特定系列時，會切換為依系列排列。</dd></div>
+          <div><dt>搜尋與篩選</dt><dd>可搜尋品名、系列或角色。角色圖鑑與所有角色可切換「全部／已擁有／未擁有」，再搭配搜尋右側篩選圖示中的地區、種類與系列。系列可逐層展開與搜尋；收起篩選區後，已選條件仍會套用，圖示旁的小圓點表示已有篩選條件。</dd></div>
+          <div><dt>排列方式</dt><dd>使用商品清單上方右側的排列選單，可選擇依角色、種類或系列排列，選項依目前頁面顯示；選擇特定系列時，會切換為依系列排列。</dd></div>
           <div><dt>角色順序</dt><dd>展開上方頭貼列後，長按並拖曳角色；電腦可直接拖曳。順序會自動儲存，「我的娃」與願望清單也會沿用。</dd></div>
           <div><dt>暱稱與頭貼</dt><dd>登入後，到「⋯ → 個人資料」修改。</dd></div>
         </dl>

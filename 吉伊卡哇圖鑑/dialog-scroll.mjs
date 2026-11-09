@@ -1,5 +1,5 @@
-import { capturePosition } from './view-state.mjs?v=5b46c0b58ac51eae';
-import { createDialogViewport } from './dialog-viewport.mjs?v=5b46c0b58ac51eae';
+import { capturePosition } from './view-state.mjs?v=72a5ca384232f390';
+import { createDialogViewport } from './dialog-viewport.mjs?v=72a5ca384232f390';
 
 // 全站彈出視窗共用一個操作層級。背景僅保存位置，原生dialog負責焦點與互動隔離。
 export function createDialogController(catalog, { getPosition = () => capturePosition(catalog) } = {}) {
