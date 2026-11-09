@@ -1,4 +1,4 @@
-import { normalizePurchaseAmount } from './purchase-records.mjs?v=0cef56e173a18785';
+import { normalizePurchaseAmount } from './purchase-records.mjs?v=5f1bf1b08f0353dd';
 
 // 販售意願與購買紀錄分開；關閉時保留上次售價。
 export function normalizeSaleRecord(value) {

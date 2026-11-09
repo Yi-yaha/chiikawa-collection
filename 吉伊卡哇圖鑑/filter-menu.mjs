@@ -1,4 +1,4 @@
-import { visibleViewport } from './dialog-viewport.mjs?v=0cef56e173a18785';
+import { visibleViewport } from './dialog-viewport.mjs?v=5f1bf1b08f0353dd';
 
 const chevron = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char =>

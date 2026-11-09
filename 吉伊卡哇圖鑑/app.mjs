@@ -1,14 +1,14 @@
-import './focus-visibility.mjs?v=0cef56e173a18785';
-import { createPurchaseHub } from './purchase-hub.mjs?v=0cef56e173a18785';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=0cef56e173a18785';
-import { createDialogController } from './dialog-scroll.mjs?v=0cef56e173a18785';
-import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=0cef56e173a18785';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=0cef56e173a18785';
-import { createCatalogImageLoader } from './image-loader.mjs?v=0cef56e173a18785';
-import { createCharacterSorter } from './character-sorter.mjs?v=0cef56e173a18785';
-import { watchForSiteUpdates } from './site-updates.mjs?v=0cef56e173a18785';
-import { createReportHub } from './report-hub.mjs?v=0cef56e173a18785';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=0cef56e173a18785';
+import './focus-visibility.mjs?v=5f1bf1b08f0353dd';
+import { createPurchaseHub } from './purchase-hub.mjs?v=5f1bf1b08f0353dd';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=5f1bf1b08f0353dd';
+import { createDialogController } from './dialog-scroll.mjs?v=5f1bf1b08f0353dd';
+import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=5f1bf1b08f0353dd';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=5f1bf1b08f0353dd';
+import { createCatalogImageLoader } from './image-loader.mjs?v=5f1bf1b08f0353dd';
+import { createCharacterSorter } from './character-sorter.mjs?v=5f1bf1b08f0353dd';
+import { watchForSiteUpdates } from './site-updates.mjs?v=5f1bf1b08f0353dd';
+import { createReportHub } from './report-hub.mjs?v=5f1bf1b08f0353dd';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=5f1bf1b08f0353dd';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -494,6 +494,25 @@ function groupSummary(group) {
 }
 
 function catalogColumns() { return window.innerWidth >= 1280 ? 6 : window.innerWidth >= 1000 ? 5 : window.innerWidth >= 701 ? 4 : 3; }
+function catalogSeriesProducts(branch, renderCard = productCard, depth = 0) {
+  const grid = branch.items.length ? '<div class="product-grid">' + branch.items.map(item => renderCard(item)).join('') + '</div>' : '';
+  const children = branch.children.map(child => catalogSeriesProducts(child, renderCard, depth + 1)).join('');
+  if (!depth) return '<div class="catalog-series-products">' + grid + children + '</div>';
+  const heading = 'h' + Math.min(3 + depth, 6);
+  return '<section class="catalog-series-section"><header class="catalog-series-heading"><' + heading + '>' + escapeHTML(branch.name) + '</' + heading + '><span>' + number(branch.count) + ' 款</span></header>' + grid + children + '</section>';
+}
+function replaceCatalogSeriesProducts(products, branch) {
+  // 分段增減時沿用仍在清單裡的卡片與圖片。
+  const existingCards = new Map([...products.querySelectorAll('.product-card')].map(card => [card.dataset.item, card]));
+  const focused = products.contains(document.activeElement) ? document.activeElement : null;
+  const template = document.createElement('template');
+  template.innerHTML = catalogSeriesProducts(branch, item => existingCards.has(item.id)
+    ? '<template data-card="' + escapeHTML(item.id) + '"></template>'
+    : productCard(item));
+  for (const slot of template.content.querySelectorAll('template[data-card]')) slot.replaceWith(existingCards.get(slot.dataset.card));
+  products.replaceWith(template.content);
+  if (focused?.isConnected) focused.focus({preventScroll:true});
+}
 function catalogGroup(group) {
   const groupBy = catalogGrouping();
   const titleId = 'group-title-' + groupBy + '-' + group.items[0].id;
@@ -501,7 +520,9 @@ function catalogGroup(group) {
   const roleCount = groupBy === 'series' && new Set(group.items.map(item => item.character)).size > 1 ? '<span class="group-caption">' + new Set(group.items.map(item => item.character)).size + ' 個角色</span>' : '';
   const name = groupBy === 'type' ? typeLabel(group.name) : groupBy === 'series' ? seriesLabel(group.name) : group.name;
   const target = groupBy === 'type' ? '<span class="group-target" data-goal-type="' + escapeHTML(group.name) + '" aria-label="此種類已納入收藏目標"' + (isProgressIncluded({ type:group.name }, state.includedTypes) ? '' : ' hidden') + '>目標</span>' : '';
-  return '<section class="catalog-group" data-count="' + group.items.length + '" style="--group-rows:' + Math.ceil(group.items.length / catalogColumns()) + '" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(name) + '</h3>' + target + roleCount + '<span class="group-line"></span><p class="group-summary">' + groupSummary(group) + '</p></div><div class="product-grid">' + group.items.map(item => productCard(item)).join('') + '</div></section>';
+  const branch = groupBy === 'series' && catalogSeriesSections(group, state.seriesTree);
+  const products = branch ? catalogSeriesProducts(branch) : '<div class="product-grid">' + group.items.map(item => productCard(item)).join('') + '</div>';
+  return '<section class="catalog-group" data-count="' + group.items.length + '" style="--group-rows:' + Math.ceil(group.items.length / catalogColumns()) + '" data-group-key="' + escapeHTML(group.name) + '" aria-labelledby="' + titleId + '"><div class="group-heading">' + groupAvatar + '<h3 id="' + titleId + '">' + escapeHTML(name) + '</h3>' + target + roleCount + '<span class="group-line"></span><p class="group-summary">' + groupSummary(group) + '</p></div>' + products + '</section>';
 }
 function renderCatalog() {
   if (!state.ready) return;
@@ -585,6 +606,11 @@ function updateCollectionCatalog(id, batch = null) {
   if (caption) caption.textContent = new Set(group.items.map(item => item.character)).size + ' 個角色';
   const card = section.querySelector('[data-item="' + id + '"]');
   const itemIndex = group.items.findIndex(item => item.id === id);
+  const seriesProducts = section.querySelector(':scope > .catalog-series-products');
+  if (seriesProducts && Boolean(card) !== (itemIndex !== -1)) {
+    replaceCatalogSeriesProducts(seriesProducts, catalogSeriesSections(group, state.seriesTree));
+    return;
+  }
   if (itemIndex === -1) { card?.remove(); return; }
   if (card) { updateCollectionCard(id); return; }
   const nextItem = group.items[itemIndex + 1];
@@ -1240,7 +1266,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=0cef56e173a18785');
+        const { createAccountHub } = await import('./account-hub.mjs?v=5f1bf1b08f0353dd');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           seriesTree:state.seriesTree, initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

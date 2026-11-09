@@ -1,6 +1,6 @@
-import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=0cef56e173a18785';
-import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=0cef56e173a18785';
-import { normalizeSaleRecords } from './sale-records.mjs?v=0cef56e173a18785';
+import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=5f1bf1b08f0353dd';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=5f1bf1b08f0353dd';
+import { normalizeSaleRecords } from './sale-records.mjs?v=5f1bf1b08f0353dd';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -12,16 +12,18 @@ export const seriesKey = item => (typeof item.series === 'string' ? item.series.
 export const seriesLabel = key => key === UNASSIGNED_SERIES ? '未設定系列' : key;
 
 // 只合併圖鑑的商品分區；篩選選單及管理資料繼續使用完整階層。
+const MINISO_SERIES_ID = 'series-59a14a35-94a3-4dce-86cb-75fd398a22b0';
 const seriesGroupIndexes = new WeakMap();
 function seriesGroupIndex(tree) {
   if (!Array.isArray(tree)) return null;
   if (seriesGroupIndexes.has(tree)) return seriesGroupIndexes.get(tree);
-  const index = { groups:new Map(), order:new Map(), seriesOrder:new Map() };
+  const index = { groups:new Map(), order:new Map(), seriesOrder:new Map(), miniso:null };
   function visit(node, depth = 1, group = node.name) {
     if (depth <= 2) group = node.name;
     if (!index.order.has(group)) index.order.set(group, index.order.size);
     index.groups.set(node.name, group);
     index.seriesOrder.set(node.name, index.seriesOrder.size);
+    if (node.id === MINISO_SERIES_ID) index.miniso = node;
     for (const child of node.children) visit(child, depth + 1, group);
   }
   seriesHierarchy(tree, [], { includeEmpty:true }).forEach(node => visit(node));
@@ -32,6 +34,24 @@ function seriesGroupIndex(tree) {
 export function seriesGroupKey(item, tree) {
   const key = seriesKey(item);
   return seriesGroupIndex(tree)?.groups.get(key) ?? key;
+}
+
+export function catalogSeriesSections(group, tree) {
+  const root = seriesGroupIndex(tree)?.miniso;
+  if (!root || group.name !== root.name) return null;
+  const itemsBySeries = new Map();
+  for (const item of group.items) {
+    const name = seriesKey(item);
+    if (!itemsBySeries.has(name)) itemsBySeries.set(name, []);
+    itemsBySeries.get(name).push(item);
+  }
+  function section(node) {
+    const items = itemsBySeries.get(node.name) || [];
+    const children = node.children.map(section).filter(child => child.count > 0);
+    const count = children.reduce((total, child) => total + child.count, items.length);
+    return { name:node.name, items, children, count };
+  }
+  return section(root);
 }
 
 // 只整理選單的瀏覽分區；商品原本的系列名稱與歸屬保持獨立。

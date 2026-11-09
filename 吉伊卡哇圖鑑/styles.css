@@ -658,6 +658,12 @@ html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-headi
 .catalog-group{margin-bottom:28px}
 .catalog-group .group-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:0 0 11px}
 .catalog-group .group-heading h3{font-size:17px;line-height:26px;font-weight:650;letter-spacing:.2px}
+.catalog-series-section{margin-top:16px}
+.catalog-series-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-top:9px;margin-bottom:8px;border-top:1px solid var(--line);color:var(--coral-dark)}
+.catalog-series-heading :is(h4,h5,h6){margin:0;font-size:14px;font-weight:650;overflow-wrap:anywhere}
+.catalog-series-heading span{flex:none;font-size:12px;color:#796C60}
+.catalog-series-section .catalog-series-section>.catalog-series-heading{padding-inline-start:12px}
+#catalog-content.has-card-size .catalog-group:has(>.catalog-series-products){content-visibility:visible;contain-intrinsic-block-size:none}
 .group-line{display:none}
 .group-summary{margin:0 0 0 auto;font-size:12px;line-height:22px;flex:none;color:#8D8175}
 .group-summary strong{font-weight:500;color:#796C60}
