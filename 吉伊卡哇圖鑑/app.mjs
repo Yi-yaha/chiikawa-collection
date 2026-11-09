@@ -1,14 +1,14 @@
-import './focus-visibility.mjs?v=72a5ca384232f390';
-import { createPurchaseHub } from './purchase-hub.mjs?v=72a5ca384232f390';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=72a5ca384232f390';
-import { createDialogController } from './dialog-scroll.mjs?v=72a5ca384232f390';
-import { visibleViewport } from './dialog-viewport.mjs?v=72a5ca384232f390';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=72a5ca384232f390';
-import { createCatalogImageLoader } from './image-loader.mjs?v=72a5ca384232f390';
-import { createCharacterSorter } from './character-sorter.mjs?v=72a5ca384232f390';
-import { watchForSiteUpdates } from './site-updates.mjs?v=72a5ca384232f390';
-import { createReportHub } from './report-hub.mjs?v=72a5ca384232f390';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=72a5ca384232f390';
+import './focus-visibility.mjs?v=5bb656704e336b48';
+import { createPurchaseHub } from './purchase-hub.mjs?v=5bb656704e336b48';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=5bb656704e336b48';
+import { createDialogController } from './dialog-scroll.mjs?v=5bb656704e336b48';
+import { visibleViewport } from './dialog-viewport.mjs?v=5bb656704e336b48';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=5bb656704e336b48';
+import { createCatalogImageLoader } from './image-loader.mjs?v=5bb656704e336b48';
+import { createCharacterSorter } from './character-sorter.mjs?v=5bb656704e336b48';
+import { watchForSiteUpdates } from './site-updates.mjs?v=5bb656704e336b48';
+import { createReportHub } from './report-hub.mjs?v=5bb656704e336b48';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=5bb656704e336b48';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -481,7 +481,7 @@ function updateGoalBadges() {
 function groupSummary(group) {
   if (state.scope === 'wishlist') return '<span>想收 <strong>' + number(group.items.length) + '</strong> 款</span>';
   const grouping = catalogGrouping();
-  const items = matchingCatalogItems().filter(item => (grouping === 'series' ? seriesKey(item) : grouping === 'type' ? item.type : item.character) === group.name);
+  const items = matchingCatalogItems().filter(item => (grouping === 'series' ? seriesGroupKey(item, state.seriesTree) : grouping === 'type' ? item.type : item.character) === group.name);
   const stats = collectionStats(items, state.owned, state.quantities);
   return '<span>已擁有 <strong>' + number(stats.owned) + '</strong>／' + number(stats.total) + ' 款</span>';
 }
@@ -510,7 +510,7 @@ function renderCatalog() {
     return;
   }
   const order = ['mine', 'wishlist', 'all'].includes(state.scope) ? state.characterOrder : state.characters;
-  const groups = groupItems(items,catalogGrouping(),order);
+  const groups = groupItems(items,catalogGrouping(),order,state.seriesTree);
   $('catalog-content').innerHTML = groups.map(catalogGroup).join('');
   observeCatalogSize();
   catalogImages.refresh();
@@ -554,9 +554,9 @@ function updateCollectionCatalog(id, batch = null) {
   if (!items.length) { if (!content.querySelector('.empty-state')) content.innerHTML = emptyState(); return; }
   const sections = batch?.sections || new Map([...content.querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
   const order = state.scope === 'all' || personal ? state.characterOrder : state.characters;
-  const groups = batch?.groups || groupItems(items, catalogGrouping(), order);
+  const groups = batch?.groups || groupItems(items, catalogGrouping(), order, state.seriesTree);
   const item = itemMap.get(id);
-  const key = catalogGrouping() === 'series' ? seriesKey(item) : catalogGrouping() === 'type' ? item.type : item.character;
+  const key = catalogGrouping() === 'series' ? seriesGroupKey(item, state.seriesTree) : catalogGrouping() === 'type' ? item.type : item.character;
   const section = sections.get(key);
   const index = groups.findIndex(group => group.name === key);
   if (index === -1) { section?.remove(); sections.delete(key); return; }
@@ -607,7 +607,7 @@ function applySyncedCollection(saved) {
   if (changed.length || orderChanged) {
     const items = currentItems();
     const personal = state.scope === 'mine' || state.scope === 'wishlist';
-    const groups = groupItems(items, catalogGrouping(), personal || state.scope === 'all' ? state.characterOrder : state.characters);
+    const groups = groupItems(items, catalogGrouping(), personal || state.scope === 'all' ? state.characterOrder : state.characters, state.seriesTree);
     const sections = new Map([...$('catalog-content').querySelectorAll('.catalog-group')].map(section => [section.dataset.groupKey, section]));
     const batch = { items, groups, sections };
     if (personal) { renderTypeOptions(); renderRegionOptions(); if (!$('series-popover').hidden) renderSeriesOptions(); }
@@ -1234,7 +1234,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=72a5ca384232f390');
+        const { createAccountHub } = await import('./account-hub.mjs?v=5bb656704e336b48');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

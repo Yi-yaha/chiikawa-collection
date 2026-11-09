@@ -1,6 +1,6 @@
-import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=72a5ca384232f390';
-import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=72a5ca384232f390';
-import { normalizeSaleRecords } from './sale-records.mjs?v=72a5ca384232f390';
+import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=5bb656704e336b48';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=5bb656704e336b48';
+import { normalizeSaleRecords } from './sale-records.mjs?v=5bb656704e336b48';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -10,6 +10,29 @@ export const typeLabel = type => ({娃:'玩偶', 吊娃:'吊飾娃', 地方限�
 export const UNASSIGNED_SERIES = '__unassigned__';
 export const seriesKey = item => (typeof item.series === 'string' ? item.series.trim() : '') || UNASSIGNED_SERIES;
 export const seriesLabel = key => key === UNASSIGNED_SERIES ? '未設定系列' : key;
+
+// 只合併圖鑑的商品分區；篩選選單及管理資料繼續使用完整階層。
+const seriesGroupIndexes = new WeakMap();
+function seriesGroupIndex(tree) {
+  if (!Array.isArray(tree)) return null;
+  if (seriesGroupIndexes.has(tree)) return seriesGroupIndexes.get(tree);
+  const index = { groups:new Map(), order:new Map(), seriesOrder:new Map() };
+  function visit(node, depth = 1, group = node.name) {
+    if (depth <= 2) group = node.name;
+    if (!index.order.has(group)) index.order.set(group, index.order.size);
+    index.groups.set(node.name, group);
+    index.seriesOrder.set(node.name, index.seriesOrder.size);
+    for (const child of node.children) visit(child, depth + 1, group);
+  }
+  seriesHierarchy(tree, [], { includeEmpty:true }).forEach(node => visit(node));
+  seriesGroupIndexes.set(tree, index);
+  return index;
+}
+
+export function seriesGroupKey(item, tree) {
+  const key = seriesKey(item);
+  return seriesGroupIndex(tree)?.groups.get(key) ?? key;
+}
 
 // 只整理選單的瀏覽分區；商品原本的系列名稱與歸屬保持獨立。
 const SERIES_CATEGORIES = [
@@ -256,11 +279,12 @@ export function collectionStats(items, owned, quantities = {}, includedTypes = {
   return stats;
 }
 
-export function groupItems(items, groupBy, characterOrder) {
+export function groupItems(items, groupBy, characterOrder, seriesTree) {
   const groups = new Map();
   const order = new Map(characterOrder.map((name, index) => [name, index]));
+  const seriesIndex = groupBy === 'series' ? seriesGroupIndex(seriesTree) : null;
   for (const item of items) {
-    const key = groupBy === 'series' ? seriesKey(item) : groupBy === 'type' ? item.type : item.character;
+    const key = groupBy === 'series' ? seriesGroupKey(item, seriesTree) : groupBy === 'type' ? item.type : item.character;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(item);
   }
@@ -270,7 +294,16 @@ export function groupItems(items, groupBy, characterOrder) {
     const index = type => ITEM_TYPES.includes(type) ? ITEM_TYPES.indexOf(type) : ITEM_TYPES.length;
     return index(a.name) - index(b.name);
   });
-  else result = result.map(group => ({ ...group, items: [...group.items].sort((a, b) => (order.get(a.character) ?? 999) - (order.get(b.character) ?? 999)) }));
+  else {
+    if (seriesIndex) result.sort((a, b) => {
+      if (a.name === UNASSIGNED_SERIES) return 1;
+      if (b.name === UNASSIGNED_SERIES) return -1;
+      return (seriesIndex.order.get(a.name) ?? Infinity) - (seriesIndex.order.get(b.name) ?? Infinity);
+    });
+    result = result.map(group => ({ ...group, items: [...group.items].sort((a, b) =>
+      (seriesIndex ? (seriesIndex.seriesOrder.get(seriesKey(a)) ?? 999) - (seriesIndex.seriesOrder.get(seriesKey(b)) ?? 999) : 0)
+      || (order.get(a.character) ?? 999) - (order.get(b.character) ?? 999)) }));
+  }
   return result;
 }
 
