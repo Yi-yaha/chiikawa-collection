@@ -169,7 +169,7 @@
 .friend-products .product-card{align-self:start}
 .friend-products .friend-status{pointer-events:none}
 .friend-comparison-quantity{font-size:10px;color:var(--muted);padding:0 8px 8px;line-height:1.6;font-variant-numeric:tabular-nums}
-.friend-products .image-fallback{position:absolute;inset:18px 10px 6px;min-height:0;text-align:center;font-size:10px}
+.friend-products .image-fallback{text-align:center;font-size:10px}
 .friend-catalog-toolbar{max-width:660px}
 .friend-catalog-toolbar .ownership-control button{padding-inline:10px}
 .friend-catalog-toolbar .ownership-control{max-width:280px}
@@ -189,7 +189,6 @@
   .social-avatar.large{width:54px;height:54px;flex-basis:54px}
   .friend-analysis-tabs{gap:12px 18px}
   .friend-products{gap:8px}
-  .friend-product-image{padding:5px}
   .friend-product h3{font-size:11px;margin:0 6px}
   .friend-product>small{margin:7px 6px 4px;font-size:8px}
   .friend-product>p{font-size:9px;margin:6px}

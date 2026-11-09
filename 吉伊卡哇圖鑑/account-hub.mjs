@@ -1,12 +1,12 @@
-import { createClient } from './supabase-client.mjs?v=1829a38da2d799c2';
-import { cloudConfig } from './cloud-config.mjs?v=1829a38da2d799c2';
-import { createCloudStore } from './cloud-store.mjs?v=1829a38da2d799c2';
-import { ACCOUNT_SESSION_KEY, readLocalSession, readLocalProfile, saveLocalProfile } from './account-cache.mjs?v=1829a38da2d799c2';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=1829a38da2d799c2';
-import { createFriendInviteURL } from './friend-invite.mjs?v=1829a38da2d799c2';
-import { describePurchaseRecord } from './purchase-records.mjs?v=1829a38da2d799c2';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesLabel, filterItems, groupItems, groupSeriesOptions } from './model.mjs?v=1829a38da2d799c2';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=1829a38da2d799c2';
+import { createClient } from './supabase-client.mjs?v=54bdce99f3004270';
+import { cloudConfig } from './cloud-config.mjs?v=54bdce99f3004270';
+import { createCloudStore } from './cloud-store.mjs?v=54bdce99f3004270';
+import { ACCOUNT_SESSION_KEY, readLocalSession, readLocalProfile, saveLocalProfile } from './account-cache.mjs?v=54bdce99f3004270';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=54bdce99f3004270';
+import { createFriendInviteURL } from './friend-invite.mjs?v=54bdce99f3004270';
+import { describePurchaseRecord } from './purchase-records.mjs?v=54bdce99f3004270';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesLabel, filterItems, groupItems, groupSeriesOptions } from './model.mjs?v=54bdce99f3004270';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=54bdce99f3004270';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

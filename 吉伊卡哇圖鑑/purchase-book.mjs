@@ -1,4 +1,4 @@
-import { purchaseBookValue, normalizePurchaseEntry, normalizePurchaseBook } from './purchase-records.mjs?v=1829a38da2d799c2';
+import { purchaseBookValue, normalizePurchaseEntry, normalizePurchaseBook } from './purchase-records.mjs?v=54bdce99f3004270';
 
 // 一個收藏單位最多只屬於一筆紀錄；移出收藏只改持有狀態，不刪購入歷史。
 export function createPurchaseBook(quantities = {}, saved = {}) {
