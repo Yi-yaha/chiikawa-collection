@@ -628,7 +628,7 @@ html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-headi
 .search-filter-row .search-control input{font-size:16px;letter-spacing:0;min-width:0}
 .search-filter-row .search-control input::placeholder{color:#B7AFA6;opacity:1;font-weight:400}
 .search-filter-row .filter-toggle{position:relative;display:grid;place-items:center;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;border-color:#E4DDD5;border-radius:11px;gap:0;background:#FFF;color:#756B61}
-.filter-toggle #filter-toggle-label{display:none}
+.filter-toggle [id$="filter-toggle-label"]{display:none}
 .filter-toggle .filter-count{position:absolute;top:5px;right:5px;width:5px;height:5px;min-width:0;min-height:0;padding:0;border-radius:50%;background:var(--coral);font-size:0;line-height:0}
 .filter-toggle svg{width:17px;height:17px}
 .filter-toggle-chevron{display:none}
