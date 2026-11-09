@@ -1,14 +1,14 @@
-import './focus-visibility.mjs?v=5bb656704e336b48';
-import { createPurchaseHub } from './purchase-hub.mjs?v=5bb656704e336b48';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=5bb656704e336b48';
-import { createDialogController } from './dialog-scroll.mjs?v=5bb656704e336b48';
-import { visibleViewport } from './dialog-viewport.mjs?v=5bb656704e336b48';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=5bb656704e336b48';
-import { createCatalogImageLoader } from './image-loader.mjs?v=5bb656704e336b48';
-import { createCharacterSorter } from './character-sorter.mjs?v=5bb656704e336b48';
-import { watchForSiteUpdates } from './site-updates.mjs?v=5bb656704e336b48';
-import { createReportHub } from './report-hub.mjs?v=5bb656704e336b48';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=5bb656704e336b48';
+import './focus-visibility.mjs?v=42b6104303680c28';
+import { createPurchaseHub } from './purchase-hub.mjs?v=42b6104303680c28';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=42b6104303680c28';
+import { createDialogController } from './dialog-scroll.mjs?v=42b6104303680c28';
+import { visibleViewport } from './dialog-viewport.mjs?v=42b6104303680c28';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=42b6104303680c28';
+import { createCatalogImageLoader } from './image-loader.mjs?v=42b6104303680c28';
+import { createCharacterSorter } from './character-sorter.mjs?v=42b6104303680c28';
+import { watchForSiteUpdates } from './site-updates.mjs?v=42b6104303680c28';
+import { createReportHub } from './report-hub.mjs?v=42b6104303680c28';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=42b6104303680c28';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -91,6 +91,7 @@ let filtersExpanded = false;
 let charactersExpanded = false;
 let openSeriesCategory = '';
 const openSeriesSubcategories = new Set();
+let unownedViewIds = null;
 try { filtersExpanded = localStorage.getItem(filterExpansionKey) === 'true'; } catch {}
 try { history.scrollRestoration = 'manual'; } catch {}
 let initialPositionPending = true;
@@ -227,7 +228,11 @@ document.addEventListener('close', event => {
 }, true);
 function baseItems() { return scopeItems(state.items, state.scope, state.owned, state.wishlist); }
 function currentItems() {
-  return filterItems(baseItems(), state).filter(item => state.ownership === 'all' || (state.ownership === 'owned' ? state.owned.has(item.id) : !state.owned.has(item.id)));
+  // 未擁有清單在本次瀏覽中保留原位；收藏照常儲存，重新篩選才更新清單。
+  if (state.ownership === 'unowned' && !unownedViewIds) {
+    unownedViewIds = new Set(state.items.filter(item => !state.owned.has(item.id)).map(item => item.id));
+  }
+  return filterItems(baseItems(), state).filter(item => state.ownership === 'all' || (state.ownership === 'owned' ? state.owned.has(item.id) : unownedViewIds.has(item.id)));
 }
 function matchingCatalogItems() {
   const items = state.scope === 'mine' ? state.items : scopeItems(state.items, state.scope, state.owned, state.wishlist);
@@ -498,6 +503,7 @@ function catalogGroup(group) {
 }
 function renderCatalog() {
   if (!state.ready) return;
+  unownedViewIds = null;
   renderHeading();
   renderFilters();
   const items = currentItems();
@@ -1001,7 +1007,7 @@ $('grouping-select').addEventListener('change', event => {
 });
 $('ownership-control').addEventListener('click', event => {
   const button = event.target.closest('[data-ownership]');
-  if (!button || state.ownership === button.dataset.ownership) return;
+  if (!button || state.ownership === button.dataset.ownership && state.ownership !== 'unowned') return;
   state.ownership = button.dataset.ownership;
   renderCatalog();
 });
@@ -1234,7 +1240,7 @@ async function init() {
     if(state.series && state.series !== '__unassigned__' && !state.items.some(item => seriesKey(item) === state.series)) state.series = '';
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=5bb656704e336b48');
+        const { createAccountHub } = await import('./account-hub.mjs?v=42b6104303680c28');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),
@@ -1243,6 +1249,7 @@ async function init() {
           applySaved:applySyncedCollection,
           onOpenDetail:renderDetail, openDialog,
           onScope:userId => {
+            unownedViewIds = null;
             collectionStorageKey = userId ? STORAGE_KEY + '-account-' + userId : STORAGE_KEY;
             lastClearKey = collectionStorageKey + '-last-clear';
             if (!accountScopeInitialized) { accountScopeInitialized = true; return; }
