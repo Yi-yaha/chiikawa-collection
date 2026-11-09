@@ -1,5 +1,5 @@
-import { STORAGE_KEY } from './model.mjs?v=42b6104303680c28';
-import { normalizePurchaseRecord } from './purchase-records.mjs?v=42b6104303680c28';
+import { STORAGE_KEY } from './model.mjs?v=ff40486aa9cfcbb4';
+import { normalizePurchaseRecord } from './purchase-records.mjs?v=ff40486aa9cfcbb4';
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const valueOf = row => ({ quantity:row?.quantity || 0, wished:row?.quantity > 0 ? false : Boolean(row?.wished) });
@@ -204,7 +204,12 @@ export function createCloudStore({ client, storage, normalize, onApply = () => {
       try { guest = JSON.parse(storage.getItem(STORAGE_KEY) || 'null'); } catch {}
       onApply(normalize(guest)); status();
     },
-    enableWrites() { canWrite = true; schedule(0); },
+    enableWrites() {
+      if (canWrite) return;
+      canWrite = true;
+      // 已在讀取時會接著送出待同步紀錄，不為重複的登入通知重跑讀取。
+      if (!running && pendingCount()) schedule(0);
+    },
     capture(next) {
       if (!uid) return;
       next = normalize(next);

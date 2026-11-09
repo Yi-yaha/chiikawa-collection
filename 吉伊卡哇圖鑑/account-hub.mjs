@@ -1,11 +1,12 @@
-import { createClient } from './supabase-client.mjs?v=42b6104303680c28';
-import { cloudConfig } from './cloud-config.mjs?v=42b6104303680c28';
-import { createCloudStore } from './cloud-store.mjs?v=42b6104303680c28';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=42b6104303680c28';
-import { createFriendInviteURL } from './friend-invite.mjs?v=42b6104303680c28';
-import { describePurchaseRecord } from './purchase-records.mjs?v=42b6104303680c28';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=42b6104303680c28';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=42b6104303680c28';
+import { createClient } from './supabase-client.mjs?v=ff40486aa9cfcbb4';
+import { cloudConfig } from './cloud-config.mjs?v=ff40486aa9cfcbb4';
+import { createCloudStore } from './cloud-store.mjs?v=ff40486aa9cfcbb4';
+import { ACCOUNT_SESSION_KEY, readLocalSession, readLocalProfile, saveLocalProfile } from './account-cache.mjs?v=ff40486aa9cfcbb4';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=ff40486aa9cfcbb4';
+import { createFriendInviteURL } from './friend-invite.mjs?v=ff40486aa9cfcbb4';
+import { describePurchaseRecord } from './purchase-records.mjs?v=ff40486aa9cfcbb4';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems } from './model.mjs?v=ff40486aa9cfcbb4';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=ff40486aa9cfcbb4';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -26,13 +27,14 @@ function errorText(error) {
 
 export function createAccountHub({ items, characters, getSaved, applySaved, normalize, merge, onScope, onOpenDetail, toast, openDialog, client:clientOverride, initialView = null }) {
   const client = clientOverride || createClient(cloudConfig.url, cloudConfig.publishableKey, {
-    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'chiikawa-account-session' },
+    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:ACCOUNT_SESSION_KEY },
   });
   let pendingView = initialView;
   let collectionReady, viewReady;
   const collectionReadyPromise = new Promise(resolve => { collectionReady = resolve; });
   const ready = new Promise(resolve => { viewReady = resolve; });
   let user = null, profile = null, authLoading = true, sessionGeneration = 0;
+  let sessionStarted = false, sessionConfirmed = false, profileError = '', profileRequest = null;
   let friends = [], blocks = [], friendsLoaded = false, friendsError = '', refreshingFriends = false;
   let selectedFriend = null, friendSnapshot = null, lookup = null, friendTab = 'collection', compareTab = 'both', friendConfirmation = null;
   let friendLookupGeneration = 0;
@@ -136,6 +138,10 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
         '<p id="account-message" class="form-message" role="status"></p><p class="account-footnote"><a href="./privacy.html" target="_blank" rel="noopener noreferrer">隱私權與資料說明</a></p>';
       return;
     }
+    if (!profile) {
+      $('account-content').innerHTML = '<div class="dialog-heading"><h2 id="account-title">個人資料</h2>' + closeButton('account-dialog','關閉個人資料') + '</div><p class="social-note">' + h(profileError || '帳號資料暫時無法更新，收藏會保留在這台裝置。') + '</p><button class="secondary-button" id="retry-account">重新讀取</button><button class="text-button logout-button" id="account-signout">登出帳號</button>';
+      return;
+    }
     const onboarding = !profile?.nickname;
     $('account-content').innerHTML = '<div class="dialog-heading"><h2 id="account-title">' + (onboarding ? '先取個暱稱吧' : '個人資料') + '</h2>' + (onboarding ? '' : closeButton('account-dialog','關閉個人資料')) + '</div>' +
       (onboarding ? '<p class="dialog-description">希望大家怎麼稱呼你？這個暱稱會顯示給好友，之後也能在這裡修改。</p>' : '') +
@@ -166,7 +172,7 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
         const result = await client.from('profiles').update({ nickname, avatar_path }).eq('id',activeUid).select().single();
         if (result.error) { if (uploaded) void photos.remove(uploaded); throw result.error; }
         if (user?.id !== activeUid) return;
-        profile = result.data; resetAvatarDraft(); await photos.load([profile.avatar_path]);
+        profile = result.data; saveLocalProfile(storage,profile); resetAvatarDraft(); await photos.load([profile.avatar_path]);
         if (user?.id !== activeUid) return;
         if (previousPath && previousPath !== avatar_path) void photos.remove(previousPath);
         store.enableWrites(); renderAccount(); renderSync();
@@ -202,6 +208,8 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
         const result = await client.auth.signInWithOAuth({ provider:'google', options:{ redirectTo:canonicalURL() } });
         if (result.error) throw result.error;
       });
+    } else if (button.id === 'retry-account') {
+      authLoading = true; renderAccount(); void loadProfile(sessionGeneration);
     } else if (button.id === 'account-signout') {
       void action(button,async () => {
         const result = await client.auth.signOut({ scope:'local' });
@@ -563,12 +571,55 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       $('friends-dialog').scrollTop = Number(view.scroll) || 0;
     } finally { pendingView = null; }
   }
-  async function handleSession(session) {
+  async function loadProfile(current) {
+    if (!user) return;
+    if (profileRequest?.generation === current) return profileRequest.promise;
+    const activeUid = user.id;
+    const work = async () => {
+      try {
+        const result = await client.from('profiles').select('id,nickname,avatar_path,friend_code').eq('id',activeUid).single();
+        if (current !== sessionGeneration) return;
+        if (result.error) throw result.error;
+        profile = result.data; saveLocalProfile(storage,profile); profileError = '';
+        authLoading = false; renderSync();
+        // 背景更新不重建正在編輯的表單，也不關閉使用者剛開啟的個人資料。
+        if (!profile.nickname) {
+          if (!$('profile-form')) renderAccount();
+          if (!$('account-dialog').open) open('account-dialog');
+        } else {
+          if (sessionConfirmed) store.enableWrites();
+          if ($('account-dialog').open && !$('profile-form')) renderAccount();
+          const migrating = maybeOfferMigration();
+          if (pendingView && !migrating) await restoreView(); else void refreshFriends();
+          if (current !== sessionGeneration) return;
+          if (!migrating && (pendingHub || sessionStorage.getItem('chiikawa-pending-friend'))) { pendingHub = false; showFriends(); }
+        }
+        void photos.load([profile.avatar_path]).then(() => {
+          if (current === sessionGeneration && avatarDraft === undefined && $('profile-avatar-preview')) $('profile-avatar-preview').innerHTML = avatar(profile,'large',true);
+        });
+      } catch (error) {
+        if (current !== sessionGeneration) return;
+        authLoading = false; profileError = '帳號資料暫時無法更新，收藏會保留在這台裝置，連線恢復後會再試一次。';
+        if (!$('profile-form')) renderAccount();
+        renderSync();
+      } finally { if (current === sessionGeneration) { collectionReady(); viewReady(); } }
+    };
+    const promise = work();
+    profileRequest = {generation:current,promise};
+    try { await promise; } finally { if (profileRequest?.promise === promise) profileRequest = null; }
+  }
+  async function handleSession(session, local = false) {
     const nextUser = session?.user || null;
-    if (!authLoading && user?.id === nextUser?.id) { user = nextUser; return; }
+    if (sessionStarted && user?.id === nextUser?.id) {
+      user = nextUser;
+      if (!local && !sessionConfirmed) { sessionConfirmed = true; if (profile?.nickname) store.enableWrites(); }
+      return;
+    }
+    sessionStarted = true; sessionConfirmed = !local;
     const current = ++sessionGeneration;
     resetAvatarDraft(); photos.clear();
-    user = nextUser; profile = null; authLoading = true; friends = []; blocks = []; friendsLoaded = false; friendsError = ''; renderBadge();
+    user = nextUser; profile = user ? readLocalProfile(storage,user.id) : null; profileError = '';
+    authLoading = Boolean(user && !profile); friends = []; blocks = []; friendsLoaded = false; friendsError = ''; renderBadge();
     if (!user) {
       store.close(); authLoading = false;
       if ($('friends-dialog').open) $('friends-dialog').close();
@@ -577,37 +628,33 @@ export function createAccountHub({ items, characters, getSaved, applySaved, norm
       collectionReady(); await restoreView(); viewReady();
       renderSync(); if ($('account-dialog').open || pendingHub) { renderAccount(); open('account-dialog'); } return;
     }
-    try {
-      const syncing = store.open(user.id,false);
-      collectionReady();
-      const [profileResult] = await Promise.all([
-        client.from('profiles').select('id,nickname,avatar_path,friend_code').eq('id',user.id).single(),
-        syncing,
-      ]);
-      if (current !== sessionGeneration) return;
-      if (profileResult.error) throw profileResult.error;
-      profile = profileResult.data; await photos.load([profile.avatar_path]);
-      if (current !== sessionGeneration) return;
-      authLoading = false; renderSync();
-      if (!profile.nickname) { renderAccount(); open('account-dialog'); }
-      else {
-        store.enableWrites();
-        if ($('account-dialog').open) $('account-dialog').close();
-        const migrating = maybeOfferMigration();
-        if (pendingView && !migrating) await restoreView(); else void refreshFriends();
-        if (!migrating && (pendingHub || sessionStorage.getItem('chiikawa-pending-friend'))) { pendingHub = false; showFriends(); }
-      }
-    } catch (error) {
-      if (current !== sessionGeneration) return;
-      authLoading = false; renderAccount(); message('account-message','帳號資料暫時無法讀取，請確認連線後重新登入。',true); renderSync();
-    } finally { if (current === sessionGeneration) { collectionReady(); viewReady(); } }
+    void store.open(user.id,false);
+    collectionReady(); renderSync();
+    if ($('account-dialog').open) renderAccount();
+    if (profile?.nickname) {
+      if (sessionConfirmed) store.enableWrites();
+      if (pendingView?.open === 'account') { await restoreView(); viewReady(); }
+      else if (pendingView?.open !== 'friends') viewReady();
+    }
+    if (current === sessionGeneration) void loadProfile(current);
   }
   const invite = normalizeFriendCode(new URL(location.href).searchParams.get('friend'));
   if (invite.length === 12) { sessionStorage.setItem('chiikawa-pending-friend',invite); const url = new URL(location.href); url.searchParams.delete('friend'); history.replaceState(null,'',url); pendingHub = true; }
-  const { data:authSubscription } = client.auth.onAuthStateChange((_event, session) => { setTimeout(() => { void handleSession(session); },0); });
+  const localSession = readLocalSession(storage);
+  if (localSession) void handleSession(localSession,true);
+  let authEvents = 0;
   const sessionError = () => { authLoading = false; renderSync(); collectionReady(); viewReady(); };
-  void client.auth.getSession().then(({ data, error }) => { if (error) sessionError(); else void handleSession(data.session); }).catch(sessionError);
-  const refresh = () => { if (user && !document.hidden) { void store.sync(); void refreshFriends(); } };
+  const { data:authSubscription } = client.auth.onAuthStateChange((event, session) => {
+    authEvents++;
+    setTimeout(() => {
+      // 初始連線失敗也可能回報空帳號；仍有登入紀錄時先沿用本機資料。
+      if (event === 'INITIAL_SESSION' && !session && user && readLocalSession(storage)?.user.id === user.id) { sessionError(); return; }
+      void handleSession(session);
+    },0);
+  });
+  const initialAuthEvents = authEvents;
+  void client.auth.getSession().then(({ data, error }) => { if (initialAuthEvents !== authEvents) return; if (error) sessionError(); else void handleSession(data.session); }).catch(sessionError);
+  const refresh = () => { if (user && !document.hidden) { void store.sync(); void refreshFriends(); if (profileError) void loadProfile(sessionGeneration); } };
   window.addEventListener('online',refresh);
   window.addEventListener('focus',refresh);
   document.addEventListener('visibilitychange',refresh);
