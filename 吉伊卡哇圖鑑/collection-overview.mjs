@@ -1,11 +1,13 @@
-import { createFilterMenu, filterChoice } from './filter-menu.mjs?v=5f1bf1b08f0353dd';
-import { ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems, groupSeriesOptions } from './model.mjs?v=5f1bf1b08f0353dd';
-import { normalizeSearchText } from './series-tree.mjs?v=5f1bf1b08f0353dd';
-import { collectionOverview, collectionQuantity, overviewSeries, overviewScope } from './collection-overview-model.mjs?v=5f1bf1b08f0353dd';
+import { createFilterMenu, filterChoice } from './filter-menu.mjs?v=9cbe9f70c17a92a0';
+import { ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems, groupSeriesOptions } from './model.mjs?v=9cbe9f70c17a92a0';
+import { normalizeSearchText } from './series-tree.mjs?v=9cbe9f70c17a92a0';
+import { collectionOverview, collectionQuantity, overviewSeries, overviewScope } from './collection-overview-model.mjs?v=9cbe9f70c17a92a0';
+import { catalogPreviewCard } from './catalog-preview-card.mjs?v=9cbe9f70c17a92a0';
 
 const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const n = value => Number(value || 0).toLocaleString('zh-TW');
-const percent = value => new Intl.NumberFormat('zh-TW',{style:'percent',maximumFractionDigits:1}).format(value || 0);
+const percentFormat = new Intl.NumberFormat('zh-TW',{style:'percent',maximumFractionDigits:1});
+const percent = value => percentFormat.format(value || 0);
 const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
 const menuChevron = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>';
 let nextId = 0;
@@ -63,9 +65,17 @@ export function createCollectionOverview({ container, items, characters = [], se
       <div id="${id}-results" role="tabpanel" data-overview-results></div>
     </div>
     <section class="overview-detail" data-overview-detail hidden>
-      <div class="overview-detail-heading"><button type="button" class="icon-button" data-overview-back aria-label="返回收藏概況"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><h3 data-overview-detail-title tabindex="-1"></h3></div>
-      <div class="overview-detail-stats" data-overview-detail-stats></div>
-      <div class="overview-completeness" data-overview-completeness hidden></div>
+      <div class="overview-detail-heading">
+        <button type="button" class="icon-button" data-overview-back aria-label="返回收藏概況"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+        <div class="overview-detail-label">
+          <h3 data-overview-detail-title tabindex="-1"></h3>
+          <div class="overview-detail-stats" data-overview-detail-stats></div>
+        </div>
+        <div class="overview-completeness" data-overview-completeness role="img" hidden>
+          <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21"/><circle class="overview-ring-fill" cx="24" cy="24" r="21" pathLength="100" stroke-dasharray="100" transform="rotate(-90 24 24)"/></svg>
+          <strong aria-hidden="true"></strong>
+        </div>
+      </div>
       <div class="overview-owned-tabs" role="group" aria-label="收藏狀態" data-overview-owned-tabs hidden><button type="button" data-overview-ownership="owned">已收藏</button><button type="button" data-overview-ownership="unowned">未收藏</button></div>
       <label class="overview-detail-search"><span class="visually-hidden">搜尋商品</span><input type="search" data-overview-search placeholder="搜尋商品" aria-label="搜尋商品" autocomplete="off"></label>
       <div data-overview-products></div><button type="button" class="overview-more" data-overview-more hidden>載入更多</button>
@@ -208,12 +218,13 @@ export function createCollectionOverview({ container, items, characters = [], se
   }
   function renderProducts() {
     const needle = normalizeSearchText(query);
-    const rows = detailItems.filter(item => (detail?.kind === 'series' && detailOwnership === 'unowned' ? !collectionQuantity(quantities,item.id) : collectionQuantity(quantities,item.id)) &&
+    const rows = detailItems.filter(item => (collectionQuantity(quantities,item.id) > 0) === (detailOwnership === 'owned') &&
       (!needle || normalizeSearchText(`${item.name} ${item.character} ${typeLabel(item.type)} ${item.series || ''}`).includes(needle)));
-    $('[data-overview-products]').innerHTML = rows.slice(0,limit).map(item => {
-      const qty = collectionQuantity(quantities,item.id);
-      return `<button type="button" class="overview-product" data-overview-product="${h(item.id)}"><span><strong>${h(item.name)}</strong><small>${h(item.character)}・${h(typeLabel(item.type))}</small></span><span>${qty ? `<b>${n(qty)}<small> 個</small></b>` : ''}${arrow}</span></button>`;
-    }).join('') || `<p class="overview-empty">${query ? '找不到符合的商品' : detailOwnership === 'unowned' && detail?.kind === 'series' ? '這個系列都已收藏' : '這個範圍還沒有收藏'}</p>`;
+    const products = rows.length
+      ? '<div class="product-grid overview-product-grid">' + rows.slice(0,limit).map(item =>
+        catalogPreviewCard(item,{quantity:collectionQuantity(quantities,item.id)})).join('') + '</div>'
+      : `<p class="overview-empty">${query ? '找不到符合的商品' : '這個範圍還沒有收藏'}</p>`;
+    $('[data-overview-products]').innerHTML = products;
     $('[data-overview-more]').hidden = rows.length <= limit;
     for (const button of container.querySelectorAll('[data-overview-ownership]')) button.setAttribute('aria-pressed',String(button.dataset.overviewOwnership === detailOwnership));
   }
@@ -223,12 +234,25 @@ export function createCollectionOverview({ container, items, characters = [], se
     if (!detail) return;
     detailItems = detailScope();
     const owned = detailItems.filter(item => collectionQuantity(quantities,item.id)), pieces = owned.reduce((sum,item) => sum+collectionQuantity(quantities,item.id),0);
+    const showComplete = detail.kind !== 'characters';
+    const completeness = detailItems.length ? owned.length / detailItems.length : 0;
+    const showOwnership = detail.kind === 'series' && owned.length < detailItems.length;
+    const ownershipTabs = $('[data-overview-owned-tabs]');
+    if (!showOwnership) {
+      detailOwnership = 'owned';
+      if (ownershipTabs.contains(document.activeElement)) $('[data-overview-detail-title]').focus({preventScroll:true});
+    }
+    ownershipTabs.hidden = !showOwnership;
     $('[data-overview-detail-title]').textContent = detail.label;
-    $('[data-overview-detail-stats]').innerHTML = `<strong>${n(owned.length)} 款</strong><span>・${n(pieces)} 個</span>${detail.kind !== 'series' ? `<small>佔本次收藏 ${percent(stats.styles ? owned.length/stats.styles : 0)}</small>` : ''}`;
-    const complete = $('[data-overview-completeness]'), showComplete = ['series','types'].includes(detail.kind);
+    $('[data-overview-detail-stats]').innerHTML = `<span>已收藏 <strong>${n(owned.length)}${showComplete ? '／' + n(detailItems.length) : ''}</strong> 款</span><span>・持有 ${n(pieces)} 個</span>${detail.kind !== 'series' ? `<small>佔本次收藏 ${percent(stats.styles ? owned.length/stats.styles : 0)}</small>` : ''}`;
+    const complete = $('[data-overview-completeness]');
     complete.hidden = !showComplete;
-    complete.innerHTML = showComplete ? `<div><span>完整度</span><strong>${percent(detailItems.length ? owned.length/detailItems.length : 0)}</strong></div><span class="overview-progress" aria-hidden="true"><span style="width:${detailItems.length ? owned.length/detailItems.length*100 : 0}%"></span></span><small>已收藏 ${n(owned.length)}／${n(detailItems.length)} 款</small>` : '';
-    $('[data-overview-owned-tabs]').hidden = detail.kind !== 'series';
+    if (showComplete) {
+      const label = percent(completeness);
+      complete.setAttribute('aria-label','完整度 ' + label);
+      complete.querySelector('strong').textContent = label;
+      complete.querySelector('.overview-ring-fill').setAttribute('stroke-dashoffset',100 - completeness * 100);
+    }
     renderProducts();
   }
   function refresh() {
@@ -285,9 +309,15 @@ export function createCollectionOverview({ container, items, characters = [], se
     else if (button.hasAttribute('data-overview-more')) { limit += 40; renderProducts(); }
     else if (button.dataset.overviewProduct) {
       const itemId = button.dataset.overviewProduct;
+      const previousQuantity = collectionQuantity(quantities,itemId);
+      const targetClass = button.matches('.product-image-button') ? 'product-image-button' : 'product-info-button';
       onOpenDetail?.(itemId);
       document.getElementById('detail-dialog')?.addEventListener('close',() => {
-        if (container.isConnected && isVisible()) container.querySelector(`[data-overview-product="${CSS.escape(itemId)}"]`)?.focus({preventScroll:true});
+        if (isVisible() && !$('[data-overview-detail]').hidden) {
+          if (collectionQuantity(getQuantities(),itemId) !== previousQuantity) refresh();
+          const target = $(`.${targetClass}[data-overview-product="${CSS.escape(itemId)}"]`) || $('[data-overview-detail-title]');
+          target.focus({preventScroll:true});
+        }
       },{once:true});
     }
   }

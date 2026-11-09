@@ -1,14 +1,15 @@
-import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=5f1bf1b08f0353dd';
-import { createCollectionOverview } from './collection-overview.mjs?v=5f1bf1b08f0353dd';
-import { createClient } from './supabase-client.mjs?v=5f1bf1b08f0353dd';
-import { cloudConfig } from './cloud-config.mjs?v=5f1bf1b08f0353dd';
-import { createCloudStore } from './cloud-store.mjs?v=5f1bf1b08f0353dd';
-import { ACCOUNT_SESSION_KEY, readLocalSession, readLocalProfile, saveLocalProfile } from './account-cache.mjs?v=5f1bf1b08f0353dd';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=5f1bf1b08f0353dd';
-import { createFriendInviteURL } from './friend-invite.mjs?v=5f1bf1b08f0353dd';
-import { describePurchaseRecord } from './purchase-records.mjs?v=5f1bf1b08f0353dd';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesLabel, filterItems, groupItems, groupSeriesOptions } from './model.mjs?v=5f1bf1b08f0353dd';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=5f1bf1b08f0353dd';
+import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=9cbe9f70c17a92a0';
+import { createCollectionOverview } from './collection-overview.mjs?v=9cbe9f70c17a92a0';
+import { catalogPreviewCard } from './catalog-preview-card.mjs?v=9cbe9f70c17a92a0';
+import { createClient } from './supabase-client.mjs?v=9cbe9f70c17a92a0';
+import { cloudConfig } from './cloud-config.mjs?v=9cbe9f70c17a92a0';
+import { createCloudStore } from './cloud-store.mjs?v=9cbe9f70c17a92a0';
+import { ACCOUNT_SESSION_KEY, readLocalSession, readLocalProfile, saveLocalProfile } from './account-cache.mjs?v=9cbe9f70c17a92a0';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=9cbe9f70c17a92a0';
+import { createFriendInviteURL } from './friend-invite.mjs?v=9cbe9f70c17a92a0';
+import { describePurchaseRecord } from './purchase-records.mjs?v=9cbe9f70c17a92a0';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesLabel, filterItems, groupItems, groupSeriesOptions } from './model.mjs?v=9cbe9f70c17a92a0';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=9cbe9f70c17a92a0';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -442,10 +443,7 @@ export function createAccountHub({ items, characters, seriesTree, getSaved, appl
   const catalogIcon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + ({
     search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/>',
     sliders:'<path d="M3 6h6m4 0h8M3 12h12m4 0h2M3 18h2m4 0h12M9 3v6m6 0v6M5 15v6"/>',
-    chevron:'<path d="m7 9 5 5 5-5"/>', close:'<path d="m6 6 12 12M6 18 18 6"/>',
-    heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
-    star:'<path d="m12 3 2.8 5.7 6.3.9-4.5 4.4 1.1 6.3-5.7-3-5.7 3 1.1-6.3-4.5-4.4 6.3-.9L12 3Z"/>',
-    info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".8" fill="currentColor" stroke="none"/>'
+    chevron:'<path d="m7 9 5 5 5-5"/>', close:'<path d="m6 6 12 12M6 18 18 6"/>'
   }[name] || '') + '</svg>';
   function friendCatalogControls() {
     const select = (id,label,options) => '<label class="select-control"><select id="' + id + '" aria-label="' + label + '">' + options.map(([key,name]) => '<option value="' + h(key) + '">' + h(name) + '</option>').join('') + '</select><span>' + catalogIcon('chevron') + '</span></label>';
@@ -524,13 +522,12 @@ export function createAccountHub({ items, characters, seriesTree, getSaved, appl
   }
   function friendProductCard(item) {
     const mine = getSaved().quantities[item.id] || 0, theirs = friendSnapshot.quantities[item.id] || 0;
-    const owned = friendTab !== 'compare' && theirs > 0, wished = !owned && friendTab === 'wishlist';
-    const name = h(item.character + '・' + item.name);
-    const detail = ' data-friend-detail="' + h(item.id) + '" aria-label="查看' + name + '的詳細資訊" aria-haspopup="dialog" aria-controls="detail-dialog"';
-    return '<article class="product-card friend-product' + (owned ? ' owned' : wished ? ' wished' : '') + '" data-friend-item="' + h(item.id) + '"><div class="product-visual"><button type="button" class="product-image-button friend-product-image"' + detail + '><div class="product-image"><img src="' + safeImage(item.image) + '" alt="' + name + '" width="200" height="200" loading="lazy" decoding="async"></div></button>' +
-      (owned ? '<span class="collect-button owned friend-status" role="img" aria-label="好友收藏 ' + n(theirs) + ' 個" title="好友收藏 ' + n(theirs) + ' 個">' + catalogIcon('heart') + '</span>' : wished ? '<span class="wish-button wished friend-status" role="img" aria-label="好友想收藏">' + catalogIcon('star') + '</span>' : '') +
-      '</div><div class="product-meta"><h3 class="product-name" title="' + h(item.name) + '">' + h(item.name) + '</h3><button type="button" class="product-info-button friend-product-info"' + detail + '>' + catalogIcon('info') + '</button></div>' +
-      (friendTab === 'compare' ? '<p class="friend-comparison-quantity">我 ' + n(mine) + ' 個・對方 ' + n(theirs) + ' 個</p>' : '') + '</article>';
+    return catalogPreviewCard(item, {
+      friend:true,
+      quantity:friendTab === 'compare' ? 0 : theirs,
+      wished:friendTab === 'wishlist' && !theirs,
+      comparison:friendTab === 'compare' ? '我 ' + n(mine) + ' 個・對方 ' + n(theirs) + ' 個' : '',
+    });
   }
   function renderFriendProducts() {
     if (!friendSnapshot || !$('friend-products')) return;

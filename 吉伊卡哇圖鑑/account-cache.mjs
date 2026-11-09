@@ -1,4 +1,4 @@
-import { STORAGE_KEY } from './model.mjs?v=5f1bf1b08f0353dd';
+import { STORAGE_KEY } from './model.mjs?v=9cbe9f70c17a92a0';
 
 export const ACCOUNT_SESSION_KEY = 'chiikawa-account-session';
 const profileKey = uid => STORAGE_KEY + '-account-' + uid + '-profile';

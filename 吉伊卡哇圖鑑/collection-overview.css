@@ -30,7 +30,7 @@
 .overview-row-count{display:flex;align-items:baseline;justify-content:flex-end;gap:5px;white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums}
 .overview-row-count strong{font-size:13px;font-weight:550}
 .overview-row-count small{font-size:12px;color:var(--muted);font-weight:400}
-.overview-row-count svg,.overview-product svg{align-self:center;width:16px;height:16px;margin-left:2px;fill:none;stroke:var(--muted);stroke-width:1.6}
+.overview-row-count svg{align-self:center;width:16px;height:16px;margin-left:2px;fill:none;stroke:var(--muted);stroke-width:1.6}
 .overview-series-row .overview-row-button{grid-template-columns:minmax(0,1fr);padding-top:13px;padding-bottom:13px;row-gap:6px}
 .overview-series-row .overview-row-count{justify-content:flex-start}
 .overview-percent{margin-left:auto;color:var(--coral);font-size:12px}
@@ -40,35 +40,34 @@
 .overview-branch{display:grid;place-items:center;background:transparent;border:0;padding:0;color:var(--muted)}
 .overview-branch svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}
 .overview-branch[aria-expanded="true"] svg{transform:rotate(90deg)}
-.overview-detail-heading{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.overview-detail-heading{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.overview-detail-label{min-width:0;flex:1}
 .overview-detail-heading h3{font-size:17px;font-weight:600;overflow-wrap:anywhere;line-height:1.6;outline:none}
 .overview-detail-heading .icon-button{flex-shrink:0;width:36px;height:40px;margin-left:-8px}
-.overview-detail-stats{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;font-size:14px;margin-bottom:18px}
-.overview-detail-stats>strong{font-size:22px;font-weight:600}
-.overview-detail-stats>span{color:var(--muted)}
-.overview-detail-stats>small{margin-left:auto;color:var(--muted);font-size:12px}
-.overview-completeness{padding:14px 16px;background:#faf2f3;border-radius:13px;margin-bottom:18px}
-.overview-completeness>div{display:flex;justify-content:space-between;font-size:13px;margin-bottom:9px}
-.overview-completeness strong{font-weight:550;color:var(--coral)}
-.overview-completeness .overview-progress{background:#ede2e3}
-.overview-completeness>small{display:block;margin-top:7px;font-size:11px;color:var(--muted)}
+.overview-detail-stats{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 3px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.overview-detail-stats>span{white-space:nowrap}
+.overview-detail-stats strong{color:var(--ink);font-weight:600}
+.overview-detail-stats>small{margin-inline-start:5px;font-size:11px}
+.overview-completeness{display:grid;place-items:center;flex:none;width:50px;aspect-ratio:1;color:var(--coral);font-variant-numeric:tabular-nums}
+.overview-completeness>svg,.overview-completeness>strong{grid-area:1/1}
+.overview-completeness>svg{width:100%;height:100%;stroke:#ede2e3;stroke-width:2.5}
+.overview-completeness>strong{font-size:11px;font-weight:650}
+.overview-ring-fill{stroke:#c28d88;stroke-linecap:butt}
 .overview-owned-tabs{display:flex;gap:8px;margin-bottom:14px}
 .overview-owned-tabs>button{min-height:36px;flex:1;border:1px solid var(--line);background:var(--paper);border-radius:9px;font-size:13px;color:var(--muted)}
 .overview-owned-tabs>button[aria-pressed="true"]{background:var(--pink);color:var(--coral);border-color:transparent;font-weight:550}
-.overview-detail-search{display:block;margin-bottom:6px}
+.overview-detail-search{display:block;margin-bottom:12px}
 .overview-detail-search input{width:100%;min-height:42px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--ink);background:var(--paper);font-size:16px}
-.overview-product{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:64px;padding:12px 0;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;color:var(--ink)}
-.overview-product>span:first-child{min-width:0}
-.overview-product strong{display:block;font-size:13px;font-weight:500;line-height:1.6;overflow-wrap:anywhere}
-.overview-product>span:first-child small{display:block;font-size:11px;color:var(--muted);margin-top:4px}
-.overview-product>span:last-child{display:flex;gap:4px;white-space:nowrap;align-items:center}
-.overview-product b{font-size:13px;font-weight:500;font-variant-numeric:tabular-nums}
-.overview-product b small{font-size:11px;color:var(--muted);font-weight:400}
+.collection-overview .overview-product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.overview-card .product-meta{padding-bottom:1px}
+.overview-card-caption{margin:auto 8px 8px;color:var(--muted);font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.overview-card-status{pointer-events:none}
+@media(min-width:701px){.collection-overview .overview-product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .overview-more{display:block;margin:15px auto 0;border:0;background:transparent;color:var(--coral);padding:8px 18px;min-height:40px;font-size:13px}
 .overview-empty{padding:35px 12px;text-align:center;color:var(--muted);font-size:13px;line-height:1.8}
 :where(html:not([data-focus-mode="pointer"])) .collection-overview button:focus-visible,:where(html:not([data-focus-mode="pointer"])) .collection-overview select:focus-visible,:where(html:not([data-focus-mode="pointer"])) .collection-overview input:focus-visible,:where(html:not([data-focus-mode="pointer"])) .purchase-stats-tabs button:focus-visible{outline:2px solid var(--coral);outline-offset:2px}
-@media(hover:hover) and (pointer:fine){.overview-row-button:hover,.overview-product:hover{color:var(--coral)}.overview-filter-toggle:hover,.overview-more:hover{color:var(--coral)}}
-@media(max-width:360px){.overview-summary{padding:12px 14px}.overview-row-button{column-gap:7px}.overview-row-count{gap:2px}.overview-detail-stats>small{width:100%;margin:4px 0 0}}
+@media(hover:hover) and (pointer:fine){.overview-row-button:hover,.overview-filter-toggle:hover,.overview-more:hover{color:var(--coral)}}
+@media(max-width:360px){.overview-summary{padding:12px 14px}.overview-row-button{column-gap:7px}.overview-row-count{gap:2px}.overview-detail-stats>small{width:100%;margin:0}}
 .overview-filters>[data-overview-menu-anchor="series"]{grid-column:1/-1}
 .overview-menu-anchor [data-overview-menu-label]{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .overview-series-controls .series-toggle{height:36px;min-height:36px;padding-inline:8px;border-color:transparent;color:var(--muted);font-size:12px}
