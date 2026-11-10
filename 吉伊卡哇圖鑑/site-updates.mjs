@@ -1,20 +1,23 @@
 // 返回網站時確認頁面版本；編輯中及登入回跳時保留目前畫面。
+export function isSiteAuthCallback(url) {
+  return url.searchParams.has('code') || url.searchParams.has('error') || /(?:^#|&)(?:access_token|refresh_token|error)=/.test(url.hash);
+}
+
 export function watchForSiteUpdates({ win = window, doc = document, fetcher = fetch, now = Date.now } = {}) {
   const current = doc.querySelector('meta[name="chiikawa-site-version"]')?.content;
   if (!current) return;
   let checking = false, lastCheck = -Infinity, pending = '';
-  const authCallback = url => url.searchParams.has('code') || url.searchParams.has('error') || /(?:^#|&)(?:access_token|refresh_token|error)=/.test(url.hash);
   function applyUpdate() {
     if (!pending || doc.hidden || doc.querySelector('dialog[open]') || doc.activeElement?.matches('input,textarea,select,[contenteditable]')) return;
     const url = new URL(win.location.href);
-    if (authCallback(url) || url.searchParams.get('_site') === pending) return;
+    if (isSiteAuthCallback(url) || url.searchParams.get('_site') === pending) return;
     url.searchParams.set('_site', pending);
     pending = '';
     win.location.replace(url.href);
   }
   async function check() {
     const time = now();
-    if (checking || doc.hidden || time - lastCheck < 60_000 || authCallback(new URL(win.location.href))) return;
+    if (checking || doc.hidden || time - lastCheck < 60_000 || isSiteAuthCallback(new URL(win.location.href))) return;
     lastCheck = time; checking = true;
     try {
       const url = new URL('./site-version.json', win.location.href);

@@ -1,4 +1,4 @@
-import { visibleViewport } from './dialog-viewport.mjs?v=54f5b55c83672a3a';
+import { visibleViewport } from './dialog-viewport.mjs?v=8d31eb23fdb1d6d1';
 
 const chevron = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char =>
@@ -153,7 +153,7 @@ export function createFilterMenu({ button, panel, onOpen, fixedPosition = false,
 }
 
 // 用同款選單顯示既有選項，保留原本的篩選值、變更事件及瀏覽還原流程。
-export function upgradeFilterSelect(select, {getCounts} = {}) {
+export function upgradeFilterSelect(select, {getCounts, align, maxWidth} = {}) {
   const label = select.getAttribute('aria-label');
   const previous = select.parentElement;
   const anchor = document.createElement('div');
@@ -167,7 +167,7 @@ export function upgradeFilterSelect(select, {getCounts} = {}) {
   const button = anchor.querySelector('button');
   const panel = anchor.querySelector('.series-popover');
   const list = panel.querySelector('.series-options');
-  const menu = createFilterMenu({button,panel,flat:true,onOpen:render});
+  const menu = createFilterMenu({button,panel,align,maxWidth,flat:true,onOpen:render});
   function render() {
     const counts = getCounts?.();
     list.innerHTML = [...select.options].map(option => filterChoice({
@@ -180,6 +180,7 @@ export function upgradeFilterSelect(select, {getCounts} = {}) {
   }
   function sync() {
     const text = select.selectedOptions[0]?.textContent || select.options[0]?.textContent || label;
+    button.disabled = select.disabled;
     button.firstElementChild.textContent = text;
     button.setAttribute('aria-label',label + '：' + text);
     if (menu.isOpen) render();

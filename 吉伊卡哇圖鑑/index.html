@@ -26,13 +26,13 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=54f5b55c83672a3a">
-  <link rel="stylesheet" href="./purchase.css?v=54f5b55c83672a3a">
-  <link rel="stylesheet" href="./account.css?v=54f5b55c83672a3a">
-  <link rel="stylesheet" href="./collection-overview.css?v=54f5b55c83672a3a">
-  <link rel="stylesheet" href="./report.css?v=54f5b55c83672a3a">
-  <script type="module" src="./app.mjs?v=54f5b55c83672a3a"></script>
-  <meta name="chiikawa-site-version" content="54f5b55c83672a3a">
+  <link rel="stylesheet" href="./styles.css?v=8d31eb23fdb1d6d1">
+  <link rel="stylesheet" href="./purchase.css?v=8d31eb23fdb1d6d1">
+  <link rel="stylesheet" href="./account.css?v=8d31eb23fdb1d6d1">
+  <link rel="stylesheet" href="./collection-overview.css?v=8d31eb23fdb1d6d1">
+  <link rel="stylesheet" href="./report.css?v=8d31eb23fdb1d6d1">
+  <script type="module" src="./app.mjs?v=8d31eb23fdb1d6d1"></script>
+  <meta name="chiikawa-site-version" content="8d31eb23fdb1d6d1">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -66,7 +66,11 @@
   <main class="page-shell">
     <section id="catalog" class="catalog" aria-labelledby="catalog-title">
       <div class="catalog-heading">
-        <div><h1 id="catalog-title"></h1><p id="result-count" class="layout-summary" role="status" aria-live="polite">正在整理圖鑑…</p></div>
+        <div class="catalog-title-row">
+          <h1 id="catalog-title"></h1>
+          <label hidden><select id="grouping-select" aria-label="排列方式" disabled><option value="character">依角色</option><option value="series">依系列</option></select></label>
+        </div>
+        <p id="result-count" class="layout-summary" role="status" aria-live="polite">正在整理圖鑑…</p>
       </div>
       <div class="filters">
         <div class="filter-controls">
@@ -90,14 +94,13 @@
           </div>
         </div>
       </div>
-      <section class="catalog-toolbar" aria-label="商品顯示方式">
-        <div class="ownership-control" id="ownership-control" role="group" aria-label="篩選擁有狀態">
+      <div class="catalog-toolbar">
+        <div class="ownership-control" id="ownership-control" role="group" aria-label="篩選擁有狀態" hidden>
           <button type="button" data-ownership="all" class="active" aria-pressed="true">全部</button>
           <button type="button" data-ownership="owned" aria-pressed="false">已擁有</button>
           <button type="button" data-ownership="unowned" aria-pressed="false">未擁有</button>
         </div>
-        <label class="grouping-control"><select id="grouping-select" aria-label="排列方式"><option value="character">依種類</option><option value="series">依系列</option></select><span data-icon="chevron"></span></label>
-      </section>
+      </div>
       <p id="result-context" class="result-context" role="status" aria-live="polite" hidden></p>
       <div class="filter-summary"><div id="active-filters" class="active-filters"></div><button id="reset-filters" class="text-button" hidden><span data-icon="reset"></span>重設篩選</button></div>
       <div id="catalog-content" aria-busy="true"><div class="product-grid skeleton-grid" aria-hidden="true"><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
@@ -167,7 +170,7 @@
         <summary>怎麼搜尋、篩選與調整畫面？<span data-icon="chevron"></span></summary>
         <dl class="guide-options">
           <div><dt>搜尋與篩選</dt><dd>可搜尋品名、系列或角色。角色圖鑑與所有角色可切換「全部／已擁有／未擁有」，再搭配搜尋右側篩選圖示中的地區、種類與系列。系列可逐層展開與搜尋；收起篩選區後，已選條件仍會套用，圖示旁的小圓點表示已有篩選條件。</dd></div>
-          <div><dt>排列方式</dt><dd>使用商品清單上方右側的排列選單，可選擇依角色、種類或系列排列，選項依目前頁面顯示；選擇特定系列時，會切換為依系列排列。</dd></div>
+          <div><dt>排列方式</dt><dd>點選圖鑑標題右側的排列按鈕，可選擇依角色、種類或系列排列，選項依目前頁面顯示。選擇特定系列時，會切換為依系列排列。</dd></div>
           <div><dt>角色順序</dt><dd>展開上方頭貼列後，長按並拖曳角色；電腦可直接拖曳。順序會自動儲存，「我的娃」與願望清單也會沿用。</dd></div>
           <div><dt>暱稱與頭貼</dt><dd>登入後，到「⋯ → 個人資料」修改。</dd></div>
         </dl>

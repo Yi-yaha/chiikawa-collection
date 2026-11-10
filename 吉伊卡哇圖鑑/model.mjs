@@ -1,6 +1,6 @@
-import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=54f5b55c83672a3a';
-import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=54f5b55c83672a3a';
-import { normalizeSaleRecords } from './sale-records.mjs?v=54f5b55c83672a3a';
+import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=8d31eb23fdb1d6d1';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=8d31eb23fdb1d6d1';
+import { normalizeSaleRecords } from './sale-records.mjs?v=8d31eb23fdb1d6d1';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -301,7 +301,9 @@ export function collectionStats(items, owned, quantities = {}, includedTypes = {
 
 export function groupItems(items, groupBy, characterOrder, seriesTree) {
   const groups = new Map();
-  const order = new Map(characterOrder.map((name, index) => [name, index]));
+  // 「其他角色」共用一個頭貼，旗下各區塊跟著該頭貼的位置排列。
+  const orderedCharacters = groupBy === 'character' ? reorderCharacterTabs(characterOrder, characterTabOrder(characterOrder)) : characterOrder;
+  const order = new Map(orderedCharacters.map((name, index) => [name, index]));
   const seriesIndex = groupBy === 'series' ? seriesGroupIndex(seriesTree) : null;
   for (const item of items) {
     const key = groupBy === 'series' ? seriesGroupKey(item, seriesTree) : groupBy === 'type' ? item.type : item.character;
