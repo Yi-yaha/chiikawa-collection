@@ -1,6 +1,6 @@
-import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=8d31eb23fdb1d6d1';
-import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=8d31eb23fdb1d6d1';
-import { normalizeSaleRecords } from './sale-records.mjs?v=8d31eb23fdb1d6d1';
+import { seriesHierarchy, normalizeSearchText } from './series-tree.mjs?v=08ff7e81c7e19075';
+import { normalizePurchaseRecords, mergePurchaseRecord } from './purchase-records.mjs?v=08ff7e81c7e19075';
+import { normalizeSaleRecords } from './sale-records.mjs?v=08ff7e81c7e19075';
 
 export const STORAGE_KEY = 'chiikawa-collection-v1';
 export const MAX_QUANTITY = 9999;
@@ -230,7 +230,8 @@ export function normalizeSaved(value, characters, validIds, itemAliases = {}) {
   const includedTypes = normalizeIncludedTypes(input.includedTypes, input.includeMetalTags);
   const purchaseRecords = normalizePurchaseRecords(input.purchaseRecords, validIds, resolveId);
   const saleRecords = normalizeSaleRecords(input.saleRecords, validIds, resolveId);
-  return { version: 2, owned, quantities: Object.fromEntries(quantities), wishlist, purchaseRecords, saleRecords, characterOrder, groupBy: input.groupBy === 'series' ? 'series' : 'character', includedTypes, includeMetalTags: includedTypes['地方限定吊牌'] };
+  const groupBy = ['type','series'].includes(input.groupBy) ? input.groupBy : 'character';
+  return { version: 2, owned, quantities: Object.fromEntries(quantities), wishlist, purchaseRecords, saleRecords, characterOrder, groupBy, includedTypes, includeMetalTags: includedTypes['地方限定吊牌'] };
 }
 
 // A backup is a snapshot: repeated imports keep the larger quantity instead of

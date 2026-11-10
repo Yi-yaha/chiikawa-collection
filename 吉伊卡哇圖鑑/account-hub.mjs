@@ -1,15 +1,15 @@
-import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=8d31eb23fdb1d6d1';
-import { createCollectionOverview } from './collection-overview.mjs?v=8d31eb23fdb1d6d1';
-import { catalogPreviewCard } from './catalog-preview-card.mjs?v=8d31eb23fdb1d6d1';
-import { createClient } from './supabase-client.mjs?v=8d31eb23fdb1d6d1';
-import { cloudConfig } from './cloud-config.mjs?v=8d31eb23fdb1d6d1';
-import { createCloudStore } from './cloud-store.mjs?v=8d31eb23fdb1d6d1';
-import { ACCOUNT_SESSION_KEY, readLocalSession, readLocalProfile, saveLocalProfile } from './account-cache.mjs?v=8d31eb23fdb1d6d1';
-import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=8d31eb23fdb1d6d1';
-import { createFriendInviteURL } from './friend-invite.mjs?v=8d31eb23fdb1d6d1';
-import { describePurchaseRecord } from './purchase-records.mjs?v=8d31eb23fdb1d6d1';
-import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesLabel, filterItems, groupItems, groupSeriesOptions } from './model.mjs?v=8d31eb23fdb1d6d1';
-import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=8d31eb23fdb1d6d1';
+import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=08ff7e81c7e19075';
+import { createCollectionOverview } from './collection-overview.mjs?v=08ff7e81c7e19075';
+import { catalogPreviewCard } from './catalog-preview-card.mjs?v=08ff7e81c7e19075';
+import { createClient } from './supabase-client.mjs?v=08ff7e81c7e19075';
+import { cloudConfig } from './cloud-config.mjs?v=08ff7e81c7e19075';
+import { createCloudStore } from './cloud-store.mjs?v=08ff7e81c7e19075';
+import { ACCOUNT_SESSION_KEY, readLocalSession, readLocalProfile, saveLocalProfile } from './account-cache.mjs?v=08ff7e81c7e19075';
+import { createAvatarStore, prepareAvatar } from './avatar-store.mjs?v=08ff7e81c7e19075';
+import { createFriendInviteURL } from './friend-invite.mjs?v=08ff7e81c7e19075';
+import { describePurchaseRecord } from './purchase-records.mjs?v=08ff7e81c7e19075';
+import { STORAGE_KEY, ITEM_TYPES, typeLabel, seriesLabel, filterItems, groupItems, groupSeriesOptions } from './model.mjs?v=08ff7e81c7e19075';
+import { normalizeNickname, validNickname, normalizeFriendCode, formatFriendCode, collectionStats, compareCollections, notificationCount } from './social-model.mjs?v=08ff7e81c7e19075';
 
 const $ = id => document.getElementById(id);
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -456,7 +456,7 @@ export function createAccountHub({ items, characters, seriesTree, getSaved, appl
       '<div class="series-anchor"><input type="hidden" id="friend-series"><button type="button" id="friend-series-toggle" class="select-control series-toggle" aria-label="篩選系列：全部系列" aria-haspopup="dialog" aria-expanded="false" aria-controls="friend-series-panel"><span id="friend-series-label">全部系列</span><span>' + catalogIcon('chevron') + '</span></button>' +
       '<section id="friend-series-panel" class="series-popover" role="dialog" aria-label="選擇系列" hidden><label class="series-search-wrap">' + catalogIcon('search') + '<input id="friend-series-search" type="search" placeholder="搜尋系列或分類" aria-label="搜尋好友圖鑑系列或分類" autocomplete="off"></label><div id="friend-series-options" class="series-options"></div></section></div></div></div>' +
       '<section class="catalog-toolbar friend-catalog-toolbar" aria-label="好友商品顯示方式"><p id="friend-results-count" class="friend-results-count" role="status" aria-live="polite"></p>' +
-      select('friend-grouping','好友圖鑑排列方式',[['character','依角色'],['series','依系列']]) + '</section>' +
+      select('friend-grouping','好友圖鑑排列方式',[['character','依角色'],['type','依種類'],['series','依系列']]) + '</section>' +
       '<div id="friend-active-filters" class="active-filters"></div>';
   }
   function friendProductScope() {
@@ -546,7 +546,8 @@ export function createAccountHub({ items, characters, seriesTree, getSaved, appl
     const grouping = $('friend-grouping').value || 'character';
     const order = grouping === 'character' ? getSaved().characterOrder : characters;
     const groups = groupItems(filtered,grouping,order,seriesTree);
-    $('friend-products').innerHTML = filtered.length ? groups.map(group => '<section class="catalog-group"><div class="group-heading"><h3>' + h(grouping === 'series' ? seriesLabel(group.name) : group.name) + '</h3><span class="group-counts">' + n(group.items.length) + ' 款</span><div class="group-line"></div></div><div class="product-grid">' + group.items.map(friendProductCard).join('') + '</div></section>').join('') : '<div class="social-empty"><strong>' + (friendTab === 'wishlist' && !scope.length ? '他的願望清單還沒有娃' : '沒有符合條件的娃') + '</strong><p>' + (friendTab === 'wishlist' && !scope.length ? '之後想收藏的娃會顯示在這裡。' : '可以切換檢視項目，或調整篩選條件。') + '</p></div>';
+    const groupLabel = grouping === 'type' ? typeLabel : grouping === 'series' ? seriesLabel : name => name;
+    $('friend-products').innerHTML = filtered.length ? groups.map(group => '<section class="catalog-group"><div class="group-heading"><h3>' + h(groupLabel(group.name)) + '</h3><span class="group-counts">' + n(group.items.length) + ' 款</span><div class="group-line"></div></div><div class="product-grid">' + group.items.map(friendProductCard).join('') + '</div></section>').join('') : '<div class="social-empty"><strong>' + (friendTab === 'wishlist' && !scope.length ? '他的願望清單還沒有娃' : '沒有符合條件的娃') + '</strong><p>' + (friendTab === 'wishlist' && !scope.length ? '之後想收藏的娃會顯示在這裡。' : '可以切換檢視項目，或調整篩選條件。') + '</p></div>';
     if (!$('friend-series-panel').hidden) renderFriendSeriesOptions();
     $('friends-content').querySelectorAll('[data-compare-tab]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.compareTab === compareTab)));
   }

@@ -1,4 +1,4 @@
-import { visibleViewport } from './dialog-viewport.mjs?v=8d31eb23fdb1d6d1';
+import { visibleViewport } from './dialog-viewport.mjs?v=08ff7e81c7e19075';
 
 const chevron = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char =>
@@ -170,7 +170,7 @@ export function upgradeFilterSelect(select, {getCounts, align, maxWidth} = {}) {
   const menu = createFilterMenu({button,panel,align,maxWidth,flat:true,onOpen:render});
   function render() {
     const counts = getCounts?.();
-    list.innerHTML = [...select.options].map(option => filterChoice({
+    list.innerHTML = [...select.options].filter(option => !option.hidden).map(option => filterChoice({
       key:option.value,
       label:option.textContent,
       count:counts ? counts.get(option.value) || 0 : option.dataset.count,
