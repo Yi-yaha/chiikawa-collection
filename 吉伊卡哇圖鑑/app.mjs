@@ -1,14 +1,14 @@
-import './focus-visibility.mjs?v=f41b3fb569f7cb39';
-import { createPurchaseHub } from './purchase-hub.mjs?v=f41b3fb569f7cb39';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=f41b3fb569f7cb39';
-import { createDialogController } from './dialog-scroll.mjs?v=f41b3fb569f7cb39';
-import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=f41b3fb569f7cb39';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=f41b3fb569f7cb39';
-import { createCatalogImageLoader } from './image-loader.mjs?v=f41b3fb569f7cb39';
-import { createCharacterSorter } from './character-sorter.mjs?v=f41b3fb569f7cb39';
-import { watchForSiteUpdates } from './site-updates.mjs?v=f41b3fb569f7cb39';
-import { createReportHub } from './report-hub.mjs?v=f41b3fb569f7cb39';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=f41b3fb569f7cb39';
+import './focus-visibility.mjs?v=54f5b55c83672a3a';
+import { createPurchaseHub } from './purchase-hub.mjs?v=54f5b55c83672a3a';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=54f5b55c83672a3a';
+import { createDialogController } from './dialog-scroll.mjs?v=54f5b55c83672a3a';
+import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=54f5b55c83672a3a';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=54f5b55c83672a3a';
+import { createCatalogImageLoader } from './image-loader.mjs?v=54f5b55c83672a3a';
+import { createCharacterSorter } from './character-sorter.mjs?v=54f5b55c83672a3a';
+import { watchForSiteUpdates } from './site-updates.mjs?v=54f5b55c83672a3a';
+import { createReportHub } from './report-hub.mjs?v=54f5b55c83672a3a';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=54f5b55c83672a3a';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -441,7 +441,15 @@ function renderSeriesOptions() {
     return branchToggle(category, 0, options);
   }).join('');
   if (!categories.length) html += '<p class="series-option-empty">' + (search ? '找不到符合的系列，換個名稱試試看。' : '目前沒有可選的系列，試試切換角色或調整篩選。') + '</p>';
-  $('series-options').innerHTML = html;
+  const list = $('series-options');
+  const focused = list.contains(document.activeElement) ? document.activeElement : null;
+  const key = focused?.dataset.series;
+  const branch = focused?.getAttribute('aria-controls');
+  const scrollTop = list.scrollTop;
+  list.innerHTML = html;
+  list.scrollTop = scrollTop;
+  if (key !== undefined) list.querySelector('[data-series="' + CSS.escape(key) + '"]')?.focus({preventScroll:true});
+  else if (branch) list.querySelector('[aria-controls="' + CSS.escape(branch) + '"]')?.focus({preventScroll:true});
 }
 function renderFilters() {
   renderFilterDisclosure();
@@ -551,7 +559,6 @@ function renderCatalog() {
   renderFilters();
   const items = currentItems();
   renderResultCount(items);
-  $('catalog-results').classList.toggle('has-series-filter', Boolean(state.seriesFilter));
   $('catalog-content').setAttribute('aria-busy','false');
   if (!items.length) {
     $('catalog-content').innerHTML = emptyState();
@@ -978,14 +985,11 @@ $('type-filter').addEventListener('change', event => { state.type = event.target
 $('region-filter').addEventListener('change', event => { state.region = event.target.value; renderCatalog(); });
 const catalogRegionMenu = upgradeFilterSelect($('region-filter'));
 const catalogTypeMenu = upgradeFilterSelect($('type-filter'));
-let seriesMenuAtResults = false;
 const catalogSeriesMenu = createFilterMenu({
-  button:$('series-toggle'), panel:$('series-popover'), align:'end', fixedAnchor:true,
+  button:$('series-toggle'), panel:$('series-popover'), align:'end', fixedPosition:true,
   onOpen:prepareSeriesMenu,
-  returnFocus:() => seriesMenuAtResults ? $('catalog-results') : null,
 });
 function prepareSeriesMenu() {
-  seriesMenuAtResults = false;
   $('series-search').value = '';
   const selection = state.seriesFilter;
   openSeriesPath = selection?.path || [];
@@ -1018,30 +1022,13 @@ window.addEventListener('resize', () => {
     $('catalog-content').querySelectorAll('.catalog-group').forEach(group => group.style.setProperty('--group-rows', Math.ceil(Number(group.dataset.count) / catalogColumns())));
   });
 }, { passive:true });
-function revealSeriesResults(keepMenu) {
-  const results = $('catalog-results');
-  const start = ($('result-context').hidden ? results : $('result-context')).getBoundingClientRect();
-  const viewport = window.visualViewport;
-  const viewportTop = viewport?.offsetTop || 0;
-  const viewportBottom = viewportTop + (viewport?.height || innerHeight);
-  let top = Math.max(siteHeader.getBoundingClientRect().bottom,viewportTop) + 16;
-  if (keepMenu) {
-    const menu = $('series-popover').getBoundingClientRect();
-    if (menu.top < top + start.height && menu.bottom > top && menu.bottom + 12 + start.height < viewportBottom) top = menu.bottom + 12;
-    seriesMenuAtResults = true;
-  }
-  window.scrollBy({top:start.top - top,behavior:'instant'});
-  if (!keepMenu) results.focus({preventScroll:true});
-}
-function chooseSeriesFilter(selection, {keepMenu = false, reveal = true} = {}) {
+function chooseSeriesFilter(selection) {
   state.seriesFilter = selection;
   if (selection && state.groupBy !== 'series') {
     state.groupBy = 'series';
     persist();
   }
-  if (!keepMenu) catalogSeriesMenu.close(!reveal);
   renderCatalog();
-  if (reveal) revealSeriesResults(keepMenu);
 }
 $('series-options').addEventListener('click', event => {
   const branch = event.target.closest('[data-series-category], [data-series-subcategory]');
@@ -1053,18 +1040,11 @@ $('series-options').addEventListener('click', event => {
     const collapse = state.seriesFilter === selection && openSeriesPath.includes(id);
     openSeriesPath = collapse ? selection.path.slice(0,-1) : selection.path;
     if (collapse) renderSeriesOptions();
-    else chooseSeriesFilter(selection,{keepMenu:true});
-    const list = $('series-options');
-    const button = list.querySelector('[data-series-' + (seriesCategory ? 'category' : 'subcategory') + '="' + CSS.escape(id) + '"]');
-    button?.focus({preventScroll:true});
-    if (!collapse && button) list.scrollTop += button.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    else chooseSeriesFilter(selection);
     return;
   }
   const target = event.target.closest('[data-series]');
-  if (target) {
-    const selection = exactSeriesFilter(target.dataset.series);
-    chooseSeriesFilter(selection,{reveal:Boolean(selection || seriesMenuAtResults)});
-  }
+  if (target) chooseSeriesFilter(exactSeriesFilter(target.dataset.series));
 });
 let searchTimer;
 $('catalog-search').addEventListener('input', event => {
@@ -1313,7 +1293,7 @@ async function init() {
     }
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=f41b3fb569f7cb39');
+        const { createAccountHub } = await import('./account-hub.mjs?v=54f5b55c83672a3a');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           seriesTree:state.seriesTree, initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

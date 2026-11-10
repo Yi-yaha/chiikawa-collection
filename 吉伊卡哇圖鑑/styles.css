@@ -485,7 +485,7 @@ html{scroll-padding-top:118px}
 .filter-options{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.35fr)}
 @media(max-width:700px){.filter-options{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.filter-options>.series-anchor{grid-column:1/-1}}
 
-/* 系列選單保留在開啟位置，篩選後可從結果開頭接續瀏覽。 */
+/* 系列選單固定在開啟位置，選項在視窗內捲動。 */
 .series-popover{display:flex;flex-direction:column;top:calc(100% + 6px);max-height:var(--series-menu-space,calc(100dvh - 220px))}
 .series-popover.filter-popover{position:fixed;right:auto;z-index:30}
 .filter-popover-flat .series-options{margin-top:0}
@@ -656,8 +656,6 @@ html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-headi
 .grouping-control svg{width:15px;height:15px;stroke-width:1.6}
 .catalog-toolbar:has(.ownership-control[hidden]) .grouping-control{margin-left:auto}
 .result-context{margin:-10px 0 12px;font-size:12px;color:var(--muted);line-height:20px}
-#catalog-results{display:flow-root}
-#catalog-results.has-series-filter{min-height:max(0px,calc(100dvh - var(--catalog-heading-top) - 16px))}
 .filter-summary{align-items:center}
 .active-filters:not(:empty){padding-bottom:16px}
 .filter-chip{font-size:12px;min-height:36px;background:#F1E6E1}

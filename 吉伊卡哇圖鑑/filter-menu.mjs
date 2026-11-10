@@ -1,4 +1,4 @@
-import { visibleViewport } from './dialog-viewport.mjs?v=f41b3fb569f7cb39';
+import { visibleViewport } from './dialog-viewport.mjs?v=54f5b55c83672a3a';
 
 const chevron = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char =>
@@ -11,25 +11,38 @@ export function filterChoice({ key, label, selected, count, all = false, attribu
 }
 
 // 浮動選單沿用所屬畫面的操作層級，鍵盤出現時只調整選單自己的可見範圍。
-export function createFilterMenu({ button, panel, onOpen, returnFocus, fixedAnchor = false, align = 'start', maxWidth = 280, flat = false }) {
+export function createFilterMenu({ button, panel, onOpen, fixedPosition = false, align = 'start', maxWidth = 280, flat = false }) {
   const dialog = button.closest('dialog');
   const search = panel.querySelector('input[type="search"]');
   const list = panel.querySelector('.series-options');
   const anchor = button.parentElement;
   const dismiss = panel.querySelector('[data-close-filter-menu]');
-  let events, openingOffset = null;
+  let events, openingBounds;
   panel.classList.add('filter-popover');
   if (!search) panel.classList.add('filter-popover-flat');
 
   function position() {
-    const field = button.getBoundingClientRect();
     const frame = dialog?.getBoundingClientRect();
     const viewport = visibleViewport();
     const top = Math.max(frame?.top ?? 0,viewport.top) + 12;
     const bottom = Math.min(frame?.bottom ?? innerHeight,viewport.top + viewport.height) - 12;
     const leftEdge = (frame?.left ?? 0) + 12;
-    const rightEdge = (frame?.right ?? document.documentElement.clientWidth) - 12;
-    if (!field.height || (openingOffset === null && search !== document.activeElement && (field.bottom < top || field.top > bottom))) {
+    const rightEdge = (frame?.right ?? (openingBounds ? innerWidth : document.documentElement.clientWidth)) - 12;
+    if (openingBounds) {
+      // 開啟後沿用選單本身的位置與大小，只在可見範圍不足時調整。
+      const width = Math.min(openingBounds.width,Math.max(0,rightEdge - leftEdge));
+      const height = Math.min(openingBounds.height,Math.max(0,bottom - top));
+      panel.style.left = Math.max(leftEdge,Math.min(openingBounds.left,rightEdge - width)) + 'px';
+      panel.style.top = Math.max(top,Math.min(openingBounds.top,bottom - height)) + 'px';
+      panel.style.bottom = 'auto';
+      panel.style.width = width + 'px';
+      panel.style.height = height + 'px';
+      panel.style.setProperty('--series-menu-space',height + 'px');
+      return;
+    }
+
+    const field = button.getBoundingClientRect();
+    if (!field.height || (search !== document.activeElement && (field.bottom < top || field.top > bottom))) {
       close();
       return;
     }
@@ -39,11 +52,8 @@ export function createFilterMenu({ button, panel, onOpen, returnFocus, fixedAnch
     panel.style.width = width + 'px';
     panel.style.left = Math.max(leftEdge,Math.min(left,rightEdge - width)) + 'px';
 
-    // 系列選單以開啟時的位置為準；背景捲動不改變選單的展開方向。
-    const fieldTop = openingOffset === null ? field.top : Math.min(viewport.top + openingOffset,bottom);
-    const fieldBottom = openingOffset === null ? field.bottom : Math.min(fieldTop + field.height,bottom);
-    const above = fieldTop - top - 6;
-    const below = bottom - fieldBottom - 6;
+    const above = field.top - top - 6;
+    const below = bottom - field.bottom - 6;
     const placeBelow = below >= Math.min(search ? 235 : 160,above);
     const space = placeBelow ? below : above;
     if (space < (search ? 110 : 66)) {
@@ -53,8 +63,8 @@ export function createFilterMenu({ button, panel, onOpen, returnFocus, fixedAnch
       panel.style.setProperty('--series-menu-space', Math.max(0,bottom-top) + 'px');
       return;
     }
-    panel.style.top = placeBelow ? fieldBottom + 6 + 'px' : 'auto';
-    panel.style.bottom = placeBelow ? 'auto' : innerHeight - fieldTop + 6 + 'px';
+    panel.style.top = placeBelow ? field.bottom + 6 + 'px' : 'auto';
+    panel.style.bottom = placeBelow ? 'auto' : innerHeight - field.top + 6 + 'px';
     // 選單朝上時保持搜尋欄位置，避免縮短結果清單時移動正在輸入的欄位。
     panel.style.height = search && !placeBelow ? Math.min(310,space) + 'px' : 'auto';
     panel.style.setProperty('--series-menu-space', space + 'px');
@@ -66,8 +76,8 @@ export function createFilterMenu({ button, panel, onOpen, returnFocus, fixedAnch
     panel.hidden = true;
     button.setAttribute('aria-expanded','false');
     if (activeMenu === api) activeMenu = null;
-    openingOffset = null;
-    if (restoreFocus) (returnFocus?.() || button).focus({preventScroll:true});
+    openingBounds = null;
+    if (restoreFocus) button.focus({preventScroll:true});
   }
 
   function focusChoice(choice) {
@@ -84,10 +94,13 @@ export function createFilterMenu({ button, panel, onOpen, returnFocus, fixedAnch
     activeMenu = api;
     panel.hidden = false;
     button.setAttribute('aria-expanded','true');
-    if (fixedAnchor) openingOffset = button.getBoundingClientRect().top - visibleViewport().top;
     onOpen?.();
     position();
     if (panel.hidden) return;
+    if (fixedPosition) {
+      openingBounds = panel.getBoundingClientRect();
+      position();
+    }
 
     events = new AbortController();
     const signal = events.signal;
@@ -97,7 +110,7 @@ export function createFilterMenu({ button, panel, onOpen, returnFocus, fixedAnch
     document.addEventListener('pointerdown',closeOutside,{capture:true,signal});
     document.addEventListener('focusin',closeOutside,{signal});
     window.addEventListener('resize',position,{signal});
-    (dialog || window).addEventListener('scroll',position,{passive:true,signal});
+    if (!fixedPosition) (dialog || window).addEventListener('scroll',position,{passive:true,signal});
     window.visualViewport?.addEventListener('resize',position,{signal});
     window.visualViewport?.addEventListener('scroll',position,{signal});
     dialog?.addEventListener('close',() => close(),{signal});
