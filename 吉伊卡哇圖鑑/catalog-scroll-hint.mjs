@@ -1,10 +1,14 @@
-import { visibleViewport } from './dialog-viewport.mjs?v=08ff7e81c7e19075';
+import { visibleViewport } from './dialog-viewport.mjs?v=72b4edb3da004c3e';
 
-function lastBefore(elements, y) {
+const elementTop = element => element.getBoundingClientRect().top;
+const mainHeading = ':scope > .group-heading > h3';
+const seriesHeadings = '.catalog-series-heading > :is(h4,h5,h6)';
+
+function lastBefore(elements, y, topOf = elementTop) {
   let start = 0, end = elements.length;
   while (start < end) {
     const middle = Math.floor((start + end) / 2);
-    if (elements[middle].getBoundingClientRect().top <= y) start = middle + 1;
+    if (topOf(elements[middle]) <= y) start = middle + 1;
     else end = middle;
   }
   return elements[start - 1];
@@ -12,17 +16,31 @@ function lastBefore(elements, y) {
 
 function headingAt(catalog, y) {
   // 先用外層分區縮小範圍，避免為了讀取標題而排版畫面外的商品。
-  const mainHeading = ':scope > .group-heading > h3';
   let group = lastBefore(catalog.children,y);
   let title = group?.querySelector(mainHeading);
   if (!title) return null;
-  if (title.getBoundingClientRect().top > y) {
+  if (elementTop(title) > y) {
     group = group.previousElementSibling;
     title = group?.querySelector(mainHeading);
   }
   const series = group?.querySelector(':scope > .catalog-series-products');
-  const childTitle = series ? lastBefore(series.querySelectorAll('.catalog-series-heading > :is(h4,h5,h6)'),y) : null;
+  const childTitle = series ? lastBefore(series.querySelectorAll(seriesHeadings),y) : null;
   return childTitle || title;
+}
+
+function dragHeadings(catalog) {
+  const headings = [];
+  for (const group of catalog.children) {
+    const title = group.querySelector(mainHeading);
+    if (!title) continue;
+    const series = group.querySelector(':scope > .catalog-series-products');
+    // 一般分區只量外框，避免為了預覽標題而展開畫面外的卡片。
+    headings.push({ top:elementTop(series ? title : group), name:title.textContent.trim() });
+    for (const child of series?.querySelectorAll(seriesHeadings) || []) {
+      headings.push({ top:elementTop(child), name:child.textContent.trim() });
+    }
+  }
+  return headings;
 }
 
 export function createCatalogScrollHint({ scroller = window, getCatalog, isActive, getTop = () => 0 }) {
@@ -89,31 +107,42 @@ export function createCatalogScrollHint({ scroller = window, getCatalog, isActiv
 
   const clamp = (value,min,max) => Math.max(min,Math.min(max,value));
   const scrollTo = top => scrollArea.scrollTo({top,behavior:'instant'});
+  const dragProgress = ({ geometry, offset }, y) => clamp((y - offset - geometry.start) / geometry.travel,0,1);
+  const isDragCurrent = catalog => drag.catalog === catalog && drag.firstGroup === catalog?.firstElementChild;
 
   function update() {
     frame = 0;
     const catalog = getCatalog();
+    if (drag && !isDragCurrent(catalog)) {
+      releaseDrag();
+      clearLabel();
+    }
     const hasGroups = catalog?.firstElementChild?.classList.contains('catalog-group');
-    const geometry = isActive() && hasGroups && catalog.getClientRects().length ? track() : null;
+    const geometry = isActive() && hasGroups
+      ? drag?.geometry || (catalog.getClientRects().length ? track() : null)
+      : null;
     const available = Boolean(geometry && geometry.range > 0 && geometry.travel > 0);
     scrollArea.classList.toggle('catalog-scroll-controlled',available);
     thumb.hidden = !available;
     if (!available) { releaseDrag(); clearLabel(); return; }
 
     const {top,bottom,start,travel,range,right} = geometry;
-    if (drag?.moved) {
-      drag.moved = false;
-      const destination = clamp((drag.y - drag.offset - start) / travel,0,1) * range;
-      scrollTo(destination);
-    }
-    const progress = clamp(scrollArea.scrollTop / range,0,1);
-    const thumbCenter = drag ? clamp(drag.y - drag.offset,start,start + travel) : start + progress * travel;
+    const progress = drag ? dragProgress(drag,drag.y) : clamp(scrollArea.scrollTop / range,0,1);
+    const thumbCenter = start + progress * travel;
     const inset = Math.min(34,(bottom - top) / 2);
     const labelCenter = clamp(drag?.y ?? thumbCenter,top + inset,bottom - inset);
-    const bounds = showing ? catalog.getBoundingClientRect() : null;
-    // 讀取與標籤同一高度的分區標題。兩個標題之間沿用上一個標題。
-    const heading = bounds && bounds.top <= labelCenter && labelCenter < bounds.bottom ? headingAt(catalog,labelCenter) : null;
-    const name = heading?.textContent.trim() || '';
+    let name;
+    if (drag) {
+      // 用按下時量好的位置預覽目的地，拖曳途中不用捲動或重新量測清單。
+      const destinationY = labelCenter + progress * range - drag.scrollTop;
+      const heading = lastBefore(drag.headings,destinationY,entry => entry.top) || drag.headings[0];
+      name = heading?.name;
+    } else if (showing) {
+      const bounds = catalog.getBoundingClientRect();
+      if (bounds.top <= labelCenter && labelCenter < bounds.bottom) {
+        name = headingAt(catalog,labelCenter)?.textContent.trim();
+      }
+    }
 
     thumb.style.top = thumbCenter + 'px';
     thumb.style.right = right + 'px';
@@ -130,30 +159,36 @@ export function createCatalogScrollHint({ scroller = window, getCatalog, isActiv
 
   thumb.addEventListener('pointerdown',event => {
     if (!event.isPrimary || event.button !== 0 || !isActive()) return;
+    const catalog = getCatalog();
+    const geometry = track();
+    if (!catalog?.firstElementChild?.classList.contains('catalog-group') || geometry.range <= 0 || geometry.travel <= 0) return;
     event.preventDefault();
     const bounds = thumb.getBoundingClientRect();
-    drag = { id:event.pointerId, y:event.clientY, offset:event.clientY - (bounds.top + bounds.height / 2), moved:false };
+    drag = {
+      id:event.pointerId, y:event.clientY, startY:event.clientY,
+      offset:event.clientY - (bounds.top + bounds.height / 2),
+      geometry, catalog, firstGroup:catalog.firstElementChild,
+      scrollTop:scrollArea.scrollTop, headings:dragHeadings(catalog),
+    };
     thumb.setPointerCapture(event.pointerId);
     reveal();
   });
   thumb.addEventListener('pointermove',event => {
     if (drag?.id !== event.pointerId) return;
     drag.y = event.clientY;
-    drag.moved = true;
     schedule();
   });
   function finishDrag(event) {
     if (drag?.id !== event.pointerId) return;
-    if (event.type !== 'pointerup') return hide();
-    if (drag.moved) {
-      cancelAnimationFrame(frame);
-      update();
-    }
+    if (event.type !== 'pointerup' || !isActive() || !isDragCurrent(getCatalog())) return hide();
+    const destination = event.clientY === drag.startY ? null : dragProgress(drag,event.clientY) * drag.geometry.range;
     releaseDrag();
+    if (destination !== null) scrollTo(destination);
     reveal();
   }
   for (const event of ['pointerup','pointercancel','lostpointercapture']) thumb.addEventListener(event,finishDrag);
   thumb.addEventListener('keydown',event => {
+    if (drag) return;
     const {scrollTop,clientHeight,scrollHeight} = scrollArea;
     const positions = {ArrowUp:scrollTop - 40,ArrowDown:scrollTop + 40,PageUp:scrollTop - clientHeight,PageDown:scrollTop + clientHeight,Home:0,End:scrollHeight};
     if (!Object.hasOwn(positions,event.key)) return;
@@ -164,8 +199,12 @@ export function createCatalogScrollHint({ scroller = window, getCatalog, isActiv
 
   scroller.addEventListener('scroll',reveal,{passive:true});
   scroller.addEventListener('pointerdown',event => { if (event.target !== thumb) clearLabel(); },{passive:true});
-  window.addEventListener('resize',schedule);
-  window.visualViewport?.addEventListener('resize',schedule);
+  function viewportChanged() {
+    if (drag) hide();
+    else schedule();
+  }
+  window.addEventListener('resize',viewportChanged);
+  window.visualViewport?.addEventListener('resize',viewportChanged);
   document.addEventListener('close',schedule,true);
   if (typeof ResizeObserver !== 'undefined') {
     const resize = new ResizeObserver(schedule);
