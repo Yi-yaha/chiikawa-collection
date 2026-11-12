@@ -129,18 +129,36 @@
 .release-days .has-multiple-releases .release-day-summary { line-height: 11px; }
 .release-days .has-multiple-releases .release-day-summary + .release-day-summary { padding-top: 0; }
 .release-month-swipe.is-dragging button { cursor: grabbing; }
-.release-days button[aria-current="date"] .release-day-number {
-  color: var(--coral-dark);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 .release-days button[aria-pressed="true"] {
-  background: var(--pink);
+  box-shadow: inset 0 0 0 1.5px #a14f43;
 }
 .release-day-number {
+  display: inline-flex;
+  align-items: center;
   font-size: 13px;
   font-weight: 650;
   line-height: 14px;
+}
+.release-day-label {
+  display: inline-grid;
+  position: relative;
+  isolation: isolate;
+  min-width: 14px;
+  place-items: center;
+}
+.release-days button[aria-current="date"] .release-day-label { color: #fff; }
+.release-days button[aria-current="date"] .release-day-label::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #a14f43;
+  pointer-events: none;
 }
 .release-day-summary {
   display: grid;

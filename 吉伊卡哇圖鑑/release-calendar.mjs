@@ -1,5 +1,5 @@
-import { releaseCalendarLinks } from './release-calendar-export.mjs?v=c7616e142084296f';
-import { createReleaseCalendarAdd } from './release-calendar-add.mjs?v=c7616e142084296f';
+import { releaseCalendarLinks } from './release-calendar-export.mjs?v=7fcabe15b2dd1101';
+import { createReleaseCalendarAdd } from './release-calendar-add.mjs?v=7fcabe15b2dd1101';
 
 const taipeiDateFormat = new Intl.DateTimeFormat('sv-SE', { timeZone:'Asia/Taipei' });
 const dayFormat = new Intl.DateTimeFormat('zh-TW', { timeZone:'UTC', month:'long', day:'numeric', weekday:'long' });
@@ -142,12 +142,15 @@ export function createReleaseCalendar(openDialog, icon) {
       }
       button.classList.toggle('has-multiple-releases', visibleEvents.length > 1);
       const description = events.slice(0, 2).map(event => [event.time + (event.endTime ? ' 至 ' + event.endTime : ''), event.title || '新品開售'].join(' ')).join('、');
-      button.setAttribute('aria-label', releaseDayLabel(date) + (events.length ? '，' + events.length + ' 筆開售時程，' + description : ''));
-      button.setAttribute('aria-pressed', String(date === activeDate));
+      button.setAttribute('aria-label', releaseDayLabel(date) + (date === today ? '，今天' : '') + (events.length ? '，' + events.length + ' 筆開售時程，' + description : ''));
+      button.setAttribute('aria-pressed', String(date === selected));
       if (date === today) button.setAttribute('aria-current', 'date');
       const dayNumber = document.createElement('span');
       dayNumber.className = 'release-day-number';
-      dayNumber.textContent = number;
+      const dayLabel = document.createElement('span');
+      dayLabel.className = 'release-day-label';
+      dayLabel.textContent = number;
+      dayNumber.append(dayLabel);
       if (summaries.length > visibleEvents.length) {
         const more = document.createElement('span');
         more.className = 'release-day-more';
@@ -211,7 +214,9 @@ export function createReleaseCalendar(openDialog, icon) {
 
   function moveMonth(offset) {
     const date = offsetMonth(selected, offset);
-    if (date) showDate(date);
+    if (!date) return;
+    today = taipeiDate();
+    showDate(date.slice(0, 7) === today.slice(0, 7) ? today : date);
   }
 
   function settleMonth() {

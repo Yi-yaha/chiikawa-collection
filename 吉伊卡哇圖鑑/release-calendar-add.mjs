@@ -1,4 +1,4 @@
-import { releaseCalendarFile, releaseCalendarRevision, releaseReminderOptions } from './release-calendar-export.mjs?v=c7616e142084296f';
+import { releaseCalendarFile, releaseCalendarRevision, releaseReminderOptions } from './release-calendar-export.mjs?v=7fcabe15b2dd1101';
 
 const dateFormat = new Intl.DateTimeFormat('zh-TW', { timeZone:'UTC', year:'numeric', month:'numeric', day:'numeric', weekday:'short' });
 
