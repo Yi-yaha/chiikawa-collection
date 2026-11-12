@@ -26,14 +26,14 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=a81b8e1c6b961f81">
-  <link rel="stylesheet" href="./purchase.css?v=a81b8e1c6b961f81">
-  <link rel="stylesheet" href="./account.css?v=a81b8e1c6b961f81">
-  <link rel="stylesheet" href="./collection-overview.css?v=a81b8e1c6b961f81">
-  <link rel="stylesheet" href="./report.css?v=a81b8e1c6b961f81">
-  <link rel="stylesheet" href="./release-calendar.css?v=a81b8e1c6b961f81">
-  <script type="module" src="./app.mjs?v=a81b8e1c6b961f81"></script>
-  <meta name="chiikawa-site-version" content="a81b8e1c6b961f81">
+  <link rel="stylesheet" href="./styles.css?v=c7616e142084296f">
+  <link rel="stylesheet" href="./purchase.css?v=c7616e142084296f">
+  <link rel="stylesheet" href="./account.css?v=c7616e142084296f">
+  <link rel="stylesheet" href="./collection-overview.css?v=c7616e142084296f">
+  <link rel="stylesheet" href="./report.css?v=c7616e142084296f">
+  <link rel="stylesheet" href="./release-calendar.css?v=c7616e142084296f">
+  <script type="module" src="./app.mjs?v=c7616e142084296f"></script>
+  <meta name="chiikawa-site-version" content="c7616e142084296f">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -135,6 +135,29 @@
       <button class="text-button" id="release-retry" type="button" hidden>重新載入</button>
       <ul id="release-events" class="release-events"></ul>
     </section>
+  </dialog>
+  <dialog id="release-calendar-add" class="panel-dialog release-calendar-add" aria-labelledby="release-add-heading">
+    <div class="dialog-heading">
+      <h2 id="release-add-heading">加入 Apple 行事曆？</h2>
+      <button class="icon-button" type="button" data-close="release-calendar-add" aria-label="關閉加入行事曆" autofocus><span data-icon="close"></span></button>
+    </div>
+    <div class="release-add-event">
+      <h3 id="release-add-title"></h3>
+      <p class="release-add-when"><span id="release-add-date"></span><span id="release-add-time"></span></p>
+      <p id="release-add-location" class="release-add-location" hidden></p>
+      <p id="release-add-single-day" class="release-add-note" hidden>僅加入所選的這一天。</p>
+    </div>
+    <label class="release-add-reminder" for="release-add-reminder"><span>提醒時間</span><select id="release-add-reminder"></select></label>
+    <p class="release-add-note">提醒會隨活動帶入，請確認 iPhone 或 Mac 的行事曆通知已開啟。</p>
+    <div class="release-add-actions">
+      <button class="release-add-cancel" type="button" data-close="release-calendar-add">取消</button>
+      <a id="release-add-proceed" class="release-add-proceed"><span data-icon="calendar"></span>繼續加入</a>
+    </div>
+    <p id="release-add-status" class="release-add-note release-add-status" role="status"></p>
+    <details id="release-add-help" class="release-add-help">
+      <summary>沒有出現加入畫面？</summary>
+      <p>在 iPhone 或 iPad 上，請用 Safari 開啟本頁再試一次。若使用 Mac，請開啟下載的活動檔案，並在行事曆確認加入。</p>
+    </details>
   </dialog>
   <dialog id="guide-dialog" class="panel-dialog guide-dialog" aria-labelledby="guide-title" aria-describedby="guide-description">
     <div class="dialog-heading"><h2 id="guide-title">使用說明</h2><button class="icon-button" data-close="guide-dialog" aria-label="關閉使用說明" autofocus><span data-icon="close"></span></button></div>

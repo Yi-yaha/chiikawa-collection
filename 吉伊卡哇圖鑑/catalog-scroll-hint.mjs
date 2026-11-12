@@ -1,4 +1,4 @@
-import { visibleViewport } from './dialog-viewport.mjs?v=a81b8e1c6b961f81';
+import { visibleViewport } from './dialog-viewport.mjs?v=c7616e142084296f';
 
 const elementTop = element => element.getBoundingClientRect().top;
 const mainHeading = ':scope > .group-heading > h3';

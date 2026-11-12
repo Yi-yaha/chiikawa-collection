@@ -1,5 +1,5 @@
-import { ITEM_TYPES, typeLabel, seriesKey, seriesLabel, UNASSIGNED_SERIES } from './model.mjs?v=a81b8e1c6b961f81';
-import { seriesHierarchy } from './series-tree.mjs?v=a81b8e1c6b961f81';
+import { ITEM_TYPES, typeLabel, seriesKey, seriesLabel, UNASSIGNED_SERIES } from './model.mjs?v=c7616e142084296f';
+import { seriesHierarchy } from './series-tree.mjs?v=c7616e142084296f';
 
 export const collectionQuantity = (quantities, id) => Number.isInteger(quantities?.[id]) && quantities[id] > 0 ? quantities[id] : 0;
 

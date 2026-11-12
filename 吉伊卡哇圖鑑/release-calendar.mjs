@@ -1,4 +1,5 @@
-import { releaseCalendarEvent } from './release-calendar-export.mjs?v=a81b8e1c6b961f81';
+import { releaseCalendarLinks } from './release-calendar-export.mjs?v=c7616e142084296f';
+import { createReleaseCalendarAdd } from './release-calendar-add.mjs?v=c7616e142084296f';
 
 const taipeiDateFormat = new Intl.DateTimeFormat('sv-SE', { timeZone:'Asia/Taipei' });
 const dayFormat = new Intl.DateTimeFormat('zh-TW', { timeZone:'UTC', month:'long', day:'numeric', weekday:'long' });
@@ -37,16 +38,7 @@ function releaseTitle(event) {
   return title;
 }
 
-function webLink(label, href, iconName = 'link') {
-  if (!href) return null;
-  try {
-    const url = new URL(href);
-    if (url.protocol === 'https:' || url.protocol === 'http:') return { label, url:url.href, iconName };
-  } catch { /* 網址無法使用時仍可查看時程。 */ }
-  return null;
-}
-
-function agendaRow(event, date, icon) {
+function agendaRow(event, date, icon, openAdd) {
   const row = document.createElement('li');
   const hours = document.createElement('span');
   hours.className = 'release-event-hours';
@@ -67,12 +59,7 @@ function agendaRow(event, date, icon) {
   }
   const links = document.createElement('div');
   links.className = 'release-event-links';
-  const mapUrl = event.mapUrl || (event.location && 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(event.location));
-  const destinations = [
-    webLink(event.preorderUrl ? '新品網址' : '販售網址', event.url),
-    webLink('預售網址', event.preorderUrl),
-    webLink('Google 地圖', mapUrl, null),
-  ].filter(Boolean);
+  const destinations = releaseCalendarLinks(event);
   for (const { label, url, iconName } of destinations) {
     const link = document.createElement('a');
     link.href = url;
@@ -82,19 +69,22 @@ function agendaRow(event, date, icon) {
     link.append(label);
     links.append(link);
   }
-  const add = document.createElement('a');
+  const add = document.createElement('button');
+  add.type = 'button';
   add.className = 'release-event-add';
-  add.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(releaseCalendarEvent(event, date, destinations));
-  add.download = '吉伊卡哇行事曆-' + date + '-' + event.time.replace(':', '') + '.ics';
   add.setAttribute('aria-label', '加入行事曆');
+  add.setAttribute('aria-haspopup', 'dialog');
+  add.setAttribute('aria-controls', 'release-calendar-add');
   add.title = '加入行事曆';
   add.innerHTML = icon('calendar');
+  add.addEventListener('click', () => openAdd(event, date, add));
   row.append(hours, details, add);
   if (links.childElementCount) row.append(links);
   return row;
 }
 
 export function createReleaseCalendar(openDialog, icon) {
+  const openAdd = createReleaseCalendarAdd(openDialog);
   const byId = id => document.getElementById(id);
   const month = byId('release-month');
   const returnToToday = byId('release-today');
@@ -206,7 +196,7 @@ export function createReleaseCalendar(openDialog, icon) {
 
   function renderAgenda() {
     dateLabel.textContent = releaseDayLabel(selected);
-    const rows = eventsOn(selected).map(event => agendaRow(event, selected, icon));
+    const rows = eventsOn(selected).map(event => agendaRow(event, selected, icon, openAdd));
     list.replaceChildren(...rows);
     retry.hidden = !failed;
     status.hidden = rows.length > 0 && !failed && !loading;
@@ -337,7 +327,7 @@ export function createReleaseCalendar(openDialog, icon) {
       selected = today;
       renderDays();
       void loadEvents();
-      openDialog();
+      openDialog('release-calendar');
       centerMonth();
       byId('release-calendar').scrollTop = 0;
     },

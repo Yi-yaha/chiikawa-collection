@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Chiikawa Collection//Release Calendar//ZH-TW
+BEGIN:VEVENT
+UID:pocket-christmas-2026-11-24@yi-yaha.github.io
+DTSTAMP:20261112T102405Z
+DTSTART:20261124T020000Z
+SUMMARY:吉伊卡哇聖誕節
+DESCRIPTION:販售網址 https://chiikawa-pocket-goods-store.com/
+URL:https://chiikawa-pocket-goods-store.com/
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:-PT10M
+DESCRIPTION:吉伊卡哇聖誕節
+END:VALARM
+END:VEVENT
+END:VCALENDAR

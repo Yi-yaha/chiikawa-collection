@@ -227,6 +227,7 @@
 }
 .release-event-links svg, .release-event-add svg { width: 14px; height: 14px; flex: none; }
 .release-event-add {
+  padding: 0;
   margin-block-start: -5px;
   width: 34px;
   justify-content: center;
@@ -235,9 +236,32 @@
   background: #f8eeeb;
   text-decoration: none;
 }
+.release-calendar-add { width: 420px; padding: 22px; }
+.release-calendar-add .dialog-heading { align-items: flex-start; }
+.release-calendar-add .dialog-heading h2 { font-size: 19px; letter-spacing: 0; padding-top: 6px; }
+.release-calendar-add .dialog-heading .icon-button { flex: none; margin: -3px -6px 0 0; }
+.release-add-event { margin: 18px 0 20px; }
+.release-add-event h3 { font-size: 17px; font-weight: 650; line-height: 1.6; overflow-wrap: anywhere; }
+.release-add-when { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 8px; font-size: 14px; color: var(--coral-dark); }
+.release-add-when span:last-child { font-variant-numeric: tabular-nums; font-weight: 650; }
+.release-add-location { margin-top: 5px; font-size: 13px; color: #71675f; }
+.release-add-reminder { display: flex; align-items: center; gap: 16px; padding-block: 12px; border-block: 1px solid var(--line); font-size: 14px; }
+.release-add-reminder > span { flex: 1; }
+.release-add-reminder select { min-height: 44px; max-width: 60%; padding: 8px 30px 8px 12px; border: 1px solid #dfb9af; border-radius: 9px; background: var(--paper); color: var(--coral-dark); font-size: 16px; }
+.release-add-note { margin-top: 10px; font-size: 12px; line-height: 1.8; color: #71675f; }
+.release-add-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.release-add-cancel, .release-add-proceed { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 10px 18px; border-radius: 10px; font-size: 14px; }
+.release-add-cancel { border: 1px solid var(--line); background: var(--paper); }
+.release-add-proceed { gap: 8px; background: #a14f43; color: white; font-weight: 600; }
+.release-add-proceed svg { width: 17px; height: 17px; }
+.release-add-status:empty { display: none; }
+.release-add-help { margin-top: 14px; font-size: 12px; color: #71675f; }
+.release-add-help summary { width: fit-content; cursor: pointer; padding-block: 5px; }
+.release-add-help p { padding-top: 5px; line-height: 1.8; }
 @media (hover: hover) and (pointer: fine) {
   .release-days button[aria-pressed="false"]:hover { background: var(--bg); }
   .release-event-add:hover { background: #f0dfda; }
+  .release-add-proceed:hover { background: #8e4339; }
 }
 @media (min-width: 1100px) {
   .release-calendar[open] {

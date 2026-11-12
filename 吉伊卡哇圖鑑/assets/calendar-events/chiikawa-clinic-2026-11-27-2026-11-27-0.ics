@@ -1,0 +1,18 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Chiikawa Collection//Release Calendar//ZH-TW
+BEGIN:VEVENT
+UID:chiikawa-clinic-2026-11-27@yi-yaha.github.io
+DTSTAMP:20261112T102405Z
+DTSTART:20261127T020000Z
+SUMMARY:吉伊卡哇診所系列第一彈新品／預售
+DESCRIPTION:新品網址 https://chiikawamarket.jp/collections/20261127\n
+ 預售網址 https://chiikawamarket.jp/collections/pre20261127
+URL:https://chiikawamarket.jp/collections/20261127
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER:PT0S
+DESCRIPTION:吉伊卡哇診所系列第一彈新品／預售
+END:VALARM
+END:VEVENT
+END:VCALENDAR
