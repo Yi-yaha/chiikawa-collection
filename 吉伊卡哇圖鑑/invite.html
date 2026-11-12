@@ -26,13 +26,14 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=72b4edb3da004c3e">
-  <link rel="stylesheet" href="./purchase.css?v=72b4edb3da004c3e">
-  <link rel="stylesheet" href="./account.css?v=72b4edb3da004c3e">
-  <link rel="stylesheet" href="./collection-overview.css?v=72b4edb3da004c3e">
-  <link rel="stylesheet" href="./report.css?v=72b4edb3da004c3e">
-  <script type="module" src="./app.mjs?v=72b4edb3da004c3e"></script>
-  <meta name="chiikawa-site-version" content="72b4edb3da004c3e">
+  <link rel="stylesheet" href="./styles.css?v=f343692892ce8675">
+  <link rel="stylesheet" href="./purchase.css?v=f343692892ce8675">
+  <link rel="stylesheet" href="./account.css?v=f343692892ce8675">
+  <link rel="stylesheet" href="./collection-overview.css?v=f343692892ce8675">
+  <link rel="stylesheet" href="./report.css?v=f343692892ce8675">
+  <link rel="stylesheet" href="./release-calendar.css?v=f343692892ce8675">
+  <script type="module" src="./app.mjs?v=f343692892ce8675"></script>
+  <meta name="chiikawa-site-version" content="f343692892ce8675">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -54,6 +55,7 @@
             <div class="menu-divider"></div>
             <button id="open-settings" aria-haspopup="dialog" aria-controls="settings-dialog" disabled><span data-icon="sliders"></span>收藏設定</button>
             <button id="open-selling" aria-haspopup="dialog" aria-controls="selling-dialog" disabled><span data-icon="sale"></span>待出售清單</button>
+            <button id="open-release-calendar" type="button" aria-haspopup="dialog" aria-controls="release-calendar"><span data-icon="calendar"></span>吉伊卡哇行事曆</button>
             <div class="menu-divider"></div>
             <button id="open-data"><span data-icon="box"></span>資料管理</button>
             <button id="open-guide" aria-haspopup="dialog" aria-controls="guide-dialog"><span data-icon="info"></span>使用說明</button>
@@ -110,6 +112,30 @@
   <footer class="privacy-footer"><a href="./privacy.html">隱私權與資料說明</a></footer>
 
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+  <dialog id="release-calendar" class="panel-dialog release-calendar" aria-labelledby="release-calendar-title">
+    <div class="dialog-heading">
+      <h2 id="release-calendar-title">吉伊卡哇行事曆</h2>
+      <button class="icon-button" type="button" data-close="release-calendar" aria-label="關閉吉伊卡哇行事曆" autofocus><span data-icon="close"></span></button>
+    </div>
+    <div class="release-month-controls">
+      <h3 id="release-month" aria-live="polite"></h3>
+      <button class="release-today" id="release-today" type="button" disabled><span>回到今天</span></button>
+    </div>
+    <div class="release-weekdays" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+    <div id="release-month-swipe" class="release-month-swipe" role="group" aria-labelledby="release-month" aria-keyshortcuts="ArrowLeft ArrowRight" tabindex="0">
+      <div id="release-month-track" class="release-month-track">
+        <div id="release-month-before" class="release-days release-month-before" aria-hidden="true" inert></div>
+        <div id="release-days" class="release-days"></div>
+        <div id="release-month-after" class="release-days release-month-after" aria-hidden="true" inert></div>
+      </div>
+    </div>
+    <section class="release-agenda" aria-labelledby="release-date">
+      <h3 id="release-date"></h3>
+      <p id="release-status" class="release-status" role="status"></p>
+      <button class="text-button" id="release-retry" type="button" hidden>重新載入</button>
+      <ul id="release-events" class="release-events"></ul>
+    </section>
+  </dialog>
   <dialog id="guide-dialog" class="panel-dialog guide-dialog" aria-labelledby="guide-title" aria-describedby="guide-description">
     <div class="dialog-heading"><h2 id="guide-title">使用說明</h2><button class="icon-button" data-close="guide-dialog" aria-label="關閉使用說明" autofocus><span data-icon="close"></span></button></div>
     <p id="guide-description" class="dialog-description">記錄收藏、查看花費，或回報還沒收錄的商品。點選下方項目查看操作方式。</p>

@@ -1,0 +1,181 @@
+.release-calendar {
+  width: 660px;
+  max-width: calc(100vw - 16px);
+  padding: 18px 20px 20px;
+}
+.release-calendar .dialog-heading { margin-bottom: 8px; }
+.release-month-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.release-month-controls h3 {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 650;
+  color: #a14f43;
+}
+.release-today {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.release-today span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #a14f43;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 650;
+}
+.release-today:disabled { cursor: default; }
+.release-today:disabled span {
+  border-color: var(--line);
+  background: var(--bg);
+  color: var(--muted);
+}
+.release-month-swipe {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  user-select: none;
+  cursor: grab;
+}
+.release-month-swipe::-webkit-scrollbar { display: none; }
+.release-month-swipe.is-dragging { scroll-snap-type: none; cursor: grabbing; }
+.release-month-track {
+  position: relative;
+  width: calc(100% * var(--month-pages, 3));
+}
+.release-month-track > .release-days {
+  width: calc(100% / var(--month-pages, 3));
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+#release-days { margin-inline-start: calc(100% * var(--month-page, 1) / var(--month-pages, 3)); }
+.release-month-before, .release-month-after {
+  position: absolute;
+  inset-block: 0;
+  align-content: start;
+  overflow: hidden;
+}
+.release-month-before { inset-inline-start: 0; }
+.release-month-after { inset-inline-end: 0; }
+.release-month-track > [hidden] { display: none; }
+.release-weekdays, .release-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+.release-weekdays {
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: #71675f;
+  text-align: center;
+}
+.release-days button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  min-height: 86px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.release-month-swipe.is-dragging button { cursor: grabbing; }
+.release-days button[aria-current="date"] { border-color: #baa69c; }
+.release-days button[aria-pressed="true"] {
+  background: #fbf4f1;
+  border-color: #c7938a;
+}
+.release-day-number {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 18px;
+}
+.release-day-summary {
+  display: grid;
+  width: 100%;
+  font-size: 11px;
+  line-height: 13px;
+}
+.release-day-summary + .release-day-summary {
+  padding-top: 3px;
+  border-top: 1px solid var(--line);
+}
+.release-day-summary time {
+  color: var(--coral-dark);
+  font-weight: 650;
+}
+.release-day-summary span {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.release-day-more {
+  color: #71675f;
+  font-size: 10px;
+  line-height: 12px;
+}
+.release-agenda {
+  min-height: 114px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.release-agenda h3 {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.release-status { color: #71675f; font-size: 12px; }
+.release-events { list-style: none; margin: 0; padding: 0; }
+.release-events li {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-height: 38px;
+  padding: 8px 0;
+}
+.release-events li + li { border-top: 1px solid var(--line); }
+.release-event-hours {
+  color: var(--coral-dark);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.release-event-details { min-width: 0; overflow-wrap: anywhere; }
+.release-event-context { margin-top: 2px; color: #71675f; font-size: 12px; }
+.release-event-links { display: flex; flex-wrap: wrap; column-gap: 14px; }
+.release-event-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--coral-dark);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .release-days button[aria-pressed="false"]:hover { background: var(--bg); }
+}
+@media (max-width: 540px) {
+  .release-calendar { padding: 14px 10px 16px; }
+  .release-calendar .dialog-heading, .release-month-controls, .release-agenda { margin-inline: 4px; }
+  .release-days button { padding-inline: 3px; }
+}
+@media (max-width: 360px) {
+  .release-day-summary { font-size: 10px; }
+}
