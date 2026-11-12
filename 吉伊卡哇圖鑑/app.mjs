@@ -1,16 +1,16 @@
-import './focus-visibility.mjs?v=1b95d60331a632ce';
-import { createPurchaseHub } from './purchase-hub.mjs?v=1b95d60331a632ce';
-import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=1b95d60331a632ce';
-import { createDialogController } from './dialog-scroll.mjs?v=1b95d60331a632ce';
-import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=1b95d60331a632ce';
-import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=1b95d60331a632ce';
-import { createCatalogImageLoader } from './image-loader.mjs?v=1b95d60331a632ce';
-import { createCatalogScrollHint } from './catalog-scroll-hint.mjs?v=1b95d60331a632ce';
-import { createCharacterSorter } from './character-sorter.mjs?v=1b95d60331a632ce';
-import { isSiteAuthCallback, watchForSiteUpdates } from './site-updates.mjs?v=1b95d60331a632ce';
-import { createReportHub } from './report-hub.mjs?v=1b95d60331a632ce';
-import { createReleaseCalendar } from './release-calendar.mjs?v=1b95d60331a632ce';
-import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=1b95d60331a632ce';
+import './focus-visibility.mjs?v=a81b8e1c6b961f81';
+import { createPurchaseHub } from './purchase-hub.mjs?v=a81b8e1c6b961f81';
+import { createViewState, capturePosition, restorePosition } from './view-state.mjs?v=a81b8e1c6b961f81';
+import { createDialogController } from './dialog-scroll.mjs?v=a81b8e1c6b961f81';
+import { createFilterMenu, filterChoice, upgradeFilterSelect } from './filter-menu.mjs?v=a81b8e1c6b961f81';
+import { STORAGE_KEY, MAX_QUANTITY, ITEM_TYPES, PROGRESS_TYPES, typeLabel, seriesKey, seriesLabel, seriesGroupKey, catalogSeriesSections, groupSeriesOptions, isProgressIncluded, normalizeSaved, mergeSaved, progressTotals, scopeItems, filterItems, collectionStats, groupItems, characterTabName, characterTabOrder, reorderCharacterTabs } from './model.mjs?v=a81b8e1c6b961f81';
+import { createCatalogImageLoader } from './image-loader.mjs?v=a81b8e1c6b961f81';
+import { createCatalogScrollHint } from './catalog-scroll-hint.mjs?v=a81b8e1c6b961f81';
+import { createCharacterSorter } from './character-sorter.mjs?v=a81b8e1c6b961f81';
+import { isSiteAuthCallback, watchForSiteUpdates } from './site-updates.mjs?v=a81b8e1c6b961f81';
+import { createReportHub } from './report-hub.mjs?v=a81b8e1c6b961f81';
+import { createReleaseCalendar } from './release-calendar.mjs?v=a81b8e1c6b961f81';
+import { PURCHASE_CURRENCIES, purchaseCurrency, normalizePurchaseAmount, normalizePurchaseRate, calculatePurchaseField, normalizePurchaseRecord, formatPurchaseAmount, formatPurchaseExchangeRate, describePurchaseRecord } from './purchase-records.mjs?v=a81b8e1c6b961f81';
 
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1331,7 +1331,7 @@ async function init() {
     }
     if (!accountHub) {
       try {
-        const { createAccountHub } = await import('./account-hub.mjs?v=1b95d60331a632ce');
+        const { createAccountHub } = await import('./account-hub.mjs?v=a81b8e1c6b961f81');
         const normalize = value => normalizeSaved(value,state.characters,new Set(itemMap.keys()),itemAliases);
         accountHub = createAccountHub({
           seriesTree:state.seriesTree, initialView:browse?.social, items:state.items, characters:state.characters, getAvatar:character => avatars.get(character),

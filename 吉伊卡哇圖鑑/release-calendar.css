@@ -1,4 +1,5 @@
 .release-calendar {
+  --release-day-inset: 6px;
   width: 660px;
   max-width: calc(100vw - 16px);
   padding: 18px 20px 20px;
@@ -85,21 +86,46 @@
   border-bottom: 1px solid var(--line);
   font-size: 12px;
   color: #71675f;
-  text-align: center;
+  text-align: left;
 }
+.release-weekdays > span { padding-inline: var(--release-day-inset); }
 .release-days button {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 2px;
   min-width: 0;
   min-height: 0;
-  padding: 4px 3px;
-  text-align: center;
+  padding: 3px var(--release-day-inset) 4px;
+  text-align: left;
   font-variant-numeric: tabular-nums;
 }
-.release-days .has-multiple-releases { gap: 1px; padding-block: 1px; }
-.release-days .has-multiple-releases .release-day-number { line-height: 14px; }
+.release-days .has-release-range {
+  position: relative;
+  isolation: isolate;
+}
+.release-days .has-release-range::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0 -1px;
+  inset-block-start: 1px;
+  height: 18px;
+  background: #f1ddd6;
+  pointer-events: none;
+}
+.release-days .release-range-start::before {
+  inset-inline-start: 2px;
+  border-start-start-radius: 5px;
+  border-end-start-radius: 5px;
+}
+.release-days .release-range-end::before {
+  inset-inline-end: 2px;
+  border-start-end-radius: 5px;
+  border-end-end-radius: 5px;
+}
+.release-days .has-release-range .release-day-number { color: var(--coral-dark); }
+.release-days .has-multiple-releases { gap: 0; padding-block-end: 0; }
 .release-days .has-multiple-releases .release-day-summary { line-height: 11px; }
 .release-days .has-multiple-releases .release-day-summary + .release-day-summary { padding-top: 0; }
 .release-month-swipe.is-dragging button { cursor: grabbing; }
@@ -114,7 +140,7 @@
 .release-day-number {
   font-size: 13px;
   font-weight: 650;
-  line-height: 18px;
+  line-height: 14px;
 }
 .release-day-summary {
   display: grid;
@@ -158,8 +184,8 @@
 .release-events { list-style: none; margin: 0; padding: 0; }
 .release-events li {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: baseline;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
   column-gap: 14px;
   min-height: 38px;
   padding: 8px 0;
@@ -170,18 +196,25 @@
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  line-height: 22px;
 }
 .release-event-details { min-width: 0; overflow-wrap: anywhere; }
-.release-event-context { margin-top: 2px; color: #71675f; font-size: 12px; }
-.release-event-actions {
+.release-event-details > span { display: block; line-height: 22px; }
+.release-event-context {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  margin-top: 2px;
+  color: #71675f;
+  font-size: 12px;
+}
+.release-event-links {
   display: flex;
   grid-column: 1 / -1;
-  align-items: flex-start;
   flex-wrap: wrap;
-  column-gap: 18px;
+  column-gap: 14px;
 }
-.release-event-links { display: flex; flex-wrap: wrap; column-gap: 14px; }
-.release-event-actions a {
+.release-event-links a, .release-event-add {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -192,9 +225,9 @@
   text-underline-offset: 3px;
   white-space: nowrap;
 }
-.release-event-actions svg { width: 14px; height: 14px; flex: none; }
-.release-event-actions .release-event-add {
-  margin-inline-start: auto;
+.release-event-links svg, .release-event-add svg { width: 14px; height: 14px; flex: none; }
+.release-event-add {
+  margin-block-start: -5px;
   width: 34px;
   justify-content: center;
   border: 1px solid #dfb9af;
@@ -204,12 +237,38 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .release-days button[aria-pressed="false"]:hover { background: var(--bg); }
-  .release-event-actions .release-event-add:hover { background: #f0dfda; }
+  .release-event-add:hover { background: #f0dfda; }
+}
+@media (min-width: 1100px) {
+  .release-calendar[open] {
+    display: grid;
+    width: 960px;
+    grid-template-columns: minmax(0, 618px) minmax(0, 1fr);
+    grid-template-areas:
+      "heading heading"
+      "controls agenda"
+      "weekdays agenda"
+      "dates agenda";
+    column-gap: 22px;
+    align-items: start;
+    align-content: start;
+  }
+  .release-calendar .dialog-heading { grid-area: heading; }
+  .release-month-controls { grid-area: controls; }
+  .release-weekdays { grid-area: weekdays; }
+  .release-month-swipe { grid-area: dates; }
+  .release-agenda {
+    grid-area: agenda;
+    min-width: 0;
+    margin: 0;
+    padding: 8px 0 0 18px;
+    border-top: 0;
+    border-inline-start: 1px solid var(--line);
+  }
 }
 @media (max-width: 540px) {
-  .release-calendar { padding: 14px 10px 16px; }
+  .release-calendar { --release-day-inset: 4px; padding: 14px 10px 16px; }
   .release-calendar .dialog-heading, .release-agenda { margin-inline: 4px; }
-  .release-days button { padding-inline: 2px; }
 }
 @media (max-width: 360px) {
   .release-day-summary { font-size: 10px; }

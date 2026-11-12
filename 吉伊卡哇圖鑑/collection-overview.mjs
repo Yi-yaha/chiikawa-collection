@@ -1,8 +1,8 @@
-import { createFilterMenu, filterChoice } from './filter-menu.mjs?v=1b95d60331a632ce';
-import { ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems, groupSeriesOptions } from './model.mjs?v=1b95d60331a632ce';
-import { normalizeSearchText } from './series-tree.mjs?v=1b95d60331a632ce';
-import { collectionOverview, collectionQuantity, overviewSeries, overviewScope } from './collection-overview-model.mjs?v=1b95d60331a632ce';
-import { catalogPreviewCard } from './catalog-preview-card.mjs?v=1b95d60331a632ce';
+import { createFilterMenu, filterChoice } from './filter-menu.mjs?v=a81b8e1c6b961f81';
+import { ITEM_TYPES, typeLabel, seriesKey, seriesLabel, filterItems, groupSeriesOptions } from './model.mjs?v=a81b8e1c6b961f81';
+import { normalizeSearchText } from './series-tree.mjs?v=a81b8e1c6b961f81';
+import { collectionOverview, collectionQuantity, overviewSeries, overviewScope } from './collection-overview-model.mjs?v=a81b8e1c6b961f81';
+import { catalogPreviewCard } from './catalog-preview-card.mjs?v=a81b8e1c6b961f81';
 
 const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const n = value => Number(value || 0).toLocaleString('zh-TW');

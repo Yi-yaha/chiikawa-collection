@@ -691,6 +691,27 @@ html.detail-page-locked .catalog-heading{transform:translateY(var(--detail-headi
 .product-name{font-weight:600}
 .privacy-footer{margin-top:30px}
 @media(min-width:701px){.search-filter-row{max-width:660px}.catalog-toolbar{max-width:660px}.filter-options{max-width:660px}.ownership-control button{padding-inline:24px}.product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:960px){
+  #catalog > .catalog-heading .catalog-title-row{max-width:none}
+  #catalog > .filters .filter-controls{
+    grid-template-columns:minmax(220px,1.05fr) minmax(0,1fr) auto;
+    grid-template-areas:"search options toggle";
+    align-items:center;
+  }
+  #catalog > .filters .filter-controls:has(> #filter-options[hidden]){
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"search toggle";
+  }
+  #catalog > .filters .search-filter-row{display:contents}
+  #catalog > .filters .search-control{grid-area:search;height:44px;min-height:44px}
+  #catalog > .filters .filter-toggle{grid-area:toggle;width:44px;height:44px;min-height:44px}
+  #catalog > .filters #filter-options{
+    grid-area:options;
+    max-width:none;
+    grid-template-columns:repeat(2,minmax(0,1fr)) minmax(0,1.25fr);
+  }
+  #catalog > .filters #filter-options .series-anchor{grid-column:auto}
+}
 @media(min-width:1100px){.product-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
 @media(max-width:700px){
   .header-inner{--nav-avatar:42px;--character-tab-min:55px;padding-inline:16px;gap:6px}

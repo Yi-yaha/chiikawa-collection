@@ -1,4 +1,4 @@
-import { releaseCalendarEvent } from './release-calendar-export.mjs?v=1b95d60331a632ce';
+import { releaseCalendarEvent } from './release-calendar-export.mjs?v=a81b8e1c6b961f81';
 
 const taipeiDateFormat = new Intl.DateTimeFormat('sv-SE', { timeZone:'Asia/Taipei' });
 const dayFormat = new Intl.DateTimeFormat('zh-TW', { timeZone:'UTC', month:'long', day:'numeric', weekday:'long' });
@@ -58,7 +58,11 @@ function agendaRow(event, date, icon) {
   if (event.endDate || event.location) {
     const context = document.createElement('p');
     context.className = 'release-event-context';
-    context.textContent = [event.endDate && releaseDateRange(event), event.location].filter(Boolean).join(' · ');
+    for (const value of [event.endDate && releaseDateRange(event), event.location].filter(Boolean)) {
+      const line = document.createElement('span');
+      line.textContent = value;
+      context.append(line);
+    }
     details.append(context);
   }
   const links = document.createElement('div');
@@ -85,11 +89,8 @@ function agendaRow(event, date, icon) {
   add.setAttribute('aria-label', '加入行事曆');
   add.title = '加入行事曆';
   add.innerHTML = icon('calendar');
-  const actions = document.createElement('div');
-  actions.className = 'release-event-actions';
-  if (links.childElementCount) actions.append(links);
-  actions.append(add);
-  row.append(hours, details, actions);
+  row.append(hours, details, add);
+  if (links.childElementCount) row.append(links);
   return row;
 }
 
@@ -136,22 +137,31 @@ export function createReleaseCalendar(openDialog, icon) {
       }
       const date = monthKey + '-' + String(number).padStart(2, '0');
       const events = eventsOn(date);
+      const activeRanges = events.filter(event => event.endDate);
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.releaseDate = date;
-      const visibleEvents = events.slice(0, 2);
+      const summaries = events.filter(event => !event.endDate || event.date === date || number === 1);
+      const visibleEvents = summaries.slice(0, 2);
+      if (activeRanges.length) {
+        button.classList.add('has-release-range');
+        const starts = number === 1 || cell % 7 === 0 || activeRanges.every(event => event.date === date);
+        const ends = number === lastDay || cell % 7 === 6 || activeRanges.every(event => event.endDate === date);
+        button.classList.toggle('release-range-start', starts);
+        button.classList.toggle('release-range-end', ends);
+      }
       button.classList.toggle('has-multiple-releases', visibleEvents.length > 1);
-      const description = visibleEvents.map(event => [event.time + (event.endTime ? ' 至 ' + event.endTime : ''), event.title || '新品開售'].join(' ')).join('、');
+      const description = events.slice(0, 2).map(event => [event.time + (event.endTime ? ' 至 ' + event.endTime : ''), event.title || '新品開售'].join(' ')).join('、');
       button.setAttribute('aria-label', releaseDayLabel(date) + (events.length ? '，' + events.length + ' 筆開售時程，' + description : ''));
       button.setAttribute('aria-pressed', String(date === activeDate));
       if (date === today) button.setAttribute('aria-current', 'date');
       const dayNumber = document.createElement('span');
       dayNumber.className = 'release-day-number';
       dayNumber.textContent = number;
-      if (events.length > visibleEvents.length) {
+      if (summaries.length > visibleEvents.length) {
         const more = document.createElement('span');
         more.className = 'release-day-more';
-        more.textContent = '+' + (events.length - visibleEvents.length);
+        more.textContent = '+' + (summaries.length - visibleEvents.length);
         dayNumber.append(more);
       }
       button.append(dayNumber);
