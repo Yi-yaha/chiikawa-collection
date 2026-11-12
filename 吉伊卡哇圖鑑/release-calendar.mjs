@@ -1,4 +1,4 @@
-import { releaseCalendarEvent } from './release-calendar-export.mjs?v=bb152f3e5db7c194';
+import { releaseCalendarEvent } from './release-calendar-export.mjs?v=1b95d60331a632ce';
 
 const taipeiDateFormat = new Intl.DateTimeFormat('sv-SE', { timeZone:'Asia/Taipei' });
 const dayFormat = new Intl.DateTimeFormat('zh-TW', { timeZone:'UTC', month:'long', day:'numeric', weekday:'long' });
@@ -140,6 +140,7 @@ export function createReleaseCalendar(openDialog, icon) {
       button.type = 'button';
       button.dataset.releaseDate = date;
       const visibleEvents = events.slice(0, 2);
+      button.classList.toggle('has-multiple-releases', visibleEvents.length > 1);
       const description = visibleEvents.map(event => [event.time + (event.endTime ? ' 至 ' + event.endTime : ''), event.title || '新品開售'].join(' ')).join('、');
       button.setAttribute('aria-label', releaseDayLabel(date) + (events.length ? '，' + events.length + ' 筆開售時程，' + description : ''));
       button.setAttribute('aria-pressed', String(date === activeDate));
@@ -147,18 +148,18 @@ export function createReleaseCalendar(openDialog, icon) {
       const dayNumber = document.createElement('span');
       dayNumber.className = 'release-day-number';
       dayNumber.textContent = number;
+      if (events.length > visibleEvents.length) {
+        const more = document.createElement('span');
+        more.className = 'release-day-more';
+        more.textContent = '+' + (events.length - visibleEvents.length);
+        dayNumber.append(more);
+      }
       button.append(dayNumber);
       for (const event of visibleEvents) {
         const summary = document.createElement('span');
         summary.className = 'release-day-summary';
         summary.append(releaseTime(date, event.time), releaseTitle(event));
         button.append(summary);
-      }
-      if (events.length > visibleEvents.length) {
-        const more = document.createElement('span');
-        more.className = 'release-day-more';
-        more.textContent = '+' + (events.length - visibleEvents.length);
-        button.append(more);
       }
       grid.append(button);
     }

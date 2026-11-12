@@ -4,12 +4,6 @@
   padding: 18px 20px 20px;
 }
 .release-calendar .dialog-heading { margin-bottom: 8px; }
-.release-month-panel {
-  padding: 0 8px 6px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #fdfbf9;
-}
 .release-month-controls {
   display: flex;
   align-items: center;
@@ -78,10 +72,15 @@
 .release-weekdays, .release-days {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 2px;
 }
+.release-days { grid-auto-rows: 86px; }
+.release-days > * {
+  border-inline-end: 1px solid var(--line);
+  border-block-end: 1px solid var(--line);
+}
+.release-days > :nth-child(7n) { border-inline-end: 0; }
+.release-days > :nth-last-child(-n+7) { border-block-end: 0; }
 .release-weekdays {
-  margin-bottom: 3px;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--line);
   font-size: 12px;
@@ -94,12 +93,15 @@
   align-items: center;
   gap: 2px;
   min-width: 0;
-  min-height: 44px;
-  padding: 3px 3px 4px;
-  border-radius: 8px;
+  min-height: 0;
+  padding: 4px 3px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+.release-days .has-multiple-releases { gap: 1px; padding-block: 1px; }
+.release-days .has-multiple-releases .release-day-number { line-height: 14px; }
+.release-days .has-multiple-releases .release-day-summary { line-height: 11px; }
+.release-days .has-multiple-releases .release-day-summary + .release-day-summary { padding-top: 0; }
 .release-month-swipe.is-dragging button { cursor: grabbing; }
 .release-days button[aria-current="date"] .release-day-number {
   color: var(--coral-dark);
@@ -136,9 +138,10 @@
   -webkit-line-clamp: 2;
 }
 .release-day-more {
+  margin-inline-start: 4px;
   color: #71675f;
-  font-size: 10px;
-  line-height: 12px;
+  font-size: 9px;
+  font-weight: 500;
 }
 .release-agenda {
   min-height: 114px;
@@ -206,7 +209,6 @@
 @media (max-width: 540px) {
   .release-calendar { padding: 14px 10px 16px; }
   .release-calendar .dialog-heading, .release-agenda { margin-inline: 4px; }
-  .release-month-panel { padding-inline: 4px; }
   .release-days button { padding-inline: 2px; }
 }
 @media (max-width: 360px) {
