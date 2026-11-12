@@ -26,14 +26,14 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png?v=df3fbaeb64ed74fc">
   <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon-512.png?v=26e9acd5b5eeaf6b">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=60efe155ab7622e9">
-  <link rel="stylesheet" href="./styles.css?v=f343692892ce8675">
-  <link rel="stylesheet" href="./purchase.css?v=f343692892ce8675">
-  <link rel="stylesheet" href="./account.css?v=f343692892ce8675">
-  <link rel="stylesheet" href="./collection-overview.css?v=f343692892ce8675">
-  <link rel="stylesheet" href="./report.css?v=f343692892ce8675">
-  <link rel="stylesheet" href="./release-calendar.css?v=f343692892ce8675">
-  <script type="module" src="./app.mjs?v=f343692892ce8675"></script>
-  <meta name="chiikawa-site-version" content="f343692892ce8675">
+  <link rel="stylesheet" href="./styles.css?v=bb152f3e5db7c194">
+  <link rel="stylesheet" href="./purchase.css?v=bb152f3e5db7c194">
+  <link rel="stylesheet" href="./account.css?v=bb152f3e5db7c194">
+  <link rel="stylesheet" href="./collection-overview.css?v=bb152f3e5db7c194">
+  <link rel="stylesheet" href="./report.css?v=bb152f3e5db7c194">
+  <link rel="stylesheet" href="./release-calendar.css?v=bb152f3e5db7c194">
+  <script type="module" src="./app.mjs?v=bb152f3e5db7c194"></script>
+  <meta name="chiikawa-site-version" content="bb152f3e5db7c194">
 </head>
 <body>
   <a class="skip-link" href="#catalog">跳到圖鑑內容</a>
@@ -117,16 +117,18 @@
       <h2 id="release-calendar-title">吉伊卡哇行事曆</h2>
       <button class="icon-button" type="button" data-close="release-calendar" aria-label="關閉吉伊卡哇行事曆" autofocus><span data-icon="close"></span></button>
     </div>
-    <div class="release-month-controls">
-      <h3 id="release-month" aria-live="polite"></h3>
-      <button class="release-today" id="release-today" type="button" disabled><span>回到今天</span></button>
-    </div>
-    <div class="release-weekdays" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
-    <div id="release-month-swipe" class="release-month-swipe" role="group" aria-labelledby="release-month" aria-keyshortcuts="ArrowLeft ArrowRight" tabindex="0">
-      <div id="release-month-track" class="release-month-track">
-        <div id="release-month-before" class="release-days release-month-before" aria-hidden="true" inert></div>
-        <div id="release-days" class="release-days"></div>
-        <div id="release-month-after" class="release-days release-month-after" aria-hidden="true" inert></div>
+    <div class="release-month-panel">
+      <div class="release-month-controls">
+        <h3 id="release-month" aria-live="polite"></h3>
+        <button class="release-today" id="release-today" type="button" disabled><span>回到今天</span></button>
+      </div>
+      <div class="release-weekdays" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+      <div id="release-month-swipe" class="release-month-swipe" role="group" aria-labelledby="release-month" aria-keyshortcuts="ArrowLeft ArrowRight" tabindex="0">
+        <div id="release-month-track" class="release-month-track">
+          <div id="release-month-before" class="release-days release-month-before" aria-hidden="true" inert></div>
+          <div id="release-days" class="release-days"></div>
+          <div id="release-month-after" class="release-days release-month-after" aria-hidden="true" inert></div>
+        </div>
       </div>
     </div>
     <section class="release-agenda" aria-labelledby="release-date">

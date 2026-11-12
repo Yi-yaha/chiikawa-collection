@@ -4,11 +4,17 @@
   padding: 18px 20px 20px;
 }
 .release-calendar .dialog-heading { margin-bottom: 8px; }
+.release-month-panel {
+  padding: 0 8px 6px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fdfbf9;
+}
 .release-month-controls {
   display: flex;
   align-items: center;
   gap: 3px;
-  margin-bottom: 4px;
+  padding-inline: 4px;
 }
 .release-month-controls h3 {
   flex: 1;
@@ -72,10 +78,12 @@
 .release-weekdays, .release-days {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 3px;
+  gap: 2px;
 }
 .release-weekdays {
-  margin-bottom: 5px;
+  margin-bottom: 3px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
   font-size: 12px;
   color: #71675f;
   text-align: center;
@@ -83,20 +91,23 @@
 .release-days button {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 2px;
   min-width: 0;
-  min-height: 86px;
-  padding: 4px 6px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  text-align: left;
+  min-height: 44px;
+  padding: 3px 3px 4px;
+  border-radius: 8px;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 .release-month-swipe.is-dragging button { cursor: grabbing; }
-.release-days button[aria-current="date"] { border-color: #baa69c; }
+.release-days button[aria-current="date"] .release-day-number {
+  color: var(--coral-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .release-days button[aria-pressed="true"] {
-  background: #fbf4f1;
-  border-color: #c7938a;
+  background: var(--pink);
 }
 .release-day-number {
   font-size: 13px;
@@ -143,9 +154,10 @@
 .release-status { color: #71675f; font-size: 12px; }
 .release-events { list-style: none; margin: 0; padding: 0; }
 .release-events li {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
-  gap: 14px;
+  column-gap: 14px;
   min-height: 38px;
   padding: 8px 0;
 }
@@ -158,23 +170,44 @@
 }
 .release-event-details { min-width: 0; overflow-wrap: anywhere; }
 .release-event-context { margin-top: 2px; color: #71675f; font-size: 12px; }
+.release-event-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  column-gap: 18px;
+}
 .release-event-links { display: flex; flex-wrap: wrap; column-gap: 14px; }
-.release-event-links a {
+.release-event-actions a {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   min-height: 32px;
   color: var(--coral-dark);
   font-size: 12px;
   text-decoration: underline;
   text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.release-event-actions svg { width: 14px; height: 14px; flex: none; }
+.release-event-actions .release-event-add {
+  margin-inline-start: auto;
+  width: 34px;
+  justify-content: center;
+  border: 1px solid #dfb9af;
+  border-radius: 999px;
+  background: #f8eeeb;
+  text-decoration: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .release-days button[aria-pressed="false"]:hover { background: var(--bg); }
+  .release-event-actions .release-event-add:hover { background: #f0dfda; }
 }
 @media (max-width: 540px) {
   .release-calendar { padding: 14px 10px 16px; }
-  .release-calendar .dialog-heading, .release-month-controls, .release-agenda { margin-inline: 4px; }
-  .release-days button { padding-inline: 3px; }
+  .release-calendar .dialog-heading, .release-agenda { margin-inline: 4px; }
+  .release-month-panel { padding-inline: 4px; }
+  .release-days button { padding-inline: 2px; }
 }
 @media (max-width: 360px) {
   .release-day-summary { font-size: 10px; }
